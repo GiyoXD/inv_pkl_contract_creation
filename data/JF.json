@@ -1,0 +1,156 @@
+{
+    "metadata": {
+        "workbook_filename": "JF.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-06-21T10:57:17.222836"
+    },
+    "processed_tables_data": {
+        "1": {
+            "po": [
+                6601209888,
+                6601215250,
+                6601209890,
+                6601222501
+            ],
+            "production_order_no": [
+                "2506017-01",
+                "2506017-01",
+                "2505077-01",
+                "2505077-01"
+            ],
+            "item": [
+                110137140,
+                110137140,
+                110137280,
+                110137280
+            ],
+            "level": [
+                "A\u7ea7",
+                "A\u7ea7",
+                "A\u7ea7",
+                "A\u7ea7"
+            ],
+            "pcs": [
+                205,
+                76,
+                72,
+                163
+            ],
+            "sqft": [
+                10788.2,
+                4013.6,
+                3813.5,
+                8669.6
+            ],
+            "pallet_count": [
+                1,
+                1,
+                1,
+                null
+            ],
+            "gross": [
+                "894",
+                "360",
+                "315.4213",
+                "714.0787"
+            ],
+            "net": [
+                "849",
+                "315",
+                "301.6340",
+                "682.8660"
+            ],
+            "unit": [
+                1.17,
+                1.17,
+                1.17,
+                1.17
+            ],
+            "amount": [
+                12622.194,
+                4695.911999999999,
+                4461.795,
+                10143.432
+            ],
+            "dc": [
+                "JF250630",
+                "JF250630",
+                "JF250515",
+                "JF250515"
+            ],
+            "cbm": [
+                "2.6928",
+                "0.8134",
+                "0.7706",
+                "2.9304"
+            ],
+            "inv_no": [
+                "JLFMH25014",
+                null,
+                null,
+                null
+            ],
+            "inv_date": [
+                "06/16/2025",
+                null,
+                null,
+                null
+            ],
+            "inv_ref": [
+                "CLF2025-178",
+                null,
+                null,
+                null
+            ]
+        }
+    },
+    "standard_aggregation_results": {
+        "(6601209888, 110137140, Decimal('1.17'), None)": {
+            "sqft_sum": "10788.2",
+            "amount_sum": "12622.194"
+        },
+        "(6601215250, 110137140, Decimal('1.17'), None)": {
+            "sqft_sum": "4013.6",
+            "amount_sum": "4695.911999999999"
+        },
+        "(6601209890, 110137280, Decimal('1.17'), None)": {
+            "sqft_sum": "3813.5",
+            "amount_sum": "4461.795"
+        },
+        "(6601222501, 110137280, Decimal('1.17'), None)": {
+            "sqft_sum": "8669.6",
+            "amount_sum": "10143.432"
+        }
+    },
+    "custom_aggregation_results": {
+        "(6601209888, 110137140, None, None)": {
+            "sqft_sum": "10788.2",
+            "amount_sum": "12622.194"
+        },
+        "(6601215250, 110137140, None, None)": {
+            "sqft_sum": "4013.6",
+            "amount_sum": "4695.911999999999"
+        },
+        "(6601209890, 110137280, None, None)": {
+            "sqft_sum": "3813.5",
+            "amount_sum": "4461.795"
+        },
+        "(6601222501, 110137280, None, None)": {
+            "sqft_sum": "8669.6",
+            "amount_sum": "10143.432"
+        }
+    },
+    "final_fob_compounded_result": {
+        "1": {
+            "combined_po": "6601209888/6601209890\n6601215250/6601222501",
+            "combined_item": "110137140/110137280",
+            "combined_description": "",
+            "total_sqft": "27284.9",
+            "total_amount": "31923.332999999999"
+        }
+    }
+}
