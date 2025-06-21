@@ -922,8 +922,7 @@ def _apply_fallback(
     else:
         fallback_key = "fallback_on_none"
         
-    if fallback_key in mapping_rule:
-        row_dict[target_col_idx] = mapping_rule[fallback_key]
+    row_dict[target_col_idx] = mapping_rule[fallback_key] or mapping_rule.get("fallback_on_none")
 
 
 def prepare_data_rows(
@@ -1242,7 +1241,7 @@ def write_summary_rows(
                 desc_val = raw_val
                 if isinstance(raw_val, list) and raw_val:
                     desc_val = raw_val[0]
-                is_buffalo = desc_val and "BUFFALO" in str(desc_val).upper()
+                is_buffalo = desc_val and "BUFFALO LEATHER" in str(desc_val).upper()
                 target_dict = buffalo_totals if is_buffalo else cow_totals
                 try:
                     pallet_val = int(pallet_counts[i]) if i < len(pallet_counts) else 0
@@ -1265,7 +1264,7 @@ def write_summary_rows(
                         except (ValueError, TypeError, IndexError): pass
         num_columns = header_info['num_columns']
         desc_col_idx = column_id_map.get("col_desc")
-        label_col_idx = column_id_map.get("col_po") or 2
+        label_col_idx = column_id_map.get("col_pallet") or 2
         unmerge_row(worksheet, buffalo_summary_row, num_columns)
         worksheet.cell(row=buffalo_summary_row, column=label_col_idx, value="TOTAL OF:").number_format = FORMAT_TEXT
         worksheet.cell(row=buffalo_summary_row, column=label_col_idx + 1, value="BUFFALO").number_format = FORMAT_TEXT
@@ -1277,7 +1276,7 @@ def write_summary_rows(
                 worksheet.cell(row=buffalo_summary_row, column=col_idx, value=total_value)
         unmerge_row(worksheet, leather_summary_row, num_columns)
         worksheet.cell(row=leather_summary_row, column=label_col_idx, value="TOTAL OF:").number_format = FORMAT_TEXT
-        worksheet.cell(row=leather_summary_row, column=label_col_idx + 1, value="LEATHER").number_format = FORMAT_TEXT
+        worksheet.cell(row=leather_summary_row, column=label_col_idx + 1, value="COW LEATHER").number_format = FORMAT_TEXT
         if desc_col_idx:
             worksheet.cell(row=leather_summary_row, column=desc_col_idx, value=f"{cow_pallet_total} PALLETS").number_format = FORMAT_TEXT
         for col_id, total_value in cow_totals.items():
@@ -1409,7 +1408,7 @@ def write_footer_row(
                     # Apply Number Formatting from Config if fob
                     number_format_str = number_format_config.get(col_id)
                     if number_format_str and fob_mode:
-                        cell.number_format = "##,000.00"
+                        cell.number_format = "##,00.00"
                     elif number_format_str:
                         cell.number_format = number_format_str["number_format"]
         # --- 3. Apply Border and Final Styling to the Whole Row ---

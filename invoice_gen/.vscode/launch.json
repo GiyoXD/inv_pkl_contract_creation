@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Debug Current File",
+            "type": "debugpy",
+            "request": "launch",
+            
+            // Use ${file} to automatically debug the currently open script.
+            // This prevents path duplication errors.
+            "program": "${file}",
+            
+            "console": "integratedTerminal",
+            "args": [
+                "./data/JLFHM.json",
+                "-c",
+                "config",
+                "-t",
+                "TEMPLATE"
+            ],
+            // The CWD is correct, telling the script where to run from.
+            "cwd": "${workspaceFolder}/invoice_gen"
+        }
+    ]
+}
