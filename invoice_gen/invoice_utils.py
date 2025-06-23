@@ -922,7 +922,7 @@ def _apply_fallback(
     else:
         fallback_key = "fallback_on_none"
         
-    row_dict[target_col_idx] = mapping_rule[fallback_key] or mapping_rule.get("fallback_on_none")
+    row_dict[target_col_idx] = mapping_rule.get(fallback_key) or mapping_rule.get("fallback_on_none")
 
 
 def prepare_data_rows(
