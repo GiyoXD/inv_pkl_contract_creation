@@ -181,7 +181,7 @@
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",   "id": "col_static",    "rowspan": 2 },
-        { "row": 0, "col": 1, "text": "PALLET\nN.",   "id": "col_pallet",    "rowspan": 2 },
+        { "row": 0, "col": 1, "text": "PALLET\nNO.",   "id": "col_pallet",    "rowspan": 2 },
         { "row": 0, "col": 2, "text": "P.O Nº",      "id": "col_po",        "rowspan": 2 },
         { "row": 0, "col": 3, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
         { "row": 0, "col": 4, "text": "Description", "id": "col_desc",      "rowspan": 2 },
