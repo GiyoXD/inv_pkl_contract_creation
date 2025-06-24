@@ -1,0 +1,21 @@
+# ============================================================================
+# Git Ignore File
+# ============================================================================
+# This file tells Git which files and folders to permanently ignore.
+# It prevents them from being accidentally committed to the repository.
+
+# --- Ignore Portable Tool Directories ---
+# These folders contain the downloaded Python and Git executables and are
+# specific to each user's machine. They should not be part of the repository.
+portable-git/
+python-embed/
+
+# --- Ignore Python Cache ---
+# These folders are created automatically by Python and are not needed.
+__pycache__/
+*.pyc
+
+# --- Ignore Temporary Files ---
+# Optional: Add other files or patterns you want to ignore, like temp files.
+# For example, to ignore all .log files:
+# *.log
