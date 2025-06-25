@@ -10,7 +10,7 @@
       "start_row": 21,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
-        "2": "HS CODE: 4202.92.00"
+        "2": "LEATHER (HS.CODE: 4107.12.00)"
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",                "id": "col_static",         "rowspan": 1 },
@@ -91,10 +91,10 @@
         },
         "column_id_widths": { "col_po": 28, "col_desc": 20 },
         "default_font": { "name": "Times New Roman", "size": 12 },
-        "header_font": { "name": "Times New Roman", "size": 12, "bold": true },
+        "header_font": { "name": "Times New Roman", "size": 14, "bold": true },
         "default_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
         "header_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
-        "row_heights": { "header": 35, "data_default": 35, "footer": 35 }
+        "row_heights": { "header": 45, "data_default": 30, "footer": 30 }
       }
     },
     "Contract": {

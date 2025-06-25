@@ -1245,7 +1245,7 @@ def write_summary_rows(
                 desc_val = raw_val
                 if isinstance(raw_val, list) and raw_val:
                     desc_val = raw_val[0]
-                is_buffalo = desc_val and "BUFFALO LEATHER" in str(desc_val).upper()
+                is_buffalo = desc_val and "BUFFALO" in str(desc_val).upper()
                 target_dict = buffalo_totals if is_buffalo else cow_totals
                 try:
                     pallet_val = int(pallet_counts[i]) if i < len(pallet_counts) else 0
@@ -1271,7 +1271,7 @@ def write_summary_rows(
         label_col_idx = column_id_map.get("col_pallet") or 2
         unmerge_row(worksheet, buffalo_summary_row, num_columns)
         worksheet.cell(row=buffalo_summary_row, column=label_col_idx, value="TOTAL OF:").number_format = FORMAT_TEXT
-        worksheet.cell(row=buffalo_summary_row, column=label_col_idx + 1, value="BUFFALO").number_format = FORMAT_TEXT
+        worksheet.cell(row=buffalo_summary_row, column=label_col_idx + 1, value="BUFFALO LEATHER").number_format = FORMAT_TEXT
         if desc_col_idx:
             worksheet.cell(row=buffalo_summary_row, column=desc_col_idx, value=f"{buffalo_pallet_total} PALLETS").number_format = FORMAT_TEXT
         for col_id, total_value in buffalo_totals.items():

@@ -10,16 +10,16 @@
       "start_row": 20,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
-        "2": "HS CODE: 4202.92.00"
+        "2": "LEATHER (HS.CODE: 4107.12.00)"
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",                "id": "col_static",         "rowspan": 1 },
         { "row": 0, "col": 1, "text": "P.O. Nº",              "id": "col_po",         "rowspan": 1 },
-        { "row": 0, "col": 2, "text": "ITEM Nº",              "id": "col_item",       "rowspan": 1 },
-        { "row": 0, "col": 3, "text": "Description",          "id": "col_desc",       "rowspan": 1 },
-        { "row": 0, "col": 4, "text": "Quantity",                 "id": "col_qty_sf" },
-        { "row": 0, "col": 5, "text": "Unit price (USD)",   "id": "col_unit_price", "rowspan": 1 },
-        { "row": 0, "col": 6, "text": "Amount (USD)",       "id": "col_amount",     "rowspan": 1 }
+        { "row": 0, "col": 2, "text": "Description",          "id": "col_desc",       "rowspan": 1 },
+        { "row": 0, "col": 3, "text": "ITEM Nº",              "id": "col_item",       "rowspan": 1 },
+        { "row": 0, "col": 4, "text": "Quantity\n(SF)",                 "id": "col_qty_sf" },
+        { "row": 0, "col": 5, "text": "Unit price\n(USD)",   "id": "col_unit_price", "rowspan": 1 },
+        { "row": 0, "col": 6, "text": "Amount(USD)",       "id": "col_amount",     "rowspan": 1 }
       ],
       "mappings": {
         "po":          { "key_index": 0, "id": "col_po" },
@@ -52,7 +52,7 @@
 
   "total_text": "TOTAL OF:",
   "total_text_column_id": "col_po",
-  "pallet_count_column_id": "col_item",
+  "pallet_count_column_id": "col_desc",
 
   "sum_column_ids": [
     "col_qty_pcs",
@@ -94,7 +94,7 @@
         "header_font": { "name": "Times New Roman", "size": 12, "bold": true },
         "default_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
         "header_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
-        "row_heights": { "header": 35, "data_default": 35, "footer": 35 }
+        "row_heights": { "header": 35, "data_default": 30, "footer": 30 }
       }
     },
     "Contract": {
@@ -182,7 +182,7 @@
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",   "id": "col_static",    "rowspan": 2 },
-        { "row": 0, "col": 1, "text": "Pallet\nN.",   "id": "col_pallet",    "rowspan": 2 },
+        { "row": 0, "col": 1, "text": "Pallet\nNO.",   "id": "col_pallet",    "rowspan": 2 },
         { "row": 0, "col": 2, "text": "P.O Nº",      "id": "col_po",        "rowspan": 2 },
         { "row": 0, "col": 3, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
         { "row": 0, "col": 4, "text": "Description", "id": "col_desc",      "rowspan": 2 },
