@@ -1,0 +1,69 @@
+{
+    "metadata": {
+        "workbook_filename": "JLFHM25004.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-06-25T13:21:01.214841"
+    },
+    "processed_tables_data": {
+        "1": {
+            "po": [
+                "PO-HS-25050284"
+            ],
+            "production_order_no": [
+                "2506056-01"
+            ],
+            "reference_code": [
+                "XPAY-FH-\u9a6c\u978d84"
+            ],
+            "item": [
+                "WALNUT M2895-X"
+            ],
+            "pcs": [
+                95
+            ],
+            "sqft": [
+                5017.5
+            ],
+            "unit": [
+                1.43
+            ],
+            "amount": [
+                7175.025
+            ],
+            "net": [
+                "446.5"
+            ],
+            "gross": [
+                "491.5"
+            ],
+            "cbm": [
+                "1.6214"
+            ]
+        }
+    },
+    "standard_aggregation_results": {
+        "('PO-HS-25050284', 'WALNUT M2895-X', Decimal('1.43'), None)": {
+            "sqft_sum": "5017.5",
+            "amount_sum": "7175.025"
+        }
+    },
+    "custom_aggregation_results": {
+        "('PO-HS-25050284', 'WALNUT M2895-X', None, None)": {
+            "sqft_sum": "5017.5",
+            "amount_sum": "7175.025"
+        }
+    },
+    "final_fob_compounded_result": {
+        "1": {
+            "combined_po": "PO-HS-25050284",
+            "combined_item": "WALNUT M2895-X",
+            "combined_description": "",
+            "total_sqft": "5017.5",
+            "total_amount": "7175.025"
+        }
+    }
+}

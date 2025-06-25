@@ -182,15 +182,16 @@
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",   "id": "col_static",    "rowspan": 2 },
-        { "row": 0, "col": 1, "text": "P.O Nº",      "id": "col_po",        "rowspan": 2 },
-        { "row": 0, "col": 2, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
-        { "row": 0, "col": 3, "text": "Description", "id": "col_desc",      "rowspan": 2 },
-        { "row": 0, "col": 4, "text": "Quantity",                         "colspan": 2 },
-        { "row": 0, "col": 6, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
-        { "row": 0, "col": 7, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
-        { "row": 0, "col": 8, "text": "CBM",         "id": "col_cbm",       "rowspan": 2 },
-        { "row": 1, "col": 4, "text": "PCS",         "id": "col_qty_pcs" },
-        { "row": 1, "col": 5, "text": "SF",          "id": "col_qty_sf" }
+        { "row": 0, "col": 1, "text": "CUT.P.O.",      "id": "col_po",        "rowspan": 2 },
+        { "row": 0, "col": 2, "text": "DC",      "id": "col_dc",        "rowspan": 2 },
+        { "row": 0, "col": 3, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
+        { "row": 0, "col": 4, "text": "Description", "id": "col_desc",      "rowspan": 2 },
+        { "row": 0, "col": 5, "text": "Quantity",                         "colspan": 2 },
+        { "row": 0, "col": 7, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
+        { "row": 0, "col": 8, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 9, "text": "CBM",         "id": "col_cbm",       "rowspan": 2 },
+        { "row": 1, "col": 5, "text": "PCS",         "id": "col_qty_pcs" },
+        { "row": 1, "col": 6, "text": "SF",          "id": "col_qty_sf" }
       ],
       "mappings": {
         "initial_static": {
@@ -200,6 +201,7 @@
         },
         "data_map": {
           "po":    { "id": "col_po" },
+          "dc":    { "id": "col_dc" },
           "item":  { "id": "col_item" },
           "description": { "id": "col_desc", "fallback_on_none": "LEATHER" },
           "pcs":   { "id": "col_qty_pcs" },
@@ -243,7 +245,7 @@
   },
   "styling": {
         "force_text_format_ids": ["col_po", "col_item", "col_desc"],
-        "column_ids_with_full_grid": ["col_po", "col_item", "col_desc", "col_qty_pcs", "col_qty_sf", "col_net", "col_gross", "col_cbm"],
+        "column_ids_with_full_grid": ["col_po", "col_dc", "col_item", "col_desc", "col_qty_pcs", "col_qty_sf", "col_net", "col_gross", "col_cbm"],
         "default_font": { "name": "Times New Roman", "size": 12 },
         "default_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
         "header_font": { "name": "Times New Roman", "size": 12, "bold": true },

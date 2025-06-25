@@ -4,7 +4,6 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils import range_boundaries, get_column_letter, column_index_from_string
 # from openpyxl.worksheet.dimensions import RowDimension # Not strictly needed for access
 from typing import Dict, List, Optional, Tuple, Any
-
 # --- store_original_merges FILTERED to ignore merges ABOVE row 16 ---
 def store_original_merges(workbook: openpyxl.Workbook, sheet_names: List[str]) -> Dict[str, List[Tuple[int, Any, Optional[float]]]]:
     """
@@ -192,3 +191,36 @@ def find_and_restore_merges_heuristic(workbook: openpyxl.Workbook,
                         failed_count += 1
 
     print("Merge restoration process finished.")
+
+
+def force_unmerge_from_row_down(worksheet: Worksheet, start_row: int):
+    """
+    Forcefully unmerges all cells that start on or after a specific row.
+
+    This is the ideal way to clean a 'data area' while leaving a
+    'header area' completely untouched.
+
+    Args:
+        worksheet: The openpyxl worksheet object to modify.
+        start_row: The row number from which to start unmerging. All merges
+                   at this row or any row below it will be removed.
+    """
+    print(f"--- Selectively unmerging cells from row {start_row} downwards on sheet '{worksheet.title}' ---")
+    
+    # Create a copy of the list to avoid issues while modifying it
+    all_merged_ranges = list(worksheet.merged_cells.ranges)
+    unmerged_count = 0
+    
+    for merged_range in all_merged_ranges:
+        # The key condition: only unmerge if the merge starts in the target zone.
+        if merged_range.min_row >= start_row:
+            try:
+                worksheet.unmerge_cells(str(merged_range))
+                unmerged_count += 1
+            except Exception:
+                pass # Ignore errors, as the goal is a clean slate anyway
+    
+    if unmerged_count > 0:
+        print(f"--- Removed {unmerged_count} merges from the data area (row {start_row}+) ---")
+    else:
+        print(f"--- No merges found in the data area (row {start_row}+) to remove ---")

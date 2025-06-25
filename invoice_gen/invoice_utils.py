@@ -8,6 +8,7 @@ from openpyxl.utils import column_index_from_string, get_column_letter
 from typing import List, Dict, Any, Optional, Tuple, Union
 from decimal import Decimal
 from decimal import Decimal, InvalidOperation
+import merge_utils
 
 # --- Constants for Styling ---
 thin_side = Side(border_style="thin", color="000000")
@@ -414,6 +415,9 @@ def write_header(worksheet: Worksheet, start_row: int, header_layout_config: Lis
     
     if not header_layout_config or start_row <= 0:
         return None
+    
+    merge_utils.force_unmerge_from_row_down(worksheet, start_row)
+
 
     # Determine header dimensions from the layout config
     num_header_rows = max(cell.get('row', 0) for cell in header_layout_config) + 1
@@ -1449,34 +1453,37 @@ def _style_row_before_footer(
     num_columns: int,
     sheet_styling_config: Optional[Dict[str, Any]],
     idx_to_id_map: Dict[int, str],
-    col1_index: int, # Included to match call signature, not used in this logic
-    fob_mode: bool # Pass fob_mode down for correct number formatting
+    col1_index: int, # The index of the first column to receive special border handling
+    fob_mode: bool
 ):
     """
     Applies column-specific styles, a full border, and a specific height
-    to the static row before the footer.
+    to the static row before the footer. The first column will only have
+    side borders.
     """
     if not sheet_styling_config or row_num <= 0:
         return
 
-    # --- START: Added Logic to Set Row Height ---
     # Set the row height using the 'header' value from the styling config.
-    # This is done once for the entire row.
     try:
-        # Safely retrieve the 'header' height from the nested config dictionary
         row_heights = sheet_styling_config.get("row_heights", {})
         header_height = row_heights.get("header")
 
         if header_height:
             worksheet.row_dimensions[row_num].height = header_height
     except Exception as e:
-        # Add a warning if the height could not be set for any reason
         print(f"Warning: Could not set row height for row {row_num}. Error: {e}")
-    # --- END: Added Logic ---
 
-    # Define a standard border for this row to separate it from data and footer
+    # --- START: Refactored Logic ---
+    # Define the two border styles needed for this row
     thin_side = Side(border_style="thin", color="000000")
+    
+    # Style 1: Full border for all columns except the first
     full_thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+    
+    # Style 2: Side-only border for the first column
+    side_only_border = Border(left=thin_side, right=thin_side)
+    # --- END: Refactored Logic ---
 
     # Iterate through each column of the row to apply cell-level styles
     for c_idx in range(1, num_columns + 1):
@@ -1484,15 +1491,22 @@ def _style_row_before_footer(
             cell = worksheet.cell(row=row_num, column=c_idx)
             current_col_id = idx_to_id_map.get(c_idx)
 
-            # 1. Use the existing helper to apply font, alignment, and number formats
-            #    based on the column ID and default configurations.
+            # 1. Apply font, alignment, and number formats based on the column ID.
             _apply_cell_style(cell, current_col_id, sheet_styling_config, fob_mode)
 
-            # 2. Apply a consistent border to every cell in this row.
-            cell.border = full_thin_border
+            # --- START: Refactored Logic ---
+            # 2. Apply a conditional border based on the column index.
+            if c_idx == col1_index:
+                # First column gets a border on the sides only
+                cell.border = side_only_border
+            else:
+                # All other columns get a full border
+                cell.border = full_thin_border
+            # --- END: Refactored Logic ---
 
         except Exception as e:
             print(f"Warning: Could not style cell at ({row_num}, {c_idx}). Error: {e}")
+
 
 
 def fill_invoice_data(

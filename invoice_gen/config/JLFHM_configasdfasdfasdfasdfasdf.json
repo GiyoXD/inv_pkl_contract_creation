@@ -10,7 +10,7 @@
       "start_row": 20,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
-        "2": "LEATHER (HS.CODE: 4107.12.00)"
+        "2": "HS CODE: 4202.92.00"
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",                "id": "col_static",         "rowspan": 1 },
@@ -24,7 +24,7 @@
       "mappings": {
         "po":          { "key_index": 0, "id": "col_po" },
         "item":        { "key_index": 1, "id": "col_item" },
-        "description": { "key_index": 3, "id": "col_desc", "fallback_on_none": "GENUINE LEATHER\n(FINISHED LEATHER)" },
+        "description": { "key_index": 3, "id": "col_desc", "fallback_on_none": "LEATHER" },
         "sqft":        { "value_key": "sqft_sum", "id": "col_qty_sf" },
         "unit_price":  { "key_index": 2, "id": "col_unit_price" },
         "amount": {
@@ -50,7 +50,7 @@
       "footer_configurations": {
   "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
 
-  "total_text": "TOTAL OF:",
+  "total_text": "TOTAL:",
   "total_text_column_id": "col_po",
   "pallet_count_column_id": "col_item",
 
@@ -94,7 +94,7 @@
         "header_font": { "name": "Times New Roman", "size": 12, "bold": true },
         "default_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
         "header_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
-        "row_heights": { "header": 40, "data_default": 40, "footer": 40 }
+        "row_heights": { "header": 35, "data_default": 35, "footer": 35 }
       }
     },
     "Contract": {
@@ -109,7 +109,7 @@
       "mappings": {
         "po":         { "key_index": 0, "id": "col_po" },
         "item":       { "key_index": 1, "id": "col_item" },
-        "desc":       { "key_index": 3, "id": "col_desc", "fallback_on_none": "GENUINE LEATHER\n(FINISHED LEATHER)" },
+        "desc":       { "key_index": 3, "id": "col_desc", "fallback_on_none": "LEATHER" },
         "sqft":       { "value_key": "sqft_sum", "id": "col_qty_sf" },
         "unit_price": { "key_index": 2, "id": "col_unit_price" },
         "amount": {
@@ -122,7 +122,7 @@
       "footer_configurations": {
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
 
-        "total_text": "TOTAL OF:",
+        "total_text": "TOTAL:",
         "total_text_column_id": "col_no",
 
         "sum_column_ids": [
@@ -201,7 +201,7 @@
         "data_map": {
           "po":    { "id": "col_po" },
           "item":  { "id": "col_item" },
-          "description": { "id": "col_desc", "fallback_on_none": "GENUINE LEATHER\n(FINISHED LEATHER)" },
+          "description": { "id": "col_desc", "fallback_on_none": "LEATHER" },
           "pcs":   { "id": "col_qty_pcs" },
           "sqft":  { "id": "col_qty_sf" },
           "net":   { "id": "col_net" },
@@ -212,7 +212,7 @@
   "footer_configurations": {
   "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
 
-  "total_text": "TOTAL OF:",
+  "total_text": "TOTAL:",
   "total_text_column_id": "col_po",
   "pallet_count_column_id": "col_item",
 
@@ -249,7 +249,7 @@
         "header_font": { "name": "Times New Roman", "size": 12, "bold": true },
         "header_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
         "column_id_styles": {
-          "col_static": { "alignment": {"horizontal": "center", "vertical": "center"}, "font": {"size": 12} },
+          "col_static": { "alignment": {"horizontal": "left", "vertical": "top"}, "font": {"size": 12} },
           "col_desc":   { "alignment": {"horizontal": "center"} },
           "col_net":    { "number_format": "#,##0.00" },
           "col_gross":  { "number_format": "#,##0.00" },
@@ -260,7 +260,7 @@
         "column_id_widths": {
           "col_static": 24.71, "col_po": 17, "col_item": 22.14, "col_desc": 26, "col_qty_pcs": 15, "col_qty_sf": 15, "col_net": 15, "col_gross": 15, "col_cbm": 15
         },
-        "row_heights": { "header": 30, "data_default": 40, "before_footer": 40 }
+        "row_heights": { "header": 27, "data_default": 27, "before_footer": 27 }
       }
     }
   }

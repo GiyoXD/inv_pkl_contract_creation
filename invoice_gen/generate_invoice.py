@@ -398,13 +398,16 @@ def pre_calculate_and_insert_rows(
     # --- Bulk Insert ---
     if total_rows_to_insert > 0:
         try:
+            # 1. Insert the required number of blank rows.
             print(f"Inserting {total_rows_to_insert} rows at index {start_row} for sheet '{sheet_name}'...")
             worksheet.insert_rows(start_row, amount=total_rows_to_insert)
-            invoice_utils.safe_unmerge_block(worksheet, start_row, start_row + total_rows_to_insert - 1, worksheet.max_column)
-            print("Bulk rows inserted and unmerged successfully.")
+            print("Bulk row insertion complete.")
+            
             return True, total_rows_to_insert
+
         except Exception as bulk_insert_err:
-            print(f"ERROR: Failed bulk row insert for multi-table: {bulk_insert_err}")
+            print(f"ERROR: Failed during the bulk row insert process: {bulk_insert_err}")
+            traceback.print_exc()
             return False, 0
     
     return True, 0 # Succeeded, but inserted 0 rows
@@ -677,6 +680,7 @@ def main():
             sheet_mapping_section = data_mapping_config.get(sheet_name, {}) # Use .get for safety
             data_source_indicator = sheet_data_map.get(sheet_name) # Get indicator from config
 
+
             # --- Check for FOB flag override ---
             if args.fob and sheet_name in ["Invoice", "Contract"]:
                 print(f"DEBUG: --fob flag active. Overriding data source for '{sheet_name}' to 'fob_aggregation'.")
@@ -947,7 +951,7 @@ def main():
                     footer_config=footer_config,
                 )
         # --- Restore Original Merges AFTER processing all sheets using merge_utils ---
-        merge_utils.find_and_restore_merges_heuristic(workbook, original_merges, sheets_to_process) # TODO: Re-enable
+        merge_utils.find_and_restore_merges_heuristic(workbook, original_merges, sheets_to_process) # TODO: Re-enableN
 
         # 5. Save the final workbook
         print("\n--------------------------------")
