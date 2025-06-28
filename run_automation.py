@@ -129,7 +129,7 @@ def main():
     current_working_dir = Path.cwd()
 
     # Define and create the 'data' directory for all JSON files
-    data_dir = current_working_dir / "data"
+    data_dir = current_working_dir / "data" / "invoices_to_process"
     data_dir.mkdir(parents=True, exist_ok=True)
     logging.info(f"JSON data output directory set to: {data_dir.resolve()}")
 

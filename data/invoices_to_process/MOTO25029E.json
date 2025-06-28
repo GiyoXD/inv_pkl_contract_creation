@@ -1,0 +1,140 @@
+{
+    "metadata": {
+        "workbook_filename": "MOTO25029E.xlsx",
+        "worksheet_name": "\u7ed9\u5f90\u71d5\u6253\u5370",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-06-27T13:12:38.442759"
+    },
+    "processed_tables_data": {
+        "1": {
+            "production_order_no": [
+                "2506061-01",
+                "2506061-01",
+                "2506061-01",
+                "2506061-01",
+                "2506061-01",
+                "2506061-01"
+            ],
+            "po": [
+                "VPL2550562",
+                "VPL2550562",
+                "VPL2550562",
+                "VPL2550562",
+                "VPL2550562",
+                "VPL2550562"
+            ],
+            "item": [
+                "B13100488A",
+                "B13100488A",
+                "B13100488A",
+                "B13100488A",
+                "B13100488A",
+                "B13100488A"
+            ],
+            "reference_code": [
+                "XPSY-FT-\u9ed1715",
+                "XPSY-FT-\u9ed1715",
+                "XPSY-FT-\u9ed1715",
+                "XPSY-FT-\u9ed1715",
+                "XPSY-FT-\u9ed1715",
+                "XPSY-FT-\u9ed1715"
+            ],
+            "pcs": [
+                190,
+                190,
+                137,
+                69,
+                200,
+                74
+            ],
+            "sqft": [
+                10117,
+                9892.5,
+                7462.2,
+                3289.7,
+                10036.5,
+                3608.2
+            ],
+            "pallet_count": [
+                1,
+                1,
+                1,
+                null,
+                1,
+                1
+            ],
+            "net": [
+                "820",
+                "803.5",
+                "580.5874",
+                "292.4126",
+                "822",
+                "289.5"
+            ],
+            "gross": [
+                "865",
+                "848.5",
+                "610.5146",
+                "307.4854",
+                "867",
+                "334.5"
+            ],
+            "manual_no": [
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357"
+            ],
+            "cbm": [
+                "2.6136",
+                "2.7720",
+                "1.8435",
+                "0.9285",
+                "2.6532",
+                "1.5840"
+            ],
+            "unit": [
+                1.1,
+                1.1,
+                1.1,
+                1.1,
+                1.1,
+                1.1
+            ],
+            "amount": [
+                11128.7,
+                10881.75,
+                8208.42,
+                3618.67,
+                11040.15,
+                3969.02
+            ]
+        }
+    },
+    "standard_aggregation_results": {
+        "('VPL2550562', 'B13100488A', Decimal('1.1'), None)": {
+            "sqft_sum": "44406.1",
+            "amount_sum": "48846.71"
+        }
+    },
+    "custom_aggregation_results": {
+        "('VPL2550562', 'B13100488A', None, None)": {
+            "sqft_sum": "44406.1",
+            "amount_sum": "48846.71"
+        }
+    },
+    "final_fob_compounded_result": {
+        "1": {
+            "combined_po": "VPL2550562",
+            "combined_item": "B13100488A",
+            "combined_description": "",
+            "total_sqft": "44406.1",
+            "total_amount": "48846.71"
+        }
+    }
+}

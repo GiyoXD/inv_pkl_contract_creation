@@ -466,7 +466,7 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
     # ---------------------------------------------
 
     try:
-        # --- Steps 1-4: Load, Find Headers, Map Columns, Extract Data ---
+# --- Steps 1-4: Load, Find Headers, Map Columns, Extract Data (REFACTORED) ---
         # <<< USE THE DETERMINED input_filepath >>>
         logging.info(f"Loading workbook from: {input_filepath}")
         handler = ExcelHandler(input_filepath)
@@ -475,24 +475,43 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
         actual_sheet_name = sheet.title
         logging.info(f"Successfully loaded worksheet: '{actual_sheet_name}' from '{input_filename}'")
 
-        logging.info("Searching for all header rows...")
-        header_rows = sheet_parser.find_all_header_rows(sheet, cfg.HEADER_IDENTIFICATION_PATTERN, cfg.HEADER_SEARCH_ROW_RANGE, cfg.HEADER_SEARCH_COL_RANGE)
-        if not header_rows: raise RuntimeError("Could not find any header rows.")
-        logging.info(f"Found {len(header_rows)} potential header row(s) at: {header_rows}")
+        # 1. Make a single call to the new smart function.
+        # It handles finding the correct row AND creating the validated map.
+        logging.info("Searching for the primary header row using smart detection...")
+        smart_result = sheet_parser.find_and_map_smart_headers(sheet)
 
-        first_header_row = header_rows[0]
-        logging.info(f"Mapping columns based on first header row ({first_header_row})...")
-        column_mapping = sheet_parser.map_columns_to_headers(sheet, first_header_row, cfg.HEADER_SEARCH_COL_RANGE)
-        if not column_mapping: raise RuntimeError("Failed to map columns.")
-        logging.debug(f"Mapped columns:\n{pprint.pformat(column_mapping)}")
-        # Ensure core columns are present, but allow processing even if description isn't mapped initially
-        if 'amount' not in column_mapping: raise RuntimeError("Essential 'amount' column mapping failed.")
+        # 2. Check if the smart function succeeded.
+        if not smart_result:
+            raise RuntimeError("Smart header detection failed. Could not find a valid, verifiable header row in the sheet.")
+
+        # 3. Unpack the validated results from the smart function.
+        header_row, column_mapping = smart_result
+        logging.info(f"Smart detection successful. Found and validated primary header on row {header_row}.")
+        logging.debug(f"Validated Column Mapping:\n{pprint.pformat(column_mapping)}")
+
+        # 4. Now, find any ADDITIONAL tables that might appear LATER in the sheet.
+        # We start the search *after* the header row we just found to avoid duplicates.
+        additional_header_rows = sheet_parser.find_all_header_rows(
+            sheet=sheet,
+            search_pattern=cfg.HEADER_IDENTIFICATION_PATTERN,
+            # Start searching on the row right after the one we found.
+            row_range=(header_row + 1, sheet.max_row),
+            col_range=(cfg.HEADER_SEARCH_COL_RANGE[0], cfg.HEADER_SEARCH_COL_RANGE[1])
+        )
+
+        # 5. Create the final list of all tables to be extracted.
+        all_header_rows = [header_row] + additional_header_rows
+        logging.info(f"Found a total of {len(all_header_rows)} table(s) to process at rows: {all_header_rows}")
+        
+        # 6. Perform final checks on the validated mapping.
+        if 'amount' not in column_mapping:
+            raise RuntimeError("Essential 'amount' column mapping failed, even with smart detection.")
         if 'description' not in column_mapping:
-             logging.warning("Column 'description' not found during initial mapping. Aggregation keys will use None for description.")
+            logging.warning("Column 'description' not found during mapping. Aggregation keys will use None for description.")
 
 
         logging.info("Extracting data for all tables...")
-        all_tables_data = sheet_parser.extract_multiple_tables(sheet, header_rows, column_mapping)
+        all_tables_data = sheet_parser.extract_multiple_tables(sheet, all_header_rows, column_mapping)
         if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
             log_str = pprint.pformat(all_tables_data)
             if len(log_str) > MAX_LOG_DICT_LEN: log_str = log_str[:MAX_LOG_DICT_LEN] + "\n... (output truncated)"
