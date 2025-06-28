@@ -45,9 +45,11 @@ def _is_string_like(value: Any) -> bool:
 
 def _matches_any_pattern(value: Any, patterns: Union[str, List[str]]) -> bool:
     """
-    Helper to check if a string value matches ANY of the regex patterns in a list.
+    Helper to check if a value's string representation matches ANY of the regex patterns in a list.
     """
-    if not isinstance(value, str) or not value.strip():
+    # Convert value to a stripped string for reliable matching. Handles numbers, None, etc.
+    value_str = str(value or '').strip()
+    if not value_str:
         return False
 
     # Ensure patterns is always a list for iteration
@@ -59,7 +61,7 @@ def _matches_any_pattern(value: Any, patterns: Union[str, List[str]]) -> bool:
     # Check against each pattern in the list
     for pattern in patterns_list:
         try:
-            if re.match(pattern, value.strip()):
+            if re.match(pattern, value_str):
                 # If any pattern matches, we return True immediately
                 return True
         except re.error as e:
@@ -76,8 +78,8 @@ def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str
     Finds and maps headers using a scoring system that prioritizes columns with
     actual header text over headerless columns identified by data patterns.
     """
-    prefix = "[find_and_map_smart_headers_v10]"
-    logging.info(f"{prefix} Starting smart header search with header-priority logic...")
+    prefix = "[find_and_map_smart_headers_v11]" # Version increment
+    logging.info(f"{prefix} Starting smart header search with value-priority logic...")
 
     for row_num in range(HEADER_SEARCH_ROW_RANGE[0], HEADER_SEARCH_ROW_RANGE[1] + 1):
         if row_num + 1 > sheet.max_row: continue
@@ -101,14 +103,33 @@ def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str
                     data_cell = sheet.cell(row=row_num + 1, column=col_num)
                     data_value = data_cell.value
                     score = 0
-                    patterns_to_check = EXPECTED_HEADER_PATTERNS.get(canonical_name)
-                    if patterns_to_check:
-                        if _matches_any_pattern(data_value, patterns_to_check): score = 10
-                    else:
-                        allowed_types = EXPECTED_HEADER_DATA_TYPES.get(canonical_name, [])
-                        if ('numeric' in allowed_types and _is_numeric(data_value)) or \
-                           ('string' in allowed_types and _is_string_like(data_value)):
-                            score = 5
+                    used_strict_value_check = False
+
+                    # --- START: NEW LOGIC FOR PALLET_COUNT AND OTHER SPECIFIC VALUES ---
+                    # 1. Highest Priority: Check for specific required values (e.g., pallet_count must be 1)
+                    allowed_values = EXPECTED_HEADER_VALUES.get(canonical_name)
+                    if allowed_values is not None:
+                        used_strict_value_check = True
+                        # Normalize string numbers (e.g., '1') to numeric for comparison
+                        processed_data_value = int(data_value) if isinstance(data_value, str) and data_value.isdigit() else data_value
+                        if processed_data_value in allowed_values:
+                            score = 15 # Give a premium score for a direct value match
+                        # If a rule exists but the value does NOT match, score remains 0, effectively rejecting it.
+                    
+                    # 2. If no strict value check was applied, fall back to pattern and type checks.
+                    if not used_strict_value_check:
+                        patterns_to_check = EXPECTED_HEADER_PATTERNS.get(canonical_name)
+                        if patterns_to_check:
+                            if _matches_any_pattern(data_value, patterns_to_check):
+                                score = 10 # High score for pattern match
+                        else:
+                            # 3. Fallback to basic data type checking
+                            allowed_types = EXPECTED_HEADER_DATA_TYPES.get(canonical_name, [])
+                            if ('numeric' in allowed_types and _is_numeric(data_value)) or \
+                               ('string' in allowed_types and _is_string_like(data_value)):
+                                score = 5 # Standard score for type match
+                    # --- END: NEW LOGIC ---
+
                     if score > 0:
                         col_scores.append({'score': score, 'name': canonical_name})
                 
@@ -122,8 +143,6 @@ def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str
                 
                 for canonical_name, patterns in HEADERLESS_COLUMN_PATTERNS.items():
                     if _matches_any_pattern(data_value, patterns):
-                        # --- THIS IS THE KEY CHANGE ---
-                        # Give headerless matches a score of 4, which is lower than any match that has a header (5 or 10)
                         all_column_candidates[col_num] = [{'score': 4, 'name': canonical_name}]
                         logging.debug(f"{prefix} Found headerless column match at col {col_num} for '{canonical_name}' based on data pattern.")
                         break
@@ -132,7 +151,6 @@ def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str
         potential_mapping: Dict[str, str] = {}
         processed_canonicals = set()
         
-        # The positional tie-breaker for unit/amount still works here
         unit_amt_tie_cols = [
             col for col, candidates in all_column_candidates.items()
             if {c['name'] for c in candidates} == {'unit', 'amount'} and all(c['score'] == 5 for c in candidates)
@@ -144,7 +162,6 @@ def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str
             processed_canonicals.update(['unit', 'amount'])
             del all_column_candidates[col1], all_column_candidates[col2]
         
-        # Process the rest by highest score
         for col_num, candidates in sorted(all_column_candidates.items()):
             valid_candidates = [c for c in candidates if c['name'] not in processed_canonicals]
             if not valid_candidates: continue
@@ -160,35 +177,116 @@ def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str
     return None
 
 
-def find_all_header_rows(sheet, search_pattern, row_range, col_range) -> List[int]:
+def find_and_map_smart_headers(sheet: Worksheet) -> Optional[Tuple[int, Dict[str, str]]]:
     """
-    Finds all 1-indexed row numbers containing a header based on a pattern.
-    This is now primarily used to find *additional* tables after the first one is found.
+    Finds and maps headers using a scoring system. It now evaluates all rows
+    in the search range and selects the one with the highest cumulative score,
+    making it robust against stray keywords outside the main table.
     """
-    header_rows: List[int] = []
-    try:
-        regex = re.compile(search_pattern, re.IGNORECASE)
-        max_row_to_search = min(row_range[1], sheet.max_row)
-        max_col_to_search = min(col_range[1], sheet.max_column)
+    prefix = "[find_and_map_smart_headers_v12]" # Version increment
+    logging.info(f"{prefix} Starting best-fit header search...")
 
-        logging.info(f"[find_all_header_rows] Searching for headers using pattern '{search_pattern}' in rows {row_range[0]}-{max_row_to_search}")
+    best_result: Optional[Tuple[int, Dict[str, str]]] = None
+    highest_row_score = 0
 
-        for r_idx in range(row_range[0], max_row_to_search + 1):
-            for c_idx in range(col_range[0], max_col_to_search + 1):
-                cell = sheet.cell(row=r_idx, column=c_idx)
-                if cell.value is not None:
-                    cell_value_str = str(cell.value).strip()
-                    if regex.search(cell_value_str):
-                        if r_idx not in header_rows:
-                            header_rows.append(r_idx)
+    # --- CHANGE: This function no longer returns inside the loop ---
+    for row_num in range(HEADER_SEARCH_ROW_RANGE[0], HEADER_SEARCH_ROW_RANGE[1] + 1):
+        if row_num + 1 > sheet.max_row: continue
+
+        # --- PHASE 1: Scan and score all potential candidates for the current row ---
+        all_column_candidates: Dict[int, List[Dict]] = {}
+        # (The logic for populating all_column_candidates remains identical to the previous version)
+        for col_num in range(HEADER_SEARCH_COL_RANGE[0], HEADER_SEARCH_COL_RANGE[1] + 1):
+            header_cell = sheet.cell(row=row_num, column=col_num)
+            header_value = str(header_cell.value or '').strip().upper()
+
+            if header_value:
+                candidate_canonicals = [
+                    canonical for canonical, aliases in TARGET_HEADERS_MAP.items()
+                    if header_value in [str(a).upper() for a in aliases]
+                ]
+                if not candidate_canonicals: continue
+
+                col_scores = []
+                for canonical_name in candidate_canonicals:
+                    data_cell = sheet.cell(row=row_num + 1, column=col_num)
+                    data_value = data_cell.value
+                    score = 0
+                    used_strict_value_check = False
+
+                    allowed_values = EXPECTED_HEADER_VALUES.get(canonical_name)
+                    if allowed_values is not None:
+                        used_strict_value_check = True
+                        processed_data_value = int(data_value) if isinstance(data_value, str) and data_value.isdigit() else data_value
+                        if processed_data_value in allowed_values:
+                            score = 15
+                    
+                    if not used_strict_value_check:
+                        patterns_to_check = EXPECTED_HEADER_PATTERNS.get(canonical_name)
+                        if patterns_to_check:
+                            if _matches_any_pattern(data_value, patterns_to_check):
+                                score = 10
+                        else:
+                            allowed_types = EXPECTED_HEADER_DATA_TYPES.get(canonical_name, [])
+                            if ('numeric' in allowed_types and _is_numeric(data_value)) or \
+                               ('string' in allowed_types and _is_string_like(data_value)):
+                                score = 5
+                    if score > 0:
+                        col_scores.append({'score': score, 'name': canonical_name})
+                
+                if col_scores:
+                    all_column_candidates[col_num] = col_scores
+            else:
+                data_cell = sheet.cell(row=row_num + 1, column=col_num)
+                data_value = data_cell.value
+                for canonical_name, patterns in HEADERLESS_COLUMN_PATTERNS.items():
+                    if _matches_any_pattern(data_value, patterns):
+                        all_column_candidates[col_num] = [{'score': 4, 'name': canonical_name}]
                         break
-        header_rows.sort()
-        if header_rows:
-            logging.info(f"[find_all_header_rows] Found {len(header_rows)} additional header rows at: {header_rows}")
-        return header_rows
-    except Exception as e:
-        logging.error(f"[find_all_header_rows] Error finding header rows: {e}", exc_info=True)
-        return []
+
+        # --- PHASE 2: Resolve mappings for the current row ---
+        potential_mapping: Dict[str, str] = {}
+        current_row_score = 0
+        processed_canonicals = set()
+        
+        # (Tie-breaker logic remains the same)
+        unit_amt_tie_cols = [
+            col for col, candidates in all_column_candidates.items()
+            if {c['name'] for c in candidates} == {'unit', 'amount'} and all(c['score'] == 5 for c in candidates)
+        ]
+        if len(unit_amt_tie_cols) == 2:
+            col1, col2 = sorted(unit_amt_tie_cols)
+            potential_mapping['unit'] = get_column_letter(col1)
+            potential_mapping['amount'] = get_column_letter(col2)
+            processed_canonicals.update(['unit', 'amount'])
+            # Add scores for the tie-break
+            current_row_score += 10 # 5 for unit, 5 for amount
+            del all_column_candidates[col1], all_column_candidates[col2]
+        
+        # Process the rest by highest score
+        for col_num, candidates in sorted(all_column_candidates.items()):
+            valid_candidates = [c for c in candidates if c['name'] not in processed_canonicals]
+            if not valid_candidates: continue
+            best_candidate = sorted(valid_candidates, key=lambda x: x['score'], reverse=True)[0]
+            potential_mapping[best_candidate['name']] = get_column_letter(col_num)
+            processed_canonicals.add(best_candidate['name'])
+            # --- CHANGE: Add the candidate's score to the total row score ---
+            current_row_score += best_candidate['score']
+
+        # --- PHASE 3: Compare with the best result found so far ---
+        # A row must have a minimum number of matches AND a higher score than the previous best
+        if len(potential_mapping) >= 3 and current_row_score > highest_row_score:
+            highest_row_score = current_row_score
+            best_result = (row_num, potential_mapping)
+            logging.info(f"{prefix} Found new best candidate row at {row_num} with score {highest_row_score}.")
+
+    # --- CHANGE: After checking all rows, return the best result found ---
+    if best_result:
+        logging.info(f"{prefix} SUCCESS: Confirmed header row at {best_result[0]} with final score {highest_row_score}.")
+        return best_result
+
+    logging.error(f"{prefix} FAILED: Could not find any row that passed smart validation.")
+    return None
 
 def map_columns_to_headers(sheet, header_row: int, col_range: int) -> Dict[str, int]:
     """
@@ -253,5 +351,46 @@ def extract_multiple_tables(sheet, header_rows: List[int], column_mapping: Dict[
         logging.info(f"{prefix} Successfully stored {len(current_table_data.get('po',[]))} rows for Table Index {table_index}.")
         
     return all_tables_data
+
+
+def find_all_header_rows(sheet, search_pattern, row_range, col_range, start_after_row: int = 0) -> List[int]:
+    """
+    Finds all 1-indexed row numbers containing a header based on a pattern,
+    optionally starting the search after a specific row.
+    """
+    found_rows: set[int] = set()
+    try:
+        regex = re.compile(search_pattern, re.IGNORECASE)
+        start_row = max(row_range[0], start_after_row + 1)
+        max_row_to_search = min(row_range[1], sheet.max_row)
+        max_col_to_search = min(col_range[1], sheet.max_column)
+
+        if start_row > max_row_to_search:
+             return [] # No rows to search in the given range
+
+        logging.info(
+            f"[find_all_header_rows] Searching for additional headers using pattern '{search_pattern}' "
+            f"in rows {start_row}-{max_row_to_search}"
+        )
+
+        for r_idx in range(start_row, max_row_to_search + 1):
+            for c_idx in range(col_range[0], max_col_to_search + 1):
+                cell = sheet.cell(row=r_idx, column=c_idx)
+                if cell.value is not None:
+                    cell_value_str = str(cell.value).strip()
+                    if regex.search(cell_value_str):
+                        found_rows.add(r_idx)
+                        break
+        
+        if not found_rows:
+            return []
+
+        header_rows = sorted(list(found_rows))
+        logging.info(f"[find_all_header_rows] Found {len(header_rows)} additional header rows at: {header_rows}")
+        return header_rows
+
+    except Exception as e:
+        logging.error(f"[find_all_header_rows] Error finding header rows: {e}", exc_info=True)
+        return []
 
 # --- END OF FULL REFACTORED FILE: sheet_parser.py ---

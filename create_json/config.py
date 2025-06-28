@@ -36,7 +36,7 @@ EXPECTED_HEADER_DATA_TYPES = {
     'production_order_no': ['string'],
     'reference_code': ['string'],
     'level': ['string'],
-    'pallet_count': ['numeric'],
+    'pallet_count': ['numeric', 'string'],
     'manual_no': ['string'],
     'remarks': ['string'],
     'inv_no': ['string'],
@@ -75,7 +75,7 @@ TARGET_HEADERS_MAP = {
     "production_date": ["production date", "生产日期"], # Primary English: 'production date', Primary Chinese: '生产日期'
     "reference_code": ["reference code", "ttx编号", "生产名称"], # Primary English: 'reference code', Primary Chinese: 'ttx编号' (Verify 'ttx编号')
     "level": ["grade", "等级"],              # Primary English: 'grade', Primary Chinese: '等级'
-    "pallet_count": ["pallet count", "拖数", "PALLET", "件数"],# Primary English: 'pallet count', Primary Chinese: '拖数'
+    "pallet_count": ["pallet count", "拖数", "PALLET", "件数", "PALLET COUNT", "pallet count", "托数"],# Primary English: 'pallet count', Primary Chinese: '拖数'
     "manual_no": ["manual number", "手册号"], # Primary English: 'manual number', Primary Chinese: '手册号'
     "remarks": ["remarks", "备注", "Remark"],          # Primary English: 'remarks', Primary Chinese: '备注'
     # 'amount' is already defined above
@@ -93,19 +93,26 @@ EXPECTED_HEADER_PATTERNS = {
     ],
     'remarks': [
         r'^\D+$'
+    ],
+    # This pattern is now a fallback for the specific value check below
+    'pallet_count': [
+        r'^1$'
     ]
 }
 
 EXPECTED_HEADER_VALUES = {
-    'pallet_count': [1, None]
+    # If a column header maps to 'pallet_count', the data value below it MUST be 1.
+    # Otherwise, the column will be ignored for the 'pallet_count' mapping.
+    'pallet_count': [1]
 }
 
 HEADERLESS_COLUMN_PATTERNS = {
     # If an empty header cell has data below it that looks like "number*number*number",
     # map it as the 'cbm' column.
     'cbm': [
-        r'^\d+(\.\d+)?\*\d+(\.\d+)?\*\d+(\.\d+)?$'
-    ]
+        r'^\d+(\.\d+)?\*\d+(\.\d+)?\*\d+(\.\d+)?$',
+    ],
+
 
     # You can add other rules here in the future, for example:
     # 'serial_no': [r'^[A-Z]{3}-\d{5}$']
