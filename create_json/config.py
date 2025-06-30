@@ -1,5 +1,3 @@
-# --- START OF FILE config.py ---
-
 # --- START OF FULL FILE: config.py ---
 
 # --- File Configuration ---
@@ -10,7 +8,8 @@ SHEET_NAME = None
 
 # --- Sheet Parsing Configuration ---
 # Row/Column range to search for the header
-HEADER_SEARCH_ROW_RANGE = (1, 50) # Increased range slightly, adjust if headers can be lower
+# Adjusted to a more realistic range to improve performance and avoid matching stray text.
+HEADER_SEARCH_ROW_RANGE = (1, 20)
 HEADER_SEARCH_COL_RANGE = (1, 30) # Increased range slightly, adjust if many columns
 # A pattern (string or regex) to identify a cell within the header row
 # This pattern helps find *any* header row, the mapping below specifies exact matches
@@ -61,12 +60,13 @@ TARGET_HEADERS_MAP = {
 
     # --- Less Certain Canonical Names ---
     "date_recipt": ["入库时间", "入库日期", "date receipt", "Date Receipt", "date receipt", "Date Receipt", "date receipt"],
-    "cbm": ["cbm", "材积", "CBM", "备注", "REMARKS", "remarks", "备注", "REMARKS", "Remark", "remark", "REMARK", "remark"],                # Primary English: 'cbm', Primary Chinese: '材积' (Verify '材积' is correct/common)
+    "cbm": ["cbm", "材积", "CBM","remarks", "备注", "Remark", 'remark', '低', "REMARKS", "REMARK"],          # Primary English: 'remarks', Primary Chinese: '备注'
     "description": ["description", "品名规格", "描述", "desc", "DESCRIPTION"],      # Primary English: 'description', Primary Chinese: '品名规格'
     "inv_no": ["invoice no", "发票号码", "INV NO", "INV NO", "inv no", "INV NO", "inv no", "INVOICE NO"],    # Primary English: 'invoice no', Primary Chinese: '发票号码'
     "inv_date": ["invoice date", "发票日期", "INV DATE", "INV DATE", "inv date", "INV DATE", "inv date", "INVOICE DATE", "invoice date"], # Primary English: 'invoice date', Primary Chinese: '发票日期'
     "inv_ref": ["ref", "invoice ref", "ref no", "REF NO", "REF NO", "ref no", "inv ref", "INV REF", "INVOICE REF"],
 
+    "remarks": ["cbm", "材积", "CBM", "remarks", "备注", "Remark", 'remark', '低', "REMARKS", "REMARK"],          # Primary English: 'remarks', Primary Chinese: '备注'
     # --- Other Found Headers ---
     "dc": ["批次号", "DC", "dc"],
     "batch_no": ["batch number", "批次号"],  # Primary English: 'batch number', Primary Chinese: '批次号'
@@ -77,7 +77,6 @@ TARGET_HEADERS_MAP = {
     "level": ["grade", "等级"],              # Primary English: 'grade', Primary Chinese: '等级'
     "pallet_count": ["pallet count", "拖数", "PALLET", "件数", "PALLET COUNT", "pallet count", "托数"],# Primary English: 'pallet count', Primary Chinese: '拖数'
     "manual_no": ["manual number", "手册号"], # Primary English: 'manual number', Primary Chinese: '手册号'
-    "remarks": ["remarks", "备注", "Remark"],          # Primary English: 'remarks', Primary Chinese: '备注'
     # 'amount' is already defined above
 
     # Add any other essential headers here following the variations list format
@@ -91,13 +90,11 @@ EXPECTED_HEADER_PATTERNS = {
     'cbm': [
         r'^\d+(\.\d+)?\*\d+(\.\d+)?\*\d+(\.\d+)?$'
     ],
-    'remarks': [
-        r'^\D+$'
-    ],
     # This pattern is now a fallback for the specific value check below
     'pallet_count': [
         r'^1$'
-    ]
+    ],
+    'remarks': [r'^\D+$'],  # Non-numeric characters only
 }
 
 EXPECTED_HEADER_VALUES = {
