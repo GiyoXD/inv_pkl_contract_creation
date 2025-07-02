@@ -3,27 +3,28 @@ import pandas as pd
 import os
 from pathlib import Path
 import sqlite3
+from datetime import datetime  # --- NEW: Import the datetime module
 
 # --- Configuration ---
 JSON_DIRECTORY = 'invoices_to_process'
-# --- NEW: Define a dedicated directory for the database ---
 DATA_DIRECTORY = 'Invoice Record'
 DATABASE_FILE = os.path.join(DATA_DIRECTORY, 'master_invoice_data.db')
 TABLE_NAME = 'invoices'
 
-# Define the final structure of the database table
+# --- MODIFIED: Define the final structure of the database table with the new date field ---
 FINAL_COLUMNS = [
     'inv_no', 'inv_date', 'inv_ref',
     'po', 'item', 'description', 'pcs', 'sqft', 'pallet_count',
-    'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no'
+    'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no',
+    'creating_date'  # --- NEW: Added the new column for the creation timestamp
 ]
 
 def create_database_table_if_not_exists():
     """Ensures the database file and the 'invoices' table exist with the correct schema."""
     try:
-        # --- CHANGE: Ensure the data directory exists before connecting ---
         os.makedirs(DATA_DIRECTORY, exist_ok=True)
         with sqlite3.connect(DATABASE_FILE) as conn:
+            # The following line automatically includes the new 'creating_date' column
             column_definitions = ", ".join([f'"{col}" TEXT' for col in FINAL_COLUMNS])
             conn.execute(f'CREATE TABLE IF NOT EXISTS {TABLE_NAME} ({column_definitions})')
         print(f"Database '{DATABASE_FILE}' and table '{TABLE_NAME}' are ready.")
@@ -108,10 +109,15 @@ def process_batch_invoices():
         combined_df['inv_no'] = header_info['inv_no']
         combined_df['inv_date'] = header_info['inv_date']
 
+        # --- NEW: Add the real-time creation timestamp to the DataFrame ---
+        creation_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        combined_df['creating_date'] = creation_timestamp
+
         for col in FINAL_COLUMNS:
             if col not in combined_df.columns:
                 combined_df[col] = None
         
+        # This line now correctly includes 'creating_date' in the final DataFrame
         final_df = combined_df[FINAL_COLUMNS]
         
         final_df = final_df.sort_values(by='inv_ref')
