@@ -186,8 +186,8 @@
         { "row": 0, "col": 2, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
         { "row": 0, "col": 3, "text": "Description", "id": "col_desc",      "rowspan": 2 },
         { "row": 0, "col": 4, "text": "Quantity(SF)",                         "colspan": 2 },
-        { "row": 0, "col": 6, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
-        { "row": 0, "col": 7, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 6, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 7, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
         { "row": 0, "col": 8, "text": "CBM",         "id": "col_cbm",       "rowspan": 2 },
         { "row": 1, "col": 4, "text": "PCS",         "id": "col_qty_pcs" },
         { "row": 1, "col": 5, "text": "SF",          "id": "col_qty_sf" }

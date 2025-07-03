@@ -98,7 +98,7 @@
       }
     },
     "Contract": {
-      "start_row": 15,
+      "start_row": 17,
       "add_blank_before_footer": true,
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Cargo Descprition",              "id": "col_po",         "rowspan": 1 },
@@ -147,7 +147,7 @@
           "col_gross": { "number_format": "#,##0.00" },
           "col_net": { "number_format": "#,##0.00" },
           "col_cbm": { "number_format": "0.00" },
-          "col_amount": { "number_format": "#,##0.00" }
+          "col_amount": { "number_format": "$#,##0.00" }
         },
         "merge_rules": [
           { "start_column_id": "col_no", "colspan": 2 }
@@ -188,8 +188,8 @@
         { "row": 0, "col": 2, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
         { "row": 0, "col": 3, "text": "Description", "id": "col_desc",      "rowspan": 2 },
         { "row": 0, "col": 4, "text": "Quantity",                         "colspan": 2 },
-        { "row": 0, "col": 6, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
-        { "row": 0, "col": 7, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 6, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 7, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
         { "row": 0, "col": 8, "text": "CBM",         "id": "col_cbm",       "rowspan": 2 },
         { "row": 1, "col": 4, "text": "PCS",         "id": "col_qty_pcs" },
         { "row": 1, "col": 5, "text": "SF",          "id": "col_qty_sf" }

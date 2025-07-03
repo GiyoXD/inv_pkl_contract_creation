@@ -366,11 +366,11 @@ def write_grand_total_weight_summary(
     gross_weight_row = start_row + 1
 
     try:
-        cell_net_label = worksheet.cell(row=net_weight_row, column=label_col_idx, value="NET WEIGHT:")
+        cell_net_label = worksheet.cell(row=net_weight_row, column=label_col_idx, value="NW:")
         cell_net_value = worksheet.cell(row=net_weight_row, column=value_col_idx, value=float(grand_total_net))
         cell_net_value.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
 
-        cell_gross_label = worksheet.cell(row=gross_weight_row, column=label_col_idx, value="GROSS WEIGHT:")
+        cell_gross_label = worksheet.cell(row=gross_weight_row, column=label_col_idx, value="GW:")
         cell_gross_value = worksheet.cell(row=gross_weight_row, column=value_col_idx, value=float(grand_total_gross))
         cell_gross_value.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
 

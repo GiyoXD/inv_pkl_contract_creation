@@ -64,6 +64,7 @@
   ],
   "number_formats": {
     "col_qty_pcs": { "number_format": "#,##0" },
+    "col_unit_price": { "number_format": "#,##0.0000000" },
     "col_qty_sf": { "number_format": "#,##0.00" },
     "col_gross": { "number_format": "#,##0.00" },
     "col_net": { "number_format": "#,##0.00" },
@@ -84,7 +85,7 @@
         "force_text_format_ids": ["col_po", "col_item"],
         "column_ids_with_full_grid": ["col_po", "col_desc", "col_item", "col_qty_sf", "col_unit_price", "col_amount"],
         "column_id_styles": {
-          "col_unit_price": { "number_format": "#,##0.00" },
+          "col_unit_price": { "number_format": "#,##0.0000000" },
           "col_amount": { "number_format": "#,##0.00" },
           "col_qty_sf":     { "number_format": "#,##0.00" },
           "col_desc": { "alignment": {"horizontal": "center"} }
@@ -146,7 +147,8 @@
           "col_gross": { "number_format": "#,##0.00" },
           "col_net": { "number_format": "#,##0.00" },
           "col_cbm": { "number_format": "0.00" },
-          "col_amount": { "number_format": "#,##0.00" }
+          "col_amount": { "number_format": "#,##0.00" },
+          "col_unit_price": { "number_format": "#,##0.0000000" }
         },
         "merge_rules": [
           { "start_column_id": "col_no", "colspan": 2 }
@@ -161,7 +163,7 @@
         "header_alignment": { "horizontal": "center", "vertical": "center", "wrap_text": true },
         "column_id_styles": {
           "col_amount":     { "number_format": "#,##0.00" },
-          "col_unit_price": { "number_format": "#,##0.000000000" },
+          "col_unit_price": { "number_format": "#,##0.0000000" },
           "col_qty_sf":     { "number_format": "#,##0.00" },
           "col_desc":       { "alignment": {"horizontal": "center"} }
         },
@@ -187,8 +189,8 @@
         { "row": 0, "col": 2, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 2 },
         { "row": 0, "col": 3, "text": "Description", "id": "col_desc",      "rowspan": 2 },
         { "row": 0, "col": 4, "text": "Quantity",                         "colspan": 2 },
-        { "row": 0, "col": 6, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
-        { "row": 0, "col": 7, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 6, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 2 },
+        { "row": 0, "col": 7, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 2 },
         { "row": 0, "col": 8, "text": "CBM",         "id": "col_cbm",       "rowspan": 2 },
         { "row": 1, "col": 4, "text": "PCS",         "id": "col_qty_pcs" },
         { "row": 1, "col": 5, "text": "SF",          "id": "col_qty_sf" }
