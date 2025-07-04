@@ -280,7 +280,10 @@ def _apply_cell_style(cell, column_id: Optional[str], sheet_styling_config: Opti
         if number_format and cell.number_format != FORMAT_TEXT and not fob_mode:
             cell.number_format = number_format
         elif number_format and cell.number_format != FORMAT_TEXT and fob_mode:
-            cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
+            if column_id != 'col_pcs':
+                cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
+            else:
+                cell.number_format = FORMAT_NUMBER_COMMA
         elif cell.number_format != FORMAT_TEXT and (cell.number_format == FORMAT_GENERAL or cell.number_format is None):
             if isinstance(cell.value, float): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
             elif isinstance(cell.value, int): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED1
