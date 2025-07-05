@@ -20,7 +20,7 @@ try:
         sys.path.insert(0, str(CREATE_JSON_DIR))
     if str(INVOICE_GEN_DIR) not in sys.path:
         sys.path.insert(0, str(INVOICE_GEN_DIR))
-
+    
     from main import run_invoice_automation
     INVOICE_GEN_SCRIPT = INVOICE_GEN_DIR / "generate_invoice.py"
 except (ImportError, IndexError) as e:
@@ -46,21 +46,21 @@ def find_incoterm_from_template(identifier: str):
     and scans that template for incoterms.
     """
     terms_to_find = ["DAP", "FCA", "CIP"]
-
+    
     # 1. Extract prefix from identifier (e.g., 'JF' from 'JF25034')
     match = re.match(r'([A-Za-z]+)', identifier)
     if not match:
         st.warning(f"Could not determine prefix from filename '{identifier}' to find the correct template.")
         return None
     prefix = match.group(1)
-
+    
     # 2. Construct the expected template file path
     template_file_path = TEMPLATE_DIR / f"{prefix}.xlsx"
-
+    
     if not template_file_path.exists():
         st.warning(f"Template file '{template_file_path.name}' not found for prefix '{prefix}'. Cannot detect incoterm.")
         return None
-
+        
     # 3. Scan the found template file
     workbook = None
     try:
@@ -89,7 +89,7 @@ if uploaded_file:
     # --- Scan the correct TEMPLATE file for the Incoterm ---
     identifier = Path(uploaded_file.name).stem
     detected_term = find_incoterm_from_template(identifier)
-
+    
     # --- User Feedback ---
     if detected_term:
         st.success(f"💡 Detected Incoterm '{detected_term}' from the '{identifier.split('2')[0]}.xlsx' template. Output filenames will be adjusted.")
@@ -130,12 +130,12 @@ if uploaded_file:
             st.error(f"An error occurred during Step 1 (JSON Creation): {e}")
             st.exception(e)
             st.stop()
-
+        
         # --- Step 2: Generate the final invoice Excel files ---
         st.info("Step 2: Generating final formatted invoice(s) from JSON data...")
         invoice_output_dir = RESULT_DIR / identifier
         invoice_output_dir.mkdir(parents=True, exist_ok=True)
-
+        
         modes_to_run = []
         if gen_normal:
             mode_name = detected_term if detected_term else "normal"
@@ -145,8 +145,8 @@ if uploaded_file:
         if gen_combine:
             mode_name = f"{detected_term} Combine" if detected_term else "combine"
             modes_to_run.append((mode_name, ["--custom"]))
-
-        success_files = []
+        
+        success_count = 0
         for mode_name, mode_flags in modes_to_run:
             with st.spinner(f"Generating {mode_name.upper()} version..."):
                 output_filename = f"CT&INV&PL {identifier} {mode_name.upper()}.xlsx"
@@ -157,42 +157,28 @@ if uploaded_file:
                     "--templatedir", str(TEMPLATE_DIR),
                     "--configdir", str(INVOICE_GEN_DIR / "config"),
                 ] + mode_flags
-
+                
                 try:
-                    # Generate the file on the server's temporary disk
                     subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace')
-
-                    # Read the generated file's content into memory
-                    with open(output_path, "rb") as f:
-                        file_bytes = f.read()
-
-                    # Store the details for the download button
-                    success_files.append({
-                        "name": output_filename,
-                        "bytes": file_bytes,
-                        "mode": mode_name.upper()
-                    })
-
+                    st.text(f"  > Successfully generated: {output_filename}")
+                    success_count += 1
                 except subprocess.CalledProcessError as e:
                     st.error(f"Failed to generate {mode_name.upper()} version.")
                     st.text_area(f"Error details for {mode_name}", e.stderr, height=200)
 
-        # --- Final Summary & Download Buttons ---
+        # --- Final Summary ---
         st.divider()
-        if success_files:
-            st.success(f"Step 2 Complete! {len(success_files)} final invoice file(s) are ready for download.")
-
-            # Create a download button for each successfully generated file
-            for file_info in success_files:
-                st.download_button(
-                    label=f"Download {file_info['mode']} Version",
-                    data=file_info['bytes'],
-                    file_name=file_info['name'],
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", # Excel file type
-                    use_container_width=True
-                )
+        if success_count > 0:
+            st.success(f"Step 2 Complete! {success_count} final invoice file(s) were created.")
+            st.info(f"You can find them in the folder: `{invoice_output_dir.resolve()}`")
+            
+            try:
+                if platform.system() == "Windows": os.startfile(invoice_output_dir)
+                elif platform.system() == "Darwin": subprocess.run(["open", invoice_output_dir])
+                else: subprocess.run(["xdg-open", invoice_output_dir])
+            except Exception: st.warning("Could not automatically open the file explorer.")
         
-            st.info("The processed JSON data is also ready. Navigate to the 'Add / Amend Invoice' page to add it to the database.")
+        st.info("The processed JSON data is also ready. Navigate to the 'Add / Amend Invoice' page to add it to the database.")
 
         if temp_file_path.exists():
             os.remove(temp_file_path)
