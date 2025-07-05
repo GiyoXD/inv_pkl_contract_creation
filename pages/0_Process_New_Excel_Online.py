@@ -3,11 +3,11 @@ import os
 import sys
 from pathlib import Path
 import subprocess
-import platform
 import openpyxl
 import re
 import io
 import zipfile
+import json # Required for reading/writing JSON files
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
@@ -41,41 +41,35 @@ JSON_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- REVISED: Helper function to find Incoterms from the correct template file ---
+# --- Helper function to find Incoterms from the correct template file ---
 def find_incoterm_from_template(identifier: str):
     """
     Determines the correct template based on the identifier's prefix
     and scans that template for incoterms.
     """
     terms_to_find = ["DAP", "FCA", "CIP"]
-
-    # 1. Extract prefix from identifier (e.g., 'JF' from 'JF25034')
     match = re.match(r'([A-Za-z]+)', identifier)
     if not match:
         st.warning(f"Could not determine prefix from filename '{identifier}' to find the correct template.")
         return None
     prefix = match.group(1)
-
-    # 2. Construct the expected template file path
     template_file_path = TEMPLATE_DIR / f"{prefix}.xlsx"
 
     if not template_file_path.exists():
         st.warning(f"Template file '{template_file_path.name}' not found for prefix '{prefix}'. Cannot detect incoterm.")
         return None
 
-    # 3. Scan the found template file
     workbook = None
     try:
         workbook = openpyxl.load_workbook(template_file_path, read_only=True)
         sheet = workbook.active
-        for row in sheet.iter_rows(min_row=1, max_row=50): # Scan first 50 rows
+        for row in sheet.iter_rows(min_row=1, max_row=50):
             for cell in row:
                 if cell.value and isinstance(cell.value, str):
                     for term in terms_to_find:
-                        # Perform a direct, case-sensitive substring search
                         if term in cell.value:
                             return term
-        return None # No term found in the template
+        return None
     except Exception as e:
         st.warning(f"Could not scan template file '{template_file_path.name}'. Error: {e}")
         return None
@@ -88,17 +82,25 @@ st.header("1. Upload Excel File")
 uploaded_file = st.file_uploader("Choose an XLSX file to process", type="xlsx")
 
 if uploaded_file:
-    # --- Scan the correct TEMPLATE file for the Incoterm ---
     identifier = Path(uploaded_file.name).stem
     detected_term = find_incoterm_from_template(identifier)
 
-    # --- User Feedback ---
     if detected_term:
         st.success(f"💡 Detected Incoterm '{detected_term}' from the '{identifier.split('2')[0]}.xlsx' template. Output filenames will be adjusted.")
     else:
         st.warning("💡 No special incoterm (DAP, FCA, CIP) detected in the corresponding template. Using 'Normal' as the default name.")
 
-    st.header("2. Select Final Invoice Versions to Create")
+    st.header("2. Optional Invoice Overrides")
+    st.markdown("Use these fields to add invoice data **only if it's missing** from the source file. Existing data will not be replaced.")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        user_inv_no = st.text_input("Invoice No")
+    with col2:
+        user_inv_ref = st.text_input("Invoice Ref")
+    with col3:
+        user_inv_date = st.text_input("Invoice Date (DD-MM-YYYY)")
+
+    st.header("3. Select Final Invoice Versions to Create")
     col1, col2, col3 = st.columns(3)
     with col1:
         gen_normal = st.checkbox("Normal Invoice", value=True)
@@ -107,7 +109,7 @@ if uploaded_file:
     with col3:
         gen_combine = st.checkbox("Combine Version", value=True)
 
-    st.header("3. Process and Generate")
+    st.header("4. Process and Generate")
     if st.button(f"Process '{uploaded_file.name}' and Generate Final Invoices", use_container_width=True, type="primary"):
         if not (gen_normal or gen_fob or gen_combine):
             st.error("Please select at least one invoice version to generate.")
@@ -118,7 +120,6 @@ if uploaded_file:
         with open(temp_file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
 
-        # --- Step 1: Create the JSON data file ---
         st.info("Step 1: Processing Excel file to create structured JSON data...")
         try:
             run_invoice_automation(
@@ -130,16 +131,59 @@ if uploaded_file:
                 raise FileNotFoundError("The JSON data file was not created by the processing script.")
             st.success(f"Step 1 Complete: JSON data file '{json_path.name}' created.")
 
-            # Read JSON data and add it to our list for zipping
-            with open(json_path, "rb") as f:
-                files_to_zip.append({"name": f"{identifier}.json", "data": f.read()})
-
         except Exception as e:
             st.error(f"An error occurred during Step 1 (JSON Creation): {e}")
             st.exception(e)
             st.stop()
         
-        # --- Step 2: Generate the final invoice Excel files ---
+        # --- REVISED LOGIC: Step 1.5: Conditionally ADD mappings only if they are missing ---
+        if user_inv_no or user_inv_ref or user_inv_date:
+            st.info("Step 1.5: Checking for missing fields and applying overrides if necessary...")
+            try:
+                with open(json_path, 'r+', encoding='utf-8') as f:
+                    data = json.load(f)
+                    was_modified = False
+
+                    if 'processed_tables_data' in data and isinstance(data['processed_tables_data'], dict):
+                        for table_key, table_data in data['processed_tables_data'].items():
+                            if 'amount' not in table_data or not isinstance(table_data['amount'], list):
+                                continue
+                            
+                            num_rows = len(table_data['amount'])
+                            
+                            # Only add the mapping if user provided a value AND the key is NOT already in the data
+                            if user_inv_no and 'inv_no' not in table_data:
+                                table_data['inv_no'] = [user_inv_no] * num_rows
+                                was_modified = True
+                            
+                            if user_inv_ref and 'inv_ref' not in table_data:
+                                table_data['inv_ref'] = [user_inv_ref] * num_rows
+                                was_modified = True
+
+                            if user_inv_date and 'inv_date' not in table_data:
+                                table_data['inv_date'] = [user_inv_date] * num_rows
+                                was_modified = True
+
+                    if was_modified:
+                        f.seek(0)
+                        json.dump(data, f, indent=4)
+                        f.truncate()
+                        st.success("Step 1.5 Complete: Successfully added missing data to the JSON file.")
+                    else:
+                        st.info("Step 1.5 Complete: No missing fields were found to override. JSON file is unchanged.")
+
+            except Exception as e:
+                st.error(f"An error occurred during Step 1.5 (JSON Override): {e}")
+                st.exception(e)
+                st.stop()
+        
+        try:
+            with open(json_path, "rb") as f:
+                files_to_zip.append({"name": f"{identifier}.json", "data": f.read()})
+        except Exception as e:
+            st.error(f"Failed to read the final JSON file for packaging. Error: {e}")
+            st.stop()
+
         st.info("Step 2: Generating final formatted invoice(s) from JSON data...")
         invoice_output_dir = RESULT_DIR / identifier
         invoice_output_dir.mkdir(parents=True, exist_ok=True)
@@ -168,28 +212,21 @@ if uploaded_file:
                 
                 try:
                     subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace')
-                    
-                    # Read the generated Excel file and add it to our list for zipping
                     with open(output_path, "rb") as f:
                         files_to_zip.append({"name": output_filename, "data": f.read()})
                     success_count += 1
-
                 except subprocess.CalledProcessError as e:
                     st.error(f"Failed to generate {mode_name.upper()} version.")
                     st.text_area(f"Error details for {mode_name}", e.stderr, height=200)
 
-        # --- Final Summary & ZIP Download ---
         st.divider()
         if success_count > 0:
             st.success(f"Step 2 Complete! {success_count} invoice file(s) were created.")
-            
-            # Create an in-memory zip file
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for file_info in files_to_zip:
                     zip_file.writestr(file_info["name"], file_info["data"])
             
-            # Offer the zip file for download
             st.download_button(
                 label=f"📥 Download All Files ({len(files_to_zip)}) as a ZIP",
                 data=zip_buffer.getvalue(),
