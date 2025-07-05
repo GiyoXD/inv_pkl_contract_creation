@@ -51,14 +51,14 @@ def process_json_file(file_path):
         data = json.load(f)
     all_tables_data = data.get('processed_tables_data', {})
     if not all_tables_data: raise ValueError("File does not contain 'processed_tables_data'.")
-    
+
     first_table = next(iter(all_tables_data.values()))
     header_info = {
         "inv_no": str(first_table.get('inv_no', ['N/A'])[0]),
         "inv_date": str(first_table.get('inv_date', ['N/A'])[0]),
         "inv_ref": str(first_table.get('inv_ref', ['N/A'])[0])
     }
-    
+
     all_line_items = [pd.DataFrame(tbl) for tbl in all_tables_data.values()]
     df = pd.concat(all_line_items, ignore_index=True)
     df['inv_ref'] = header_info['inv_ref']
@@ -71,7 +71,7 @@ def process_json_file(file_path):
 def handle_amendment(source_file_path, new_df, existing_df):
     """The UI and logic for approving an amendment."""
     st.warning(f"This invoice No **'{new_df['inv_no'].iloc[0]}'** already exists as an active record. Please review the changes and approve.", icon="⚠️")
-    
+
     st.header("Review Changes")
     col1, col2 = st.columns(2)
     with col1:
@@ -87,14 +87,14 @@ def handle_amendment(source_file_path, new_df, existing_df):
         # 1. Archive the old data
         archive_filename = f"{new_df['inv_ref'].iloc[0]}_archived_on_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
         existing_df.to_json(AMENDMENT_ARCHIVE_DIRECTORY / archive_filename, orient='records', indent=4)
-        
+
         # 2. Overwrite the old data in the database
         with sqlite3.connect(DATABASE_FILE) as conn:
             cursor = conn.cursor()
             cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (new_df['inv_ref'].iloc[0],))
             new_df.to_sql(TABLE_NAME, conn, if_exists='append', index=False)
             conn.commit()
-            
+
         # 3. Move the source file of the change
         shutil.move(str(source_file_path), str(PROCESSED_DIRECTORY / source_file_path.name))
         st.success("Amendment approved! Old data archived and database updated.")
@@ -109,7 +109,7 @@ def handle_new_invoice(source_file_path, new_df):
     """The UI and logic for adding a brand new invoice."""
     st.info(f"Now verifying new invoice: **{source_file_path.name}**")
     st.dataframe(new_df)
-    
+
     c1, c2, _ = st.columns([1, 1, 4])
     if c1.button("✅ Accept", use_container_width=True):
         with sqlite3.connect(DATABASE_FILE) as conn:
@@ -133,10 +133,10 @@ file_to_process = json_files[0]
 try:
     new_invoice_df = process_json_file(file_to_process)
     inv_ref = new_invoice_df['inv_ref'].iloc[0]
-    
+
     # Check if this invoice reference already exists and is active
     existing_invoice_df = get_active_invoice_data(inv_ref)
-    
+
     if existing_invoice_df is not None:
         # --- Amendment Workflow ---
         handle_amendment(file_to_process, new_invoice_df, existing_invoice_df)
