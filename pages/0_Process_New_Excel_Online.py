@@ -8,6 +8,7 @@ import re
 import io
 import zipfile
 import json # Required for reading/writing JSON files
+import datetime # Required for date handling
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
@@ -98,7 +99,20 @@ if uploaded_file:
     with col2:
         user_inv_ref = st.text_input("Invoice Ref")
     with col3:
-        user_inv_date = st.text_input("Invoice Date (DD-MM-YYYY)")
+        # --- IMPROVEMENT: Use a date picker instead of text input ---
+        # Use st.date_input for a user-friendly calendar popup.
+        # The `format` parameter controls the display in the UI.
+        selected_date_obj = st.date_input(
+            label="Invoice Date",
+            value=None,  # Default to no date selected
+            format="DD/MM/YYYY",  # Display format for the user
+            help="Select the invoice date. This will be formatted as dd/mm/yyyy."
+        )
+        # Convert the selected date object to the required "dd/mm/yyyy" string format.
+        # If no date is selected, `selected_date_obj` is None, so `user_inv_date` becomes an empty string,
+        # ensuring the rest of the script's logic (`if user_inv_date:...`) works as before.
+        user_inv_date = selected_date_obj.strftime("%d/%m/%Y") if selected_date_obj else ""
+        # --- END OF IMPROVEMENT ---
 
     st.header("3. Select Final Invoice Versions to Create")
     col1, col2, col3 = st.columns(3)
@@ -136,7 +150,7 @@ if uploaded_file:
             st.exception(e)
             st.stop()
         
-        # --- REVISED LOGIC: Step 1.5: Conditionally ADD mappings only if they are missing ---
+        # Step 1.5: Conditionally ADD mappings only if they are missing
         if user_inv_no or user_inv_ref or user_inv_date:
             st.info("Step 1.5: Checking for missing fields and applying overrides if necessary...")
             try:
