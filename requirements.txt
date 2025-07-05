@@ -4,3 +4,4 @@ questionary
 streamlit
 pandas
 openpyxl
+zipfile
