@@ -6,6 +6,8 @@ import subprocess
 import platform
 import openpyxl
 import re
+import io
+import zipfile
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
@@ -110,7 +112,8 @@ if uploaded_file:
         if not (gen_normal or gen_fob or gen_combine):
             st.error("Please select at least one invoice version to generate.")
             st.stop()
-
+        
+        files_to_zip = []
         temp_file_path = TEMP_UPLOAD_DIR / uploaded_file.name
         with open(temp_file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
@@ -126,16 +129,21 @@ if uploaded_file:
             if not json_path.exists():
                 raise FileNotFoundError("The JSON data file was not created by the processing script.")
             st.success(f"Step 1 Complete: JSON data file '{json_path.name}' created.")
+
+            # Read JSON data and add it to our list for zipping
+            with open(json_path, "rb") as f:
+                files_to_zip.append({"name": f"{identifier}.json", "data": f.read()})
+
         except Exception as e:
             st.error(f"An error occurred during Step 1 (JSON Creation): {e}")
             st.exception(e)
             st.stop()
-
+        
         # --- Step 2: Generate the final invoice Excel files ---
         st.info("Step 2: Generating final formatted invoice(s) from JSON data...")
         invoice_output_dir = RESULT_DIR / identifier
         invoice_output_dir.mkdir(parents=True, exist_ok=True)
-
+        
         modes_to_run = []
         if gen_normal:
             mode_name = detected_term if detected_term else "normal"
@@ -145,8 +153,8 @@ if uploaded_file:
         if gen_combine:
             mode_name = f"{detected_term} Combine" if detected_term else "combine"
             modes_to_run.append((mode_name, ["--custom"]))
-
-        success_files = []
+        
+        success_count = 0
         for mode_name, mode_flags in modes_to_run:
             with st.spinner(f"Generating {mode_name.upper()} version..."):
                 output_filename = f"CT&INV&PL {identifier} {mode_name.upper()}.xlsx"
@@ -157,42 +165,39 @@ if uploaded_file:
                     "--templatedir", str(TEMPLATE_DIR),
                     "--configdir", str(INVOICE_GEN_DIR / "config"),
                 ] + mode_flags
-
+                
                 try:
-                    # Generate the file on the server's temporary disk
                     subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace')
-
-                    # Read the generated file's content into memory
+                    
+                    # Read the generated Excel file and add it to our list for zipping
                     with open(output_path, "rb") as f:
-                        file_bytes = f.read()
-
-                    # Store the details for the download button
-                    success_files.append({
-                        "name": output_filename,
-                        "bytes": file_bytes,
-                        "mode": mode_name.upper()
-                    })
+                        files_to_zip.append({"name": output_filename, "data": f.read()})
+                    success_count += 1
 
                 except subprocess.CalledProcessError as e:
                     st.error(f"Failed to generate {mode_name.upper()} version.")
                     st.text_area(f"Error details for {mode_name}", e.stderr, height=200)
 
-        # --- Final Summary & Download Buttons ---
+        # --- Final Summary & ZIP Download ---
         st.divider()
-        if success_files:
-            st.success(f"Step 2 Complete! {len(success_files)} final invoice file(s) are ready for download.")
-
-            # Create a download button for each successfully generated file
-            for file_info in success_files:
-                st.download_button(
-                    label=f"Download {file_info['mode']} Version",
-                    data=file_info['bytes'],
-                    file_name=file_info['name'],
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", # Excel file type
-                    use_container_width=True
-                )
-        
-            st.info("The processed JSON data is also ready. Navigate to the 'Add / Amend Invoice' page to add it to the database.")
+        if success_count > 0:
+            st.success(f"Step 2 Complete! {success_count} invoice file(s) were created.")
+            
+            # Create an in-memory zip file
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for file_info in files_to_zip:
+                    zip_file.writestr(file_info["name"], file_info["data"])
+            
+            # Offer the zip file for download
+            st.download_button(
+                label=f"📥 Download All Files ({len(files_to_zip)}) as a ZIP",
+                data=zip_buffer.getvalue(),
+                file_name=f"Invoices-{identifier}.zip",
+                mime="application/zip",
+                use_container_width=True,
+                type="primary"
+            )
 
         if temp_file_path.exists():
             os.remove(temp_file_path)
