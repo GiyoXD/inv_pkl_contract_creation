@@ -70,7 +70,7 @@ def process_json_file(file_path):
 
 def handle_amendment(source_file_path, new_df, existing_df):
     """The UI and logic for approving an amendment."""
-    st.warning(f"This invoice reference **'{new_df['inv_ref'].iloc[0]}'** already exists as an active record. Please review the changes and approve.", icon="⚠️")
+    st.warning(f"This invoice No **'{new_df['inv_no'].iloc[0]}'** already exists as an active record. Please review the changes and approve.", icon="⚠️")
     
     st.header("Review Changes")
     col1, col2 = st.columns(2)
