@@ -1,0 +1,232 @@
+{
+    "metadata": {
+        "workbook_filename": "KB25015.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-07-03T15:45:45.035260"
+    },
+    "processed_tables_data": {
+        "1": {
+            "po": [
+                "STOCK UP 2024.11.19",
+                "STOCK UP 2025.1.24",
+                "STOCK UP 2025.1.24",
+                "STOCK UP 2025.1.24",
+                "STOCK UP 2025.1.24",
+                "STOCK UP 2025.1.24",
+                "STOCK UP 2025.1.24",
+                "STOCK UP 2025.1.24",
+                null
+            ],
+            "production_order_no": [
+                "2503002-01",
+                "2503032-01",
+                "2503032-01",
+                "2503032-01",
+                "2503032-01",
+                "2503032-01",
+                "2503032-01",
+                "2503032-01",
+                "2507004-01"
+            ],
+            "reference_code": [
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u7c73\u707061",
+                "UDAY-ES-\u9ec4\u68d5473"
+            ],
+            "item": [
+                "NMP-400",
+                "NMP-400",
+                "NMP-400",
+                "NMP-400",
+                "NMP-400",
+                "NMP-400",
+                "NMP-400",
+                "NMP-400",
+                "NMP-401"
+            ],
+            "pcs": [
+                176,
+                195,
+                169,
+                190,
+                195,
+                190,
+                172,
+                9,
+                null
+            ],
+            "sqft": [
+                9387.4,
+                10582.7,
+                9292.3,
+                10549.5,
+                10627.3,
+                10411.9,
+                9357.7,
+                458.4,
+                null
+            ],
+            "pallet_count": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ],
+            "gross": [
+                "746",
+                "829.5",
+                "722.5",
+                "810",
+                "817",
+                "806.5",
+                "727.9116",
+                "38.0884",
+                "0"
+            ],
+            "net": [
+                "701",
+                "784.5",
+                "677.5",
+                "765",
+                "772",
+                "761.5",
+                "685.1492",
+                "35.8508",
+                "0"
+            ],
+            "manual_no": [
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ],
+            "cbm": [
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "0",
+                "0"
+            ],
+            "unit": [
+                1.39,
+                1.37,
+                1.37,
+                1.37,
+                1.37,
+                1.37,
+                1.37,
+                1.16,
+                null
+            ],
+            "amount": [
+                13048.485999999999,
+                14498.299000000003,
+                12730.451,
+                14452.815,
+                14559.401,
+                14264.303,
+                12820.049000000003,
+                531.7439999999999,
+                null
+            ],
+            "inv_no": [
+                "KB25015",
+                "01T25032604",
+                "01T25032605",
+                "01T25032606",
+                "01T25032607",
+                "01T25032608",
+                "01T25032701",
+                "01T25032701",
+                null
+            ],
+            "inv_date": [
+                "2025-04-07T00:00:00",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ],
+            "inv_ref": [
+                "CLF2025-198",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ]
+        }
+    },
+    "standard_aggregation_results": {
+        "('STOCK UP 2024.11.19', 'NMP-400', Decimal('1.39'), None)": {
+            "sqft_sum": "9387.4",
+            "amount_sum": "13048.485999999999"
+        },
+        "('STOCK UP 2025.1.24', 'NMP-400', Decimal('1.37'), None)": {
+            "sqft_sum": "60821.4",
+            "amount_sum": "83325.318000000006"
+        },
+        "('STOCK UP 2025.1.24', 'NMP-400', Decimal('1.16'), None)": {
+            "sqft_sum": "458.4",
+            "amount_sum": "531.7439999999999"
+        },
+        "('<MISSING_PO>', 'NMP-401', None, None)": {
+            "sqft_sum": "0",
+            "amount_sum": "0"
+        }
+    },
+    "custom_aggregation_results": {
+        "('STOCK UP 2024.11.19', 'NMP-400', None, None)": {
+            "sqft_sum": "9387.4",
+            "amount_sum": "13048.485999999999"
+        },
+        "('STOCK UP 2025.1.24', 'NMP-400', None, None)": {
+            "sqft_sum": "61279.8",
+            "amount_sum": "83857.0620000000059"
+        },
+        "('<MISSING_PO>', 'NMP-401', None, None)": {
+            "sqft_sum": "0",
+            "amount_sum": "0"
+        }
+    },
+    "final_fob_compounded_result": {
+        "1": {
+            "combined_po": "<MISSING_PO>/STOCK UP 2024.11.19\nSTOCK UP 2025.1.24",
+            "combined_item": "NMP-400/NMP-401",
+            "combined_description": "",
+            "total_sqft": "70667.2",
+            "total_amount": "96905.5480000000049"
+        }
+    }
+}
