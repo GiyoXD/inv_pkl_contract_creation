@@ -1,3 +1,6 @@
 openpyxl
 python-dateutil
 questionary
+streamlit
+pandas
+openpyxl
