@@ -13,7 +13,6 @@ import re
 # Setup basic logging for the wrapper script
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# run_script function remains the same
 def run_script(script_path: Path, args: List[str] = [], cwd: Optional[Path] = None, script_name: str = "") -> bool:
     """Runs a Python script using subprocess, handling potential errors."""
     if not script_path.is_file():
@@ -68,7 +67,6 @@ def run_script(script_path: Path, args: List[str] = [], cwd: Optional[Path] = No
         logging.error(f"An unexpected error occurred while trying to run {script_name}: {e}")
         return False
 
-# select_excel_file function remains the same
 def select_excel_file() -> Optional[Path]:
     """Opens a file dialog for the user to select an Excel file."""
     root = tk.Tk()
