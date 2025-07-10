@@ -12,14 +12,12 @@
             
             "console": "integratedTerminal",
             "args": [
-                "./data/JLFHM.json",
+                "TH.json",
                 "-c",
                 "config",
-                "-t",
-                "TEMPLATE"
             ],
             // The CWD is correct, telling the script where to run from.
-            "cwd": "${workspaceFolder}/invoice_gen"
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

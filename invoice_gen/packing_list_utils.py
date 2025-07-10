@@ -4,6 +4,7 @@ import merge_utils
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils import get_column_letter
 from typing import Dict, List, Tuple
+from openpyxl.styles import Font, Alignment, Border, Side
 
 def calculate_rows_to_generate(packing_list_data: dict, sheet_config: dict) -> int:
     """
@@ -101,7 +102,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
                         end_row=data_end_row
                     )
 
-        # Write Pre-Footer Row and apply styling to the ENTIRE row
+        # Write Pre-Footer Row ppand apply styling to the ENTIRE row
         pre_footer_config = footer_config.get("pre_footer_row")
         if pre_footer_config and isinstance(pre_footer_config, dict):
             # 1. Write the specified cell values first
@@ -135,6 +136,32 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         pallet_count = len(table_data.get('pallet_count', []))
         grand_total_pallets += pallet_count
         invoice_utils.write_footer_row(worksheet, write_pointer_row, header_info, [(data_start_row, write_pointer_row - 1)], footer_config, pallet_count)
+        
+        # --- FIX: Re-apply styles to the footer row to add number formats and correct border ---
+        footer_style_config = footer_config.get('style', {})
+        footer_font = Font(**footer_style_config.get('font')) if footer_style_config.get('font') else None
+        footer_alignment = Alignment(**footer_style_config.get('alignment')) if footer_style_config.get('alignment') else None
+        
+        footer_border_config = footer_style_config.get('border', {})
+        footer_border = None
+        if footer_border_config.get('apply'):
+            side = Side(border_style=footer_border_config.get('style', 'thin'), color="000000")
+            footer_border = Border(left=side, right=side, top=side, bottom=side)
+
+        for c_idx in range(1, num_columns + 1):
+            cell = worksheet.cell(row=write_pointer_row, column=c_idx)
+            col_id = idx_to_id_map.get(c_idx)
+            
+            # 1. Apply main styling (which includes number formats but may have the wrong border)
+            style_context = {"col_id": col_id}
+            style_utils.apply_cell_style(cell, styling_config, style_context)
+            
+            # 2. Override with specific footer font, alignment, and border to ensure they take precedence
+            if footer_font: cell.font = footer_font
+            if footer_alignment: cell.alignment = footer_alignment
+            if footer_border: cell.border = footer_border
+        # --- END FIX ---
+            
         footer_merge_rules = footer_config.get("footer_merge_rules")
         merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, footer_merge_rules)
         all_footer_rows.append(write_pointer_row)
@@ -147,7 +174,35 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
     if num_tables > 1:
         last_header_info = all_header_infos[-1]
         num_columns = last_header_info.get('num_columns', 1)
+        idx_to_id_map = {v: k for k, v in last_header_info.get('column_id_map', {}).items()}
+
         invoice_utils.write_footer_row(worksheet, write_pointer_row, last_header_info, all_data_ranges, footer_config, grand_total_pallets, "TOTAL OF:")
+        
+        # --- FIX: Re-apply styles to the grand total footer row ---
+        footer_style_config = footer_config.get('style', {})
+        footer_font = Font(**footer_style_config.get('font')) if footer_style_config.get('font') else None
+        footer_alignment = Alignment(**footer_style_config.get('alignment')) if footer_style_config.get('alignment') else None
+
+        footer_border_config = footer_style_config.get('border', {})
+        footer_border = None
+        if footer_border_config.get('apply'):
+            side = Side(border_style=footer_border_config.get('style', 'thin'), color="000000")
+            footer_border = Border(left=side, right=side, top=side, bottom=side)
+
+        for c_idx in range(1, num_columns + 1):
+            cell = worksheet.cell(row=write_pointer_row, column=c_idx)
+            col_id = idx_to_id_map.get(c_idx)
+
+            # 1. Apply main styling (which includes number formats)
+            style_context = {"col_id": col_id}
+            style_utils.apply_cell_style(cell, styling_config, style_context)
+
+            # 2. Override with specific footer font, alignment, and border
+            if footer_font: cell.font = footer_font
+            if footer_alignment: cell.alignment = footer_alignment
+            if footer_border: cell.border = footer_border
+        # --- END FIX ---
+
         grand_total_merge_rules = footer_config.get("grand_total_merge_rules")
         merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, grand_total_merge_rules)
         all_footer_rows.append(write_pointer_row)

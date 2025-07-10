@@ -3,32 +3,58 @@
     "Invoice": {
       "type": "summary",
       "replacements": [
-        { "find": "[[PO_NUMBER]]", "data_path": ["aggregated_summary", "po"] },
-        { "find": "[[TOTAL_NET]]", "data_path": ["aggregated_summary", "net"] },
-        { "find": "[[TOTAL_GROSS]]", "data_path": ["aggregated_summary", "gross"] },
-        { "find": "[[TOTAL_CBM]]", "data_path": ["aggregated_summary", "cbm"] },
-        { "find": "[[DESCRIPTION]]", "data_path": ["aggregated_summary", "description"] }
+        { "find": "[[PO]]", "data_path": ["aggregated_summary", "po"] },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross" ] },
+        { "find": "[[CBM]]", "data_path": ["aggregated_summary", "cbm"] },
+        { "find": "[[ITEM]]", "data_path": ["aggregated_summary", "item"] },
+        { "find": "[[DESCRIPTION]]", "data_path": ["aggregated_summary", "description"] },
+        { "find": "[[DATE]]", "data_path": ["aggregated_summary", "inv_date"] },
+        { "find": "[[REF]]", "data_path": ["aggregated_summary", "inv_ref"] },
+        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"] },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"] },
+        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"] }
       ]
     },
     "Contract": {
       "type": "summary",
       "replacements": [
-        { "find": "[[PO_NUMBER]]", "data_path": ["aggregated_summary", "po"] },
-        { "find": "[[ITEM]]", "data_path": ["aggregated_summary", "item"] }
+        { "find": "[[PO]]", "data_path": ["aggregated_summary", "po"] },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross" ] },
+        { "find": "[[CBM]]", "data_path": ["aggregated_summary", "cbm"] },
+        { "find": "[[ITEM]]", "data_path": ["aggregated_summary", "item"] },
+        { "find": "[[DESCRIPTION]]", "data_path": ["aggregated_summary", "description"] },
+        { "find": "[[DATE]]", "data_path": ["aggregated_summary", "inv_date"] },
+        { "find": "[[REF]]", "data_path": ["aggregated_summary", "inv_ref"] },
+        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"] },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"] },
+        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"] }
       ]
     },
-    "Packing list": {
+    "Packing List": {
       "type": "packing_list",
-      "start_row": 21,
+      "start_row": 22,
+      "replacements": [
+        { "find": "[[PO]]", "data_path": ["aggregated_summary", "po"] },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross" ] },
+        { "find": "[[CBM]]", "data_path": ["aggregated_summary", "cbm"] },
+        { "find": "[[ITEM]]", "data_path": ["aggregated_summary", "item"] },
+        { "find": "[[DESCRIPTION]]", "data_path": ["aggregated_summary", "description"] },
+        { "find": "[[DATE]]", "data_path": ["aggregated_summary", "inv_date"] },
+        { "find": "[[REF]]", "data_path": ["aggregated_summary", "inv_ref"] },
+        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"] },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"] },
+        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"] }
+      ],
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",   "id": "col_static",    "rowspan": 1, "colspan": 1 },
         { "row": 0, "col": 1, "text": "P.O Nº",      "id": "col_po",        "rowspan": 1, "colspan": 1 },
         { "row": 0, "col": 2, "text": "ITEM Nº",     "id": "col_item",      "rowspan": 1, "colspan": 1 },
         { "row": 0, "col": 3, "text": "Description", "id": "col_desc",      "rowspan": 1, "colspan": 1 },
-        { "row": 0, "col": 4, "text": "PCS",         "id": "col_qty_pcs",   "rowspan": 1, "colspan": 1 },
-        { "row": 0, "col": 5, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 1, "colspan": 1 },
-        { "row": 0, "col": 6, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 1, "colspan": 1 },
-        { "row": 0, "col": 7, "text": "CBM",         "id": "col_cbm",       "rowspan": 1, "colspan": 1 }
+        { "row": 0, "col": 4, "text": "PALLET NO.",         "id": "col_pallet",   "rowspan": 1, "colspan": 1 },
+        { "row": 0, "col": 5, "text": "PCS",         "id": "col_qty_pcs",   "rowspan": 1, "colspan": 1 },
+        { "row": 0, "col": 6, "text": "N.W (kgs)",   "id": "col_net",       "rowspan": 1, "colspan": 1 },
+        { "row": 0, "col": 7, "text": "G.W (kgs)",   "id": "col_gross",     "rowspan": 1, "colspan": 1 },
+        { "row": 0, "col": 8, "text": "CBM",         "id": "col_cbm",       "rowspan": 1, "colspan": 1 }
       ],
       "mappings": {
         "initial_static": {
@@ -39,6 +65,7 @@
           "po":          { "id": "col_po" },
           "item":        { "id": "col_item" },
           "description": { "id": "col_desc" },
+          "pallet_count":   { "id": "col_pallet" },
           "pcs":         { "id": "col_qty_pcs" },
           "sqft":        { "id": "col_qty_sf" },
           "net":         { "id": "col_net" },
@@ -58,8 +85,7 @@
         "sum_column_ids": ["col_qty_pcs", "col_qty_sf", "col_net", "col_gross", "col_cbm"],
         "pre_footer_row": {
           "cells": [
-            { "column_id": "col_static", "value": "This is a pre-footer note." },
-            { "column_id": "col_gross", "value": "Another value" }
+            { "column_id": "col_po", "value": "HS.CODE1224545" }
           ],
           "merge_rules": {
             "2": 2
