@@ -56,6 +56,22 @@
         "total_text_column_id": "col_po",
         "pallet_count_column_id": "col_item",
         "sum_column_ids": ["col_qty_pcs", "col_qty_sf", "col_net", "col_gross", "col_cbm"],
+        "pre_footer_row": {
+          "cells": [
+            { "column_id": "col_static", "value": "This is a pre-footer note." },
+            { "column_id": "col_gross", "value": "Another value" }
+          ],
+          "merge_rules": {
+            "1": 5,
+            "6": 2
+          }
+        },
+        "footer_merge_rules": {
+          "1": 5
+        },
+        "grand_total_merge_rules": {
+          "1": 5
+        },
         "style": {
           "font": { "name": "Times New Roman", "size": 12, "bold": true },
           "alignment": { "horizontal": "center", "vertical": "center" },
@@ -75,8 +91,7 @@
           "col_qty_pcs":{ "number_format": "#,##0" },
           "col_qty_sf": { "number_format": "#,##0.00" }
         },
-        "column_id_widths": {
-        },
+        "column_id_widths": {},
         "row_heights": { "header": 27, "data_default": 27, "footer": 35 }
       }
     }

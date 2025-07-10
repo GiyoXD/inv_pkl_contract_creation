@@ -8,16 +8,6 @@ from typing import Dict, List, Tuple
 def calculate_rows_to_generate(packing_list_data: dict, sheet_config: dict) -> int:
     """
     Calculates the total number of rows required to generate the full packing list.
-
-    This function determines the necessary space by summing the rows needed for headers,
-    data, footers for each table, plus spacing and any grand totals.
-
-    Args:
-        packing_list_data: The core data object containing raw_data.
-        sheet_config: The configuration for the sheet.
-
-    Returns:
-        The total integer count of rows that will be written.
     """
     raw_data = packing_list_data.get('raw_data', {})
     if not raw_data:
@@ -29,6 +19,10 @@ def calculate_rows_to_generate(packing_list_data: dict, sheet_config: dict) -> i
     spacing_rows = max(0, num_tables - 1)
     grand_total_rows = 1 if num_tables > 1 else 0
     total_data_rows = sum(len(table_data.get('net', [])) for table_data in raw_data.values())
+
+    footer_config = sheet_config.get("footer_configurations", {})
+    if footer_config.get("pre_footer_row"):
+        spacing_rows += num_tables
 
     total_generated_rows = (
         (header_rows_per_table * num_tables) +
@@ -65,7 +59,6 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         table_data = raw_data[table_key]
         num_data_rows = len(table_data.get('net', []))
         
-        # 1. WRITE HEADER
         header_info = invoice_utils.write_header(worksheet, write_pointer_row, header_to_write, styling_config)
         all_header_infos.append(header_info)
         write_pointer_row = header_info.get('second_row_index', write_pointer_row) + 1
@@ -74,7 +67,6 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         static_col_idx = col_map.get(mappings.get("initial_static", {}).get("column_header_id"))
         idx_to_id_map = {v: k for k, v in col_map.items()}
 
-        # 2. WRITE DATA AND APPLY STYLING
         data_start_row = write_pointer_row
         for r_idx in range(num_data_rows):
             current_row = write_pointer_row + r_idx
@@ -96,7 +88,6 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         write_pointer_row += num_data_rows
         all_data_ranges.append((data_start_row, write_pointer_row - 1))
 
-        # 2A. APPLY VERTICAL MERGES (THIS BLOCK WAS MISSING)
         data_end_row = write_pointer_row - 1
         vertical_merge_ids = mappings.get("vertical_merge_on_id", [])
         if vertical_merge_ids:
@@ -110,7 +101,37 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
                         end_row=data_end_row
                     )
 
-        # 3. WRITE FOOTER
+        # Write Pre-Footer Row and apply styling to the ENTIRE row
+        pre_footer_config = footer_config.get("pre_footer_row")
+        if pre_footer_config and isinstance(pre_footer_config, dict):
+            # 1. Write the specified cell values first
+            cells_to_write = pre_footer_config.get("cells", [])
+            for cell_data in cells_to_write:
+                col_id = cell_data.get("column_id")
+                value = cell_data.get("value")
+                if col_idx := col_map.get(col_id):
+                    worksheet.cell(row=write_pointer_row, column=col_idx).value = value
+            
+            # 2. Loop through ALL columns in the row to apply styles
+            for c_idx in range(1, num_columns + 1):
+                cell = worksheet.cell(row=write_pointer_row, column=c_idx)
+                col_id = idx_to_id_map.get(c_idx)
+                style_context = {
+                    "col_id": col_id, "col_idx": c_idx,
+                    "static_col_idx": static_col_idx, "is_pre_footer": True
+                }
+                style_utils.apply_cell_style(cell, styling_config, style_context)
+            
+            # 3. Apply merge rules after styling
+            pre_footer_merges = pre_footer_config.get("merge_rules")
+            merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, pre_footer_merges)
+            
+            if data_row_height := styling_config.get("row_heights", {}).get("data_default"):
+                worksheet.row_dimensions[write_pointer_row].height = data_row_height
+            
+            write_pointer_row += 1
+
+        # WRITE MAIN FOOTER
         pallet_count = len(table_data.get('pallet_count', []))
         grand_total_pallets += pallet_count
         invoice_utils.write_footer_row(worksheet, write_pointer_row, header_info, [(data_start_row, write_pointer_row - 1)], footer_config, pallet_count)
@@ -118,6 +139,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, footer_merge_rules)
         all_footer_rows.append(write_pointer_row)
         write_pointer_row += 1
+
         if i < num_tables - 1:
             write_pointer_row += 1
 
