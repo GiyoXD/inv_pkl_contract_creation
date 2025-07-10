@@ -1,10 +1,12 @@
 import openpyxl
 import traceback
 from openpyxl.worksheet.worksheet import Worksheet
+from openpyxl.styles import Alignment
 from openpyxl.utils import range_boundaries, get_column_letter, column_index_from_string
 # from openpyxl.worksheet.dimensions import RowDimension # Not strictly needed for access
 from typing import Dict, List, Optional, Tuple, Any
-# --- store_original_merges FILTERED to ignore merges ABOVE row 16 ---
+
+center_alignment = Alignment(horizontal='center', vertical='center')# --- store_original_merges FILTERED to ignore merges ABOVE row 16 ---
 def store_original_merges(workbook: openpyxl.Workbook, sheet_names: List[str]) -> Dict[str, List[Tuple[int, Any, Optional[float]]]]:
     """
     Stores the HORIZONTAL span (colspan), the value of the top-left cell,
@@ -227,50 +229,44 @@ def force_unmerge_from_row_down(worksheet: Worksheet, start_row: int):
 
 def apply_row_merges(worksheet: Worksheet, row_num: int, num_cols: int, merge_rules: Optional[Dict[str, int]]):
     """
-    Applies horizontal merges to a specific row based on rules.
+    Applies horizontal merges to a specific row based on a dictionary of rules.
+    This is the only function needed for your request.
 
     Args:
         worksheet: The openpyxl Worksheet object.
         row_num: The 1-based row index to apply merges to.
-        num_cols: The total number of columns in the table context.
-        merge_rules: Dictionary where keys are starting column indices (as strings or ints)
+        num_cols: The total number of columns in the table for validation.
+        merge_rules: Dictionary where keys are the starting column index (as a string)
                      and values are the number of columns to span (colspan).
     """
-    if not merge_rules or row_num <= 0:
+    # Exit if there are no rules to apply
+    if not merge_rules:
         return
 
-    try:
-        rules_with_int_keys = {int(k): v for k, v in merge_rules.items()}
-        sorted_keys = sorted(rules_with_int_keys.keys())
-    except (ValueError, TypeError):
-        return
-
-    for start_col in sorted_keys:
-        colspan_val = rules_with_int_keys[start_col]
+    print(f"  Applying custom merge rules for row {row_num}...")
+    for start_col_str, colspan_val in merge_rules.items():
         try:
+            start_col = int(start_col_str)
             colspan = int(colspan_val)
-        except (ValueError, TypeError):
-            continue
-        
-        if not isinstance(start_col, int) or not isinstance(colspan, int) or start_col < 1 or colspan < 1:
-            continue
 
-        end_col = start_col + colspan - 1
-        if end_col > num_cols:
-            end_col = num_cols
-        
-        if start_col > end_col:
-            continue
+            # Skip if the rule is invalid (e.g., merging 1 or fewer columns)
+            if start_col < 1 or colspan <= 1:
+                continue
 
-        try:
-            worksheet.unmerge_cells(start_row=row_num, start_column=start_col, end_row=row_num, end_column=end_col)
+            # Calculate the end column and ensure it doesn't exceed the table's width
+            end_col = start_col + colspan - 1
+            if end_col > num_cols:
+                end_col = num_cols
+
+            # Perform the merge and apply center alignment
             worksheet.merge_cells(start_row=row_num, start_column=start_col, end_row=row_num, end_column=end_col)
-            
-            top_left_cell = worksheet.cell(row=row_num, column=start_col)
-            if not top_left_cell.alignment or top_left_cell.alignment.horizontal is None:
-                top_left_cell.alignment = center_alignment
-        except Exception:
-            pass
+            cell = worksheet.cell(row=row_num, column=start_col)
+            cell.alignment = center_alignment
+            print(f"    - Merged row {row_num} from column {start_col} to {end_col}.")
+
+        except (ValueError, TypeError):
+            # Ignore if the rule is badly formatted in the JSON (e.g., "A": 5)
+            continue
 
 
 def merge_vertical_cells_in_range(worksheet: Worksheet, scan_col: int, start_row: int, end_row: int):

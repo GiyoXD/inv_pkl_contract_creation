@@ -52,7 +52,7 @@
         ]
       },
       "footer_configurations": {
-        "total_text": "SUB TOTAL:",
+        "total_text": "TOTAL OF:",
         "total_text_column_id": "col_po",
         "pallet_count_column_id": "col_item",
         "sum_column_ids": ["col_qty_pcs", "col_qty_sf", "col_net", "col_gross", "col_cbm"],
@@ -62,15 +62,12 @@
             { "column_id": "col_gross", "value": "Another value" }
           ],
           "merge_rules": {
-            "1": 5,
-            "6": 2
+            "2": 2
           }
         },
         "footer_merge_rules": {
-          "1": 5
         },
         "grand_total_merge_rules": {
-          "1": 5
         },
         "style": {
           "font": { "name": "Times New Roman", "size": 12, "bold": true },

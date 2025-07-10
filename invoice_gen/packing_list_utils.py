@@ -147,7 +147,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
     if num_tables > 1:
         last_header_info = all_header_infos[-1]
         num_columns = last_header_info.get('num_columns', 1)
-        invoice_utils.write_footer_row(worksheet, write_pointer_row, last_header_info, all_data_ranges, footer_config, grand_total_pallets, "GRAND TOTAL:")
+        invoice_utils.write_footer_row(worksheet, write_pointer_row, last_header_info, all_data_ranges, footer_config, grand_total_pallets, "TOTAL OF:")
         grand_total_merge_rules = footer_config.get("grand_total_merge_rules")
         merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, grand_total_merge_rules)
         all_footer_rows.append(write_pointer_row)
