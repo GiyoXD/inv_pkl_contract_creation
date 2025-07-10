@@ -36,15 +36,20 @@
           "values": ["VENDOR#:", "Des: LEATHER", "Case Qty:", "MADE IN CAMBODIA"]
         },
         "data_map": {
-          "po":    { "id": "col_po" },
-          "item":  { "id": "col_item" },
+          "po":          { "id": "col_po" },
+          "item":        { "id": "col_item" },
           "description": { "id": "col_desc" },
-          "pcs":   { "id": "col_qty_pcs" },
-          "sqft":  { "id": "col_qty_sf" },
-          "net":   { "id": "col_net" },
-          "gross": { "id": "col_gross" },
-          "cbm":   { "id": "col_cbm" }
-        }
+          "pcs":         { "id": "col_qty_pcs" },
+          "sqft":        { "id": "col_qty_sf" },
+          "net":         { "id": "col_net" },
+          "gross":       { "id": "col_gross" },
+          "cbm":         { "id": "col_cbm" }
+        },
+        "vertical_merge_on_id": [
+          "col_po",
+          "col_item",
+          "col_desc"
+        ]
       },
       "footer_configurations": {
         "total_text": "SUB TOTAL:",

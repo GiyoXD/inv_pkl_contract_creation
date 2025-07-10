@@ -224,3 +224,101 @@ def force_unmerge_from_row_down(worksheet: Worksheet, start_row: int):
         print(f"--- Removed {unmerged_count} merges from the data area (row {start_row}+) ---")
     else:
         print(f"--- No merges found in the data area (row {start_row}+) to remove ---")
+
+def apply_row_merges(worksheet: Worksheet, row_num: int, num_cols: int, merge_rules: Optional[Dict[str, int]]):
+    """
+    Applies horizontal merges to a specific row based on rules.
+
+    Args:
+        worksheet: The openpyxl Worksheet object.
+        row_num: The 1-based row index to apply merges to.
+        num_cols: The total number of columns in the table context.
+        merge_rules: Dictionary where keys are starting column indices (as strings or ints)
+                     and values are the number of columns to span (colspan).
+    """
+    if not merge_rules or row_num <= 0:
+        return
+
+    try:
+        rules_with_int_keys = {int(k): v for k, v in merge_rules.items()}
+        sorted_keys = sorted(rules_with_int_keys.keys())
+    except (ValueError, TypeError):
+        return
+
+    for start_col in sorted_keys:
+        colspan_val = rules_with_int_keys[start_col]
+        try:
+            colspan = int(colspan_val)
+        except (ValueError, TypeError):
+            continue
+        
+        if not isinstance(start_col, int) or not isinstance(colspan, int) or start_col < 1 or colspan < 1:
+            continue
+
+        end_col = start_col + colspan - 1
+        if end_col > num_cols:
+            end_col = num_cols
+        
+        if start_col > end_col:
+            continue
+
+        try:
+            worksheet.unmerge_cells(start_row=row_num, start_column=start_col, end_row=row_num, end_column=end_col)
+            worksheet.merge_cells(start_row=row_num, start_column=start_col, end_row=row_num, end_column=end_col)
+            
+            top_left_cell = worksheet.cell(row=row_num, column=start_col)
+            if not top_left_cell.alignment or top_left_cell.alignment.horizontal is None:
+                top_left_cell.alignment = center_alignment
+        except Exception:
+            pass
+
+
+def merge_vertical_cells_in_range(worksheet: Worksheet, scan_col: int, start_row: int, end_row: int):
+    """
+    Scans a single column and merges adjacent cells that have the same value.
+
+    Args:
+        worksheet: The openpyxl Worksheet object.
+        scan_col: The 1-based column index to scan and merge.
+        start_row: The 1-based starting row index.
+        end_row: The 1-based ending row index.
+    """
+    if not all(isinstance(i, int) and i > 0 for i in [scan_col, start_row, end_row]) or start_row >= end_row:
+        return
+
+    row_idx = start_row
+    while row_idx < end_row:
+        start_of_merge_row = row_idx
+        cell_to_match = worksheet.cell(row=start_of_merge_row, column=scan_col)
+        value_to_match = cell_to_match.value
+
+        # Skip merging for empty cells
+        if value_to_match is None:
+            row_idx += 1
+            continue
+
+        # Scan downwards to find how many cells match
+        end_of_merge_row = start_of_merge_row
+        for next_row_idx in range(start_of_merge_row + 1, end_row + 1):
+            next_cell = worksheet.cell(row=next_row_idx, column=scan_col)
+            if next_cell.value == value_to_match:
+                end_of_merge_row = next_row_idx
+            else:
+                break  # Stop when a different value is found
+
+        # If a sequence of 2 or more was found, perform the merge
+        if end_of_merge_row > start_of_merge_row:
+            try:
+                worksheet.merge_cells(
+                    start_row=start_of_merge_row,
+                    start_column=scan_col,
+                    end_row=end_of_merge_row,
+                    end_column=scan_col
+                )
+                # Apply center alignment to the merged cell
+                cell_to_match.alignment = center_alignment
+            except Exception:
+                pass  # Fails silently
+
+        # Move the main index past the just-scanned range
+        row_idx = end_of_merge_row + 1
