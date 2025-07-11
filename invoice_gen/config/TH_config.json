@@ -10,9 +10,11 @@
         { "find": "[[DESCRIPTION]]", "data_path": ["aggregated_summary", "description"] },
         { "find": "[[DATE]]", "data_path": ["aggregated_summary", "inv_date"] },
         { "find": "[[REF]]", "data_path": ["aggregated_summary", "inv_ref"] },
-        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"] },
-        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"] },
-        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"] }
+        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"],  "match_mode": "exact" },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"], "match_mode": "exact" },
+        { "find": "[[AMOUNT]]", "formula_template": "{[[NET]]}*{[[UNIT]]}", "match_mode": "exact" },
+        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"], "match_mode": "exact" },
+        { "find": "[[PALLET]]", "data_path": ["aggregated_summary", "total_pallets"] }
       ]
     },
     "Contract": {
@@ -25,9 +27,10 @@
         { "find": "[[DESCRIPTION]]", "data_path": ["aggregated_summary", "description"] },
         { "find": "[[DATE]]", "data_path": ["aggregated_summary", "inv_date"] },
         { "find": "[[REF]]", "data_path": ["aggregated_summary", "inv_ref"] },
-        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"] },
-        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"] },
-        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"] }
+        { "find": "[[NET]]", "data_path": ["aggregated_summary", "net"], "match_mode": "exact" },
+        { "find": "[[GROSS]]", "data_path": ["aggregated_summary", "gross"], "match_mode": "exact" },
+        { "find": "[[UNIT]]", "data_path": ["aggregated_summary", "unit"], "match_mode": "exact" },
+        { "find": "[[PALLET]]", "data_path": ["aggregated_summary", "total_pallets"] }
       ]
     },
     "Packing List": {
@@ -85,7 +88,7 @@
         "sum_column_ids": ["col_qty_pcs", "col_qty_sf", "col_net", "col_gross", "col_cbm"],
         "pre_footer_row": {
           "cells": [
-            { "column_id": "col_po", "value": "HS.CODE1224545" }
+            { "column_id": "col_po", "value": "HS.CODE: 4104.19.00" }
           ],
           "merge_rules": {
             "2": 2

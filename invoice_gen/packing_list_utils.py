@@ -6,6 +6,8 @@ from openpyxl.utils import get_column_letter
 from typing import Dict, List, Tuple
 from openpyxl.styles import Font, Alignment, Border, Side
 
+
+
 def calculate_rows_to_generate(packing_list_data: dict, sheet_config: dict) -> int:
     """
     Calculates the total number of rows required to generate the full packing list.
@@ -69,14 +71,33 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         idx_to_id_map = {v: k for k, v in col_map.items()}
 
         data_start_row = write_pointer_row
+        
+        # Define keys that should be converted to a numeric format
+        keys_to_convert_to_numeric = {'net', 'amount', 'price'}
+
         for r_idx in range(num_data_rows):
             current_row = write_pointer_row + r_idx
             if static_col_idx and r_idx < len(static_col_values):
                 worksheet.cell(row=current_row, column=static_col_idx).value = static_col_values[r_idx]
+            
             for data_key, mapping_info in data_map.items():
                 if col_idx := col_map.get(mapping_info.get("id")):
                     if data_key in table_data:
-                        worksheet.cell(row=current_row, column=col_idx).value = table_data[data_key][r_idx]
+                        value = table_data[data_key][r_idx]
+                        
+                        # Attempt to convert targeted fields to a numeric type
+                        if data_key in keys_to_convert_to_numeric and isinstance(value, str):
+                            try:
+                                # Remove commas and convert to float
+                                numeric_value = float(value.replace(',', ''))
+                                worksheet.cell(row=current_row, column=col_idx).value = numeric_value
+                            except (ValueError, TypeError):
+                                # If conversion fails, write the original value
+                                worksheet.cell(row=current_row, column=col_idx).value = value
+                        else:
+                            # Write the original value for all other fields
+                            worksheet.cell(row=current_row, column=col_idx).value = value
+
             for c_idx in range(1, num_columns + 1):
                 cell = worksheet.cell(row=current_row, column=c_idx)
                 style_context = {
@@ -102,7 +123,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
                         end_row=data_end_row
                     )
 
-        # Write Pre-Footer Row ppand apply styling to the ENTIRE row
+        # Write Pre-Footer Row and apply styling to the ENTIRE row
         pre_footer_config = footer_config.get("pre_footer_row")
         if pre_footer_config and isinstance(pre_footer_config, dict):
             # 1. Write the specified cell values first
@@ -137,7 +158,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         grand_total_pallets += pallet_count
         invoice_utils.write_footer_row(worksheet, write_pointer_row, header_info, [(data_start_row, write_pointer_row - 1)], footer_config, pallet_count)
         
-        # --- FIX: Re-apply styles to the footer row to add number formats and correct border ---
+        # Re-apply styles to the footer row to add number formats and correct border
         footer_style_config = footer_config.get('style', {})
         footer_font = Font(**footer_style_config.get('font')) if footer_style_config.get('font') else None
         footer_alignment = Alignment(**footer_style_config.get('alignment')) if footer_style_config.get('alignment') else None
@@ -160,8 +181,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
             if footer_font: cell.font = footer_font
             if footer_alignment: cell.alignment = footer_alignment
             if footer_border: cell.border = footer_border
-        # --- END FIX ---
-            
+
         footer_merge_rules = footer_config.get("footer_merge_rules")
         merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, footer_merge_rules)
         all_footer_rows.append(write_pointer_row)
@@ -178,7 +198,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
 
         invoice_utils.write_footer_row(worksheet, write_pointer_row, last_header_info, all_data_ranges, footer_config, grand_total_pallets, "TOTAL OF:")
         
-        # --- FIX: Re-apply styles to the grand total footer row ---
+        # Re-apply styles to the grand total footer row
         footer_style_config = footer_config.get('style', {})
         footer_font = Font(**footer_style_config.get('font')) if footer_style_config.get('font') else None
         footer_alignment = Alignment(**footer_style_config.get('alignment')) if footer_style_config.get('alignment') else None
@@ -201,7 +221,6 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
             if footer_font: cell.font = footer_font
             if footer_alignment: cell.alignment = footer_alignment
             if footer_border: cell.border = footer_border
-        # --- END FIX ---
 
         grand_total_merge_rules = footer_config.get("grand_total_merge_rules")
         merge_utils.apply_row_merges(worksheet, write_pointer_row, num_columns, grand_total_merge_rules)

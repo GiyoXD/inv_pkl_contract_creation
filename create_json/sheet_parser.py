@@ -5,7 +5,7 @@ import logging
 from typing import Dict, List, Optional, Tuple, Any, Union
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils import get_column_letter
-import decimal
+from decimal import Decimal, InvalidOperation
 
 # Import config values, now including the new pattern-matching configs
 from config import (
@@ -31,7 +31,7 @@ def _is_numeric(value: Any) -> bool:
     """Helper to check if a value is a number."""
     if value is None:
         return False
-    return isinstance(value, (int, float, decimal.Decimal))
+    return isinstance(value, (int, float, Decimal))
 
 def _is_string_like(value: Any) -> bool:
     """Helper to check if a value is a non-empty string or a number."""
@@ -287,5 +287,54 @@ def find_all_header_rows(sheet, search_pattern, row_range, col_range, start_afte
     except Exception as e:
         logging.error(f"[find_all_header_rows] Error finding header rows: {e}", exc_info=True)
         return []
+
+# --- NEWLY ADDED FUNCTION ---
+def parse_and_calculate_cbm(cbm_value: Any) -> Optional[Decimal]:
+    """
+    Parses a CBM value which can be a direct number, a string representation of a number,
+    or a string with dimensions separated by 'x' or '*'.
+    
+    Args:
+        cbm_value: The value to parse, e.g., 1.23, "1.23", "1.2*0.8*0.5".
+
+    Returns:
+        The calculated CBM as a Decimal, or None if parsing fails.
+    """
+    if cbm_value is None:
+        return None
+
+    # If it's already a number, convert to Decimal and return
+    if isinstance(cbm_value, (int, float, Decimal)):
+        return Decimal(cbm_value)
+
+    # If it's a string, process it
+    if isinstance(cbm_value, str):
+        cbm_str = cbm_value.strip().lower() # Standardize to lowercase
+        if not cbm_str:
+            return None
+            
+        # Try direct conversion first for simple cases like "1.23"
+        try:
+            return Decimal(cbm_str)
+        except InvalidOperation:
+            # If direct conversion fails, it might be a calculation string
+            pass
+
+        # Check for multiplication patterns (e.g., "1.2*0.8*0.5" or "1.2 x 0.8 x 0.5")
+        try:
+            # Split by 'x' or '*'
+            parts = re.split(r'\s*[x*]\s*', cbm_str)
+            if len(parts) > 1:
+                total_cbm = Decimal('1')
+                for part in parts:
+                    total_cbm *= Decimal(part)
+                return total_cbm
+        except (InvalidOperation, TypeError):
+            logging.warning(f"Could not parse CBM expression: '{cbm_value}'")
+            return None
+
+    # Log a warning if the type is unexpected or parsing failed
+    logging.warning(f"Unexpected type or format for CBM value: '{cbm_value}'")
+    return None
 
 # --- END OF FULL REFACTORED FILE: sheet_parser.py ---

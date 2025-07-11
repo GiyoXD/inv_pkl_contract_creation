@@ -12,6 +12,69 @@ import invoice_utils
 import packing_list_utils
 import merge_utils
 
+def calculate_and_inject_totals(data: dict) -> dict:
+    """
+    Calculates summary values from raw data (like total pallets)
+    and injects them into the main data dictionary for easy access.
+    """
+    print("Calculating and injecting summary totals...")
+    if 'raw_data' not in data:
+        print("  -> No 'raw_data' found, skipping calculation.")
+        return data
+
+    # --- Calculate Grand Total of Pallets ---
+    grand_total_pallets = 0
+    raw_data = data.get('raw_data', {})
+    for table_data in raw_data.values():
+        # The number of pallets is the number of items in the 'pallet_count' list
+        pallet_count_for_table = len(table_data.get('pallet_count', []))
+        grand_total_pallets += pallet_count_for_table
+
+    print(f"  -> Calculated Grand Total Pallets: {grand_total_pallets}")
+
+    # --- Inject the calculated total into a predictable location ---
+    # Ensure the target dictionary exists before adding to it
+    if 'aggregated_summary' not in data:
+        data['aggregated_summary'] = {}
+    
+    data['aggregated_summary']['total_pallets'] = grand_total_pallets
+
+    # This function can be expanded later to calculate total CBM, total gross weight, etc.
+
+    return data
+
+def preprocess_data_for_numerics(data: any, keys_to_convert: set) -> any:
+    """
+    Recursively traverses a data structure (dict or list) and converts
+    string values of specified keys into floats.
+    """
+    if isinstance(data, dict):
+        new_dict = {}
+        for key, value in data.items():
+            if key in keys_to_convert and isinstance(value, list):
+                # This is a target key, process its list of values
+                new_list = []
+                for item in value:
+                    if isinstance(item, str):
+                        try:
+                            # Remove commas and convert to float
+                            new_list.append(float(item.replace(',', '')))
+                        except (ValueError, TypeError):
+                            new_list.append(item) # Keep original if conversion fails
+                    else:
+                        new_list.append(item) # Keep non-string items as is
+                new_dict[key] = new_list
+            else:
+                # Recursively process other values
+                new_dict[key] = preprocess_data_for_numerics(value, keys_to_convert)
+        return new_dict
+    elif isinstance(data, list):
+        # If it's a list, process each item in the list
+        return [preprocess_data_for_numerics(item, keys_to_convert) for item in data]
+    else:
+        # Return the item as is if it's not a dict or list
+        return data
+
 def derive_paths(input_data_path_str: str, template_dir_str: str, config_dir_str: str) -> dict | None:
     """
     Derives template and config file paths based on the input data filename.
@@ -90,7 +153,7 @@ def main():
     parser.add_argument("input_data_file", help="Path to the input JSON data file. Filename determines template/config.")
     parser.add_argument("-o", "--output", default="result.xlsx", help="Path for the output Excel file (default: result.xlsx)")
     parser.add_argument("-t", "--templatedir", default="./TEMPLATE", help="Directory for template files (default: ./TEMPLATE)")
-    parser.add_argument("-c", "--configdir", default="./configs", help="Directory for config files (default: ./configs)")
+    parser.add_argument("-c", "--configdir", default="./config", help="Directory for config files (default: ./config)")
     args = parser.parse_args()
 
     print("--- Starting Hybrid Invoice Generation ---")
@@ -102,6 +165,13 @@ def main():
 
     invoice_data = load_json_file(paths['data'], "data")
     config = load_json_file(paths['config'], "config")
+
+    # --- NEW: Pre-process data to handle numeric conversions centrally ---
+    keys_to_convert = {'net', 'amount', 'price'}
+    print(f"Preprocessing invoice data to convert numeric fields: {keys_to_convert}")
+    invoice_data = preprocess_data_for_numerics(invoice_data, keys_to_convert)
+    invoice_data = calculate_and_inject_totals(invoice_data)
+    # -------------------------------------------------------------------
 
     # --- 2. Prepare Output File ---
     output_path = Path(args.output)
@@ -142,27 +212,19 @@ def main():
                 print(f"Processing '{sheet_name}' as a complex packing list.")
                 start_row = sheet_config.get("start_row", 1)
 
-                # Step 1: Store original merges that need to be pushed down.
-                # The util is filtered to only capture merges at or below row 16, preserving headers.
                 print("Step 1: Storing original merges below the header...")
                 merges_to_restore = merge_utils.store_original_merges(workbook, [sheet_name])
 
-                # Step 2: Calculate how many rows of new data will be added.
                 print("Step 2: Calculating space needed for new data...")
                 rows_to_add = packing_list_utils.calculate_rows_to_generate(invoice_data, sheet_config)
                 
-                # Step 3: Prepare sheet by un-merging the data area and inserting blank rows.
-                # This "pushes" all subsequent content down.
                 if rows_to_add > 0:
                     print(f"Step 3: Preparing sheet by unmerging data area and inserting {rows_to_add} rows at row {start_row}...")
-                    # Unmerge everything from the start row down to prevent errors.
                     merge_utils.force_unmerge_from_row_down(worksheet, start_row)
-                    # Insert the required number of blank rows to make space.
                     worksheet.insert_rows(start_row, amount=rows_to_add)
                 else:
                     print("Step 3: No data to add, skipping row insertion.")
 
-                # Step 4: Generate the new packing list content in the cleared/created space.
                 print("Step 4: Writing new packing list data into the prepared space...")
                 packing_list_utils.generate_full_packing_list(
                     worksheet=worksheet,
@@ -171,8 +233,6 @@ def main():
                     sheet_config=sheet_config
                 )
                 
-                # Step 5: Restore the original merges that were pushed down.
-                # The heuristic finds them by value and re-applies the merge and formatting.
                 print("Step 5: Restoring original merges in their new, pushed-down locations...")
                 merge_utils.find_and_restore_merges_heuristic(
                     workbook=workbook,

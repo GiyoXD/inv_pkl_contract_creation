@@ -1,0 +1,208 @@
+{
+    "metadata": {
+        "workbook_filename": "JF54654654.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-07-09T09:29:31.469336"
+    },
+    "processed_tables_data": {
+        "1": {
+            "production_order_no": [
+                "2506054-01",
+                "2506054-01",
+                "2506054-01",
+                "2506054-01",
+                "2506055-01",
+                "2506055-01",
+                "2506055-02"
+            ],
+            "po": [
+                "VNPO-000692",
+                "VNPO-000692",
+                "VNPO-000692",
+                "VNPO-000692",
+                "VNPO-000692",
+                "VNPO-000692",
+                "VNPO-000692"
+            ],
+            "reference_code": [
+                "XZGY-FH-\u6df1\u68d5219",
+                "XZGY-FH-\u6df1\u68d5219",
+                "XZGY-FH-\u6df1\u68d5219",
+                "XZGY-FH-\u6df1\u68d5219",
+                "TX-XM-\u6df1\u68d5685",
+                "TX-XM-\u6df1\u68d5685",
+                "TX-\u6df1\u68d5685"
+            ],
+            "item": [
+                "SP0F",
+                "SP0F",
+                "SP0F",
+                "SP0F",
+                "CG0G",
+                "CG0G",
+                "CG1G"
+            ],
+            "pcs": [
+                90,
+                20,
+                65,
+                8,
+                89,
+                6,
+                139
+            ],
+            "sqft": [
+                5049.7,
+                1120,
+                3613,
+                413.6,
+                4849.2,
+                298.3,
+                5053.9
+            ],
+            "pallet_count": [
+                1,
+                null,
+                1,
+                null,
+                1,
+                null,
+                1
+            ],
+            "gross": [
+                "423.4091",
+                "94.0909",
+                "295.6164",
+                "36.3836",
+                "366.3053",
+                "24.6947",
+                "382.5"
+            ],
+            "net": [
+                "460.2273",
+                "102.2727",
+                "335.6849",
+                "41.3151",
+                "408.4632",
+                "27.5368",
+                "427.5"
+            ],
+            "manual_no": [
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357",
+                "\u52a0\u5229\u798f\u53d1\u8d8a\u5357"
+            ],
+            "cbm": [
+                "1.2276",
+                "0.2728",
+                "1.1205",
+                "0.1379",
+                "1.1336",
+                "0.0764",
+                "1.3068"
+            ],
+            "unit": [
+                1.37,
+                1.22,
+                1.37,
+                1.2,
+                1.32,
+                1.24,
+                0.91
+            ],
+            "amount": [
+                6918.089,
+                1366.3999999999999,
+                4949.81,
+                496.32,
+                6400.944,
+                369.892,
+                4599.049
+            ],
+            "inv_no": [
+                "JLFTLT-VC25002",
+                "JLFTLT-VC25002",
+                "JLFTLT-VC25002",
+                "JLFTLT-VC25002",
+                "JLFTLT-VC25002",
+                "JLFTLT-VC25002",
+                "JLFTLT-VC25002"
+            ],
+            "inv_ref": [
+                "CLF2025-203",
+                "CLF2025-203",
+                "CLF2025-203",
+                "CLF2025-203",
+                "CLF2025-203",
+                "CLF2025-203",
+                "CLF2025-203"
+            ],
+            "inv_date": [
+                "09/07/2025",
+                "09/07/2025",
+                "09/07/2025",
+                "09/07/2025",
+                "09/07/2025",
+                "09/07/2025",
+                "09/07/2025"
+            ]
+        }
+    },
+    "standard_aggregation_results": {
+        "('VNPO-000692', 'SP0F', Decimal('1.37'), None)": {
+            "sqft_sum": "8662.7",
+            "amount_sum": "11867.899"
+        },
+        "('VNPO-000692', 'SP0F', Decimal('1.22'), None)": {
+            "sqft_sum": "1120",
+            "amount_sum": "1366.3999999999999"
+        },
+        "('VNPO-000692', 'SP0F', Decimal('1.2'), None)": {
+            "sqft_sum": "413.6",
+            "amount_sum": "496.32"
+        },
+        "('VNPO-000692', 'CG0G', Decimal('1.32'), None)": {
+            "sqft_sum": "4849.2",
+            "amount_sum": "6400.944"
+        },
+        "('VNPO-000692', 'CG0G', Decimal('1.24'), None)": {
+            "sqft_sum": "298.3",
+            "amount_sum": "369.892"
+        },
+        "('VNPO-000692', 'CG1G', Decimal('0.91'), None)": {
+            "sqft_sum": "5053.9",
+            "amount_sum": "4599.049"
+        }
+    },
+    "custom_aggregation_results": {
+        "('VNPO-000692', 'SP0F', None, None)": {
+            "sqft_sum": "10196.3",
+            "amount_sum": "13730.6189999999999"
+        },
+        "('VNPO-000692', 'CG0G', None, None)": {
+            "sqft_sum": "5147.5",
+            "amount_sum": "6770.836"
+        },
+        "('VNPO-000692', 'CG1G', None, None)": {
+            "sqft_sum": "5053.9",
+            "amount_sum": "4599.049"
+        }
+    },
+    "final_fob_compounded_result": {
+        "1": {
+            "combined_po": "VNPO-000692",
+            "combined_item": "CG0G/CG1G\nSP0F",
+            "combined_description": "",
+            "total_sqft": "20397.7",
+            "total_amount": "25100.5039999999999"
+        }
+    }
+}

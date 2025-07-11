@@ -94,8 +94,20 @@ def find_and_replace(
     limit_cols: int,
     invoice_data: Optional[Dict[str, Any]] = None
 ):
-    """A single engine that handles both 'exact' and 'substring' replacements."""
+    """
+    A two-pass engine that handles 'exact', 'substring', and formula-based replacements.
+    Pass 1: Locates all placeholders and performs simple value replacements.
+    Pass 2: Uses the locations found in Pass 1 to build and apply formulas.
+    """
     print(f"\n--- Starting Find and Replace on sheets (Searching Range up to row {limit_rows}, col {limit_cols}) ---")
+    
+    # NEW: A dictionary to store the cell coordinates of each placeholder.
+    placeholder_locations: Dict[str, str] = {}
+    
+    # NEW: Separate rules for formulas vs. simple replacements.
+    simple_rules = [r for r in rules if "formula_template" not in r]
+    formula_rules = [r for r in rules if "formula_template" in r]
+
     for sheet in workbook.worksheets:
         if sheet.sheet_state != 'visible':
             print(f"DEBUG: Skipping hidden sheet: '{sheet.title}'")
@@ -103,26 +115,30 @@ def find_and_replace(
 
         print(f"DEBUG: Processing sheet: '{sheet.title}'")
 
+        # --- PASS 1: Find all placeholder locations and apply simple replacements ---
+        print("  PASS 1: Locating placeholders and applying simple value replacements...")
         for row in sheet.iter_rows(max_row=limit_rows, max_col=limit_cols):
             for cell in row:
                 if not isinstance(cell.value, str) or not cell.value:
                     continue
 
+                # First, find and store the location of ANY placeholder
                 for rule in rules:
+                    if rule.get("find") == cell.value.strip():
+                        placeholder_locations[rule["find"]] = cell.coordinate
+                        break # Found the placeholder, no need to check other rules for this cell
+
+                # Second, apply SIMPLE replacement rules
+                for rule in simple_rules:
                     text_to_find = rule.get("find")
                     if not text_to_find:
                         continue
                     
                     match_mode = rule.get("match_mode", "substring")
-                    is_match = False
-
-                    if match_mode == 'exact' and cell.value.strip() == text_to_find:
-                        is_match = True
-                    elif match_mode == 'substring' and text_to_find in cell.value:
-                        is_match = True
+                    is_match = (match_mode == 'exact' and cell.value.strip() == text_to_find) or \
+                               (match_mode == 'substring' and text_to_find in cell.value)
 
                     if is_match:
-                        print(f"    -> MATCH FOUND! Rule: {{'find': '{text_to_find}', 'mode': '{match_mode}'}}. Replacing...")
                         replacement_content = None
                         if "data_path" in rule:
                             if not invoice_data: continue
@@ -130,22 +146,57 @@ def find_and_replace(
                         elif "replace" in rule:
                             replacement_content = rule["replace"]
 
-                        if replacement_content is None:
-                            print("    -> WARNING: Match found, but replacement content is None. Skipping replacement.")
-                            continue
-                        
-                        # Apply the replacement based on the mode and type
-                        if rule.get("is_date", False):
-                            # *** THIS IS THE KEY CHANGE ***
-                            # It now calls the new, more powerful date function.
-                            format_cell_as_date_smarter(cell, replacement_content)
-                        elif match_mode == 'exact':
-                            cell.value = replacement_content
-                        elif match_mode == 'substring':
-                            cell.value = cell.value.replace(str(text_to_find), str(replacement_content))
-                        
-                        print(f"    -> SUCCESS: Cell {cell.coordinate} value replaced.")
-                        break # Move to the next cell once a rule has been applied
+                        if replacement_content is not None:
+                            print(f"    -> Applying rule for '{text_to_find}' at {cell.coordinate}...")
+                            if rule.get("is_date", False):
+                                format_cell_as_date_smarter(cell, replacement_content)
+                            elif match_mode == 'exact':
+                                cell.value = replacement_content
+                            elif match_mode == 'substring':
+                                cell.value = cell.value.replace(str(text_to_find), str(replacement_content))
+                        break
+
+        # --- PASS 2: Build and apply formula-based replacements ---
+        print("  PASS 2: Building and applying formula replacements...")
+        if not formula_rules:
+            print("    -> No formula rules to apply.")
+        
+        for rule in formula_rules:
+            formula_template = rule["formula_template"]
+            target_placeholder = rule["find"]
+            
+            # Find the cell where the formula should go
+            target_cell_coord = placeholder_locations.get(target_placeholder)
+            if not target_cell_coord:
+                print(f"    -> WARNING: Could not find cell for formula placeholder '{target_placeholder}'. Skipping.")
+                continue
+
+            # Find all dependent placeholders (e.g., {[[NET]]}) in the template
+            dependent_placeholders = re.findall(r'(\{\[\[.*?\]\]\})', formula_template)
+            
+            final_formula_str = formula_template
+            all_deps_found = True
+            
+            for dep_placeholder in dependent_placeholders:
+                # Strip the curly braces to get the actual placeholder key (e.g., [[NET]])
+                dep_key = dep_placeholder.strip('{}')
+                # Get the cell address for the dependency
+                dep_coord = placeholder_locations.get(dep_key)
+                
+                if dep_coord:
+                    # Replace the variable in the template with the real cell address
+                    final_formula_str = final_formula_str.replace(dep_placeholder, dep_coord)
+                else:
+                    print(f"    -> ERROR: Could not find location for dependency '{dep_key}' needed by formula for '{target_placeholder}'.")
+                    all_deps_found = False
+                    break # Stop processing this formula if a dependency is missing
+            
+            if all_deps_found:
+                # Prepend '=' to make it a valid Excel formula
+                final_formula_str = f"={final_formula_str}"
+                print(f"    -> SUCCESS: Placing formula '{final_formula_str}' in cell {target_cell_coord}.")
+                sheet[target_cell_coord].value = final_formula_str
+
 
 # ==============================================================================
 # SECTION 3: TASK-RUNNER FUNCTIONS (No changes needed here)
