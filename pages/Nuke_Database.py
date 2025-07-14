@@ -28,10 +28,11 @@ except Exception:
     CONTAINER_TABLE_NAME = 'invoice_containers'
 
 
-# --- Database Initialization Logic (Copied from initialize_database.py) ---
+# --- Database Initialization Logic ---
 def initialize_empty_database():
     """
     Creates brand new, empty 'invoices' and 'invoice_containers' tables.
+    This function first drops the tables if they exist to ensure a clean slate.
     """
     try:
         # Ensure the directory exists
@@ -43,6 +44,7 @@ def initialize_empty_database():
             cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
             cursor.execute(f"DROP TABLE IF EXISTS {CONTAINER_TABLE_NAME}")
 
+            # Create the 'invoices' table
             invoices_table_query = """
             CREATE TABLE invoices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, inv_no TEXT, inv_date TEXT,
@@ -54,6 +56,7 @@ def initialize_empty_database():
             """
             cursor.execute(invoices_table_query)
 
+            # Create the 'invoice_containers' table
             containers_table_query = """
             CREATE TABLE invoice_containers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, inv_ref TEXT NOT NULL,
@@ -62,7 +65,10 @@ def initialize_empty_database():
             );
             """
             cursor.execute(containers_table_query)
+            
+            # Create an index for faster lookups
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_inv_ref ON invoice_containers (inv_ref);")
+            
         return True, "Database re-initialized successfully."
     except Exception as e:
         return False, f"An error occurred during database initialization: {e}"
@@ -74,6 +80,7 @@ st.header("Authorization Required")
 st.write("To prevent accidental deletion, please enter the special database reset password.")
 
 # This password should be different from your main login password for added security.
+# IMPORTANT: For a real application, use st.secrets for this password!
 NUKE_PASSWORD = "nuke_it_all_2025" 
 
 password_input = st.text_input("Enter Reset Password:", type="password", key="nuke_password")
@@ -87,27 +94,26 @@ st.markdown("---")
 st.header("Final Confirmation")
 
 if st.button("🔥 NUKE DATABASE AND START OVER 🔥", type="primary", disabled=not password_is_correct, use_container_width=True):
-    st.warning("Final warning... Processing request...")
-    
-    try:
-        if os.path.exists(DATABASE_FILE):
-            os.remove(DATABASE_FILE)
-            st.success("Successfully deleted the old database file.")
-        else:
-            st.info("No old database file to delete. Proceeding to create a new one.")
-        
-        # Re-create the empty database
-        success, message = initialize_empty_database()
-        
-        if success:
-            st.success("✅✅✅ DATABASE RESET COMPLETE! ✅✅✅")
-            st.balloons()
-        else:
-            st.error(f"Failed to re-initialize the database. Error: {message}")
+    with st.spinner("Nuking database... Please wait."):
+        try:
+            # There's no need to delete the file.
+            # The initialize_empty_database function already drops the existing tables,
+            # effectively resetting the database. This avoids file lock issues.
+            
+            success, message = initialize_empty_database()
 
-    except Exception as e:
-        st.error(f"An critical error occurred during the deletion process: {e}")
-        st.error("The database may be in an unstable state. Please check the files manually.")
+            if success:
+                st.success("✅✅✅ DATABASE RESET COMPLETE! ✅✅✅")
+                st.info("The database has been cleared and re-initialized with empty tables.")
+                st.balloons()
+            else:
+                st.error(f"Failed to reset the database. Error: {message}")
 
-elif not password_is_correct:
+        except Exception as e:
+            st.error(f"A critical error occurred during the reset process: {e}")
+            st.error("The database may be in an unstable state. Please check the application logs.")
+
+elif not password_is_correct and "nuke_password" in st.session_state and st.session_state.nuke_password:
+    st.error("Incorrect password. The nuke button remains disabled.")
+else:
     st.info("The final button is disabled until the correct reset password is provided above.")

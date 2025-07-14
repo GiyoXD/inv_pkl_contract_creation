@@ -6,7 +6,7 @@
         "fob_chunk_size": 2,
         "fob_intra_separator": "/",
         "fob_inter_separator": "\\n",
-        "timestamp": "2025-07-02T17:12:30.015501"
+        "timestamp": "2025-07-12T08:11:03.047176"
     },
     "processed_tables_data": {
         "1": {
@@ -62,18 +62,23 @@
             ],
             "inv_no": [
                 "JLFHLZN25008",
-                "3\u6708\u4efd\u5bc4\u5feb\u9012",
-                "3\u6708\u4efd\u5bc4\u5feb\u9012"
+                "JLFHLZN25008",
+                "JLFHLZN25008"
             ],
             "inv_ref": [
-                "CLF2025-196",
-                null,
-                null
+                "CLF2025-209",
+                "CLF2025-209",
+                "CLF2025-209"
             ],
             "inv_date": [
-                "2025-02-07T00:00:00",
-                "97\u7248",
-                "97\u7248"
+                "13/07/2025",
+                "13/07/2025",
+                "13/07/2025"
+            ],
+            "container_type": [
+                "40HC, 20GP, 40HC",
+                "40HC, 20GP, 40HC",
+                "40HC, 20GP, 40HC"
             ]
         }
     },

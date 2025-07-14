@@ -130,18 +130,35 @@ if uploaded_file and not st.session_state.get('validation_done'):
     st.session_state['identifier'] = Path(uploaded_file.name).stem
     temp_file_path = TEMP_UPLOAD_DIR / uploaded_file.name
     with open(temp_file_path, "wb") as f: f.write(uploaded_file.getbuffer())
+    
     with st.spinner("Automatically processing and validating your file..."):
+        # --- MODIFICATION START: Added a new, more detailed debugger here ---
         try:
+            st.info("Step 1/3: Starting automatic processing with `run_invoice_automation`...")
             run_invoice_automation(input_excel_override=str(temp_file_path), output_dir_override=str(JSON_OUTPUT_DIR))
+            
             json_path = JSON_OUTPUT_DIR / f"{st.session_state['identifier']}.json"
-            if not json_path.exists(): st.error("The JSON data file was not created."); st.stop()
+            st.info("Step 2/3: Checking if JSON file was created...")
+            if not json_path.exists():
+                st.error("Processing failed: The JSON data file was not created by the automation script.")
+                st.stop()
+            
+            st.info("Step 3/3: Validating the contents of the JSON file...")
             required_columns = ['inv_no', 'inv_date', 'inv_ref', 'po', 'item', 'pcs', 'sqft', 'pallet_count', 'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no']
             st.session_state['missing_fields'] = validate_json_data(json_path, required_columns)
             st.session_state['json_path'] = str(json_path)
             st.session_state['validation_done'] = True
             st.rerun()
+
         except Exception as e:
-            st.error(f"An error occurred during automatic processing: {e}"); st.exception(e); st.stop()
+            st.error(f"An error occurred during the initial automatic processing.")
+            with st.expander("Show Initial Processing Error Details", expanded=True):
+                st.subheader("Error Message")
+                st.write("The script failed while trying to convert your Excel file to JSON.")
+                st.subheader("Python Exception Trace")
+                st.exception(e)
+            st.stop()
+        # --- MODIFICATION END ---
 
 if st.session_state.get('validation_done'):
     st.subheader("✔️ Automatic Validation Complete")
@@ -156,9 +173,24 @@ if st.session_state.get('validation_done'):
     with col1:
         user_inv_no = st.text_input("Invoice No")
         if user_inv_no and check_value_exists('inv_no', user_inv_no): st.warning(f"⚠️ Invoice No `{user_inv_no}` already exists in the database.")
-        user_inv_ref = st.text_input("Invoice Ref", placeholder=get_suggested_inv_ref())
+        
+        # Pre-filled the value and added a persistent placeholder hint.
+        suggested_ref = get_suggested_inv_ref()
+        user_inv_ref = st.text_input(
+            "Invoice Ref",
+            value=suggested_ref,
+            placeholder=suggested_ref,
+            help="This is the automatically suggested Invoice Ref. If you clear the field, the suggestion will remain as a placeholder."
+        )
+
         if user_inv_ref and check_value_exists('inv_ref', user_inv_ref): st.warning(f"⚠️ Invoice Ref `{user_inv_ref}` already exists in the database.")
-        selected_date_obj = st.date_input("Invoice Date", value=None, format="DD/MM/YYYY")
+        
+        # --- MODIFICATION START ---
+        # Set the default invoice date to tomorrow.
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        selected_date_obj = st.date_input("Invoice Date", value=tomorrow, format="DD/MM/YYYY")
+        # --- MODIFICATION END ---
+        
         user_inv_date = selected_date_obj.strftime("%d/%m/%Y") if selected_date_obj else ""
     with col2:
         user_container_types = st.text_area("Container / Truck (One per line)", height=150)
@@ -176,14 +208,8 @@ if st.session_state.get('validation_done'):
         json_path = Path(st.session_state['json_path'])
         final_user_inv_ref = user_inv_ref if user_inv_ref else get_suggested_inv_ref()
         
-        # This list comprehension correctly prepares the user's input.
         container_list = [line.strip() for line in user_container_types.split('\n') if line.strip()]
 
-        # --- REMOVED: Database saving logic moved to '1_Verify_Data_To_Insert.py' ---
-        # The logic to save container info directly to the database was here.
-        # It has been removed to ensure data is only saved upon final approval in the next step.
-
-        # This block correctly modifies the JSON file with any user overrides.
         if user_inv_no or final_user_inv_ref or user_inv_date or container_list:
             with st.spinner("Applying manual overrides to JSON file..."):
                 try:
@@ -226,7 +252,21 @@ if st.session_state.get('validation_done'):
                     files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
                     success_count += 1
                 except subprocess.CalledProcessError as e:
-                    st.error(f"Failed to generate {mode_name.upper()} version."); st.text_area("Error details", e.stderr, height=200)
+                    # --- START: Added Debugger Block ---
+                    st.error(f"An error occurred while generating the '{mode_name.upper()}' version.")
+                    with st.expander("Show Debugger & Verifier Error Details", expanded=True):
+                        st.subheader("Failed Command")
+                        st.code(' '.join(command), language='bash')
+
+                        st.subheader("Error Output (stderr)")
+                        st.text_area("Stderr:", value=e.stderr, height=200, help="This is the direct error message from the script.")
+
+                        st.subheader("Standard Output (stdout)")
+                        st.text_area("Stdout:", value=e.stdout, height=150, help="This is the standard output from the script, which might contain useful processing information.")
+
+                        st.subheader("Python Exception Trace")
+                        st.exception(e)
+                    # --- END: Added Debugger Block ---
 
             if success_count > 0:
                 st.success(f"Successfully created {success_count} invoice file(s)!")

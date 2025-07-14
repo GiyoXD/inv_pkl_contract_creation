@@ -51,6 +51,7 @@ def reset_summary_filters():
     st.session_state.summary_container_filter = ""
     st.session_state.summary_date_range = None
 
+
 # --- Filter Controls ---
 with st.expander("🔍 Filters", expanded=True):
     col1, col2, col3 = st.columns(3)
@@ -61,16 +62,27 @@ with st.expander("🔍 Filters", expanded=True):
     with col3:
         st.text_input("Filter by Container:", key='summary_container_filter')
 
-    # --- Date Range Filter ---
+    # --- Date Range Filter (Corrected to handle empty database) ---
+    min_date_default = datetime.now().date()
+    max_date_default = datetime.now().date()
+
     try:
         with sqlite3.connect(DATABASE_FILE) as conn:
-            min_date_query = pd.to_datetime(conn.execute(f"SELECT MIN(creating_date) FROM {TABLE_NAME}").fetchone()[0])
-            max_date_query = pd.to_datetime(conn.execute(f"SELECT MAX(creating_date) FROM {TABLE_NAME}").fetchone()[0])
-            min_date_default = min_date_query.date()
-            max_date_default = max_date_query.date()
+            # Fetch min and max dates only if the table is not empty
+            min_date_result = conn.execute(f"SELECT MIN(creating_date) FROM {TABLE_NAME}").fetchone()[0]
+            if min_date_result:  # Check if a date was actually returned
+                min_date_query = pd.to_datetime(min_date_result)
+                min_date_default = min_date_query.date()
+
+            max_date_result = conn.execute(f"SELECT MAX(creating_date) FROM {TABLE_NAME}").fetchone()[0]
+            if max_date_result:  # Check if a date was actually returned
+                max_date_query = pd.to_datetime(max_date_result)
+                max_date_default = max_date_query.date()
+
     except (sqlite3.Error, TypeError, ValueError):
-        min_date_default = datetime.now().date()
-        max_date_default = datetime.now().date()
+        # This block will catch other potential database errors,
+        # and the defaults defined above will be used.
+        pass
 
     if st.session_state.summary_date_range is None:
         st.session_state.summary_date_range = (min_date_default, max_date_default)
@@ -78,9 +90,11 @@ with st.expander("🔍 Filters", expanded=True):
     st.date_input(
         "Filter by Creation Date Range:",
         key='summary_date_range',
-        value=st.session_state.summary_date_range
+        value=st.session_state.summary_date_range,
+        min_value=min_date_default,
+        max_value=max_date_default
     )
-
+    
     st.button("Reset Filters", on_click=reset_summary_filters, use_container_width=True)
 
 
@@ -95,8 +109,8 @@ try:
                 i.inv_ref,
                 i.inv_date,
                 MAX(i.status) as status,
-                SUM(i.sqft) as total_sqft,
-                SUM(i.amount) as total_amount,
+                SUM(CAST(i.sqft AS REAL)) as total_sqft,
+                SUM(CAST(i.amount AS REAL)) as total_amount,
                 i.creating_date,
                 (SELECT GROUP_CONCAT(c.container_description, ', ')
                  FROM {CONTAINER_TABLE_NAME} c
