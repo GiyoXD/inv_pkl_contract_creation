@@ -5,12 +5,46 @@ import openpyxl
 import sys
 import re
 from pathlib import Path
+from copy import copy
+from openpyxl.worksheet.worksheet import Worksheet
+from openpyxl.workbook import Workbook
 
 # --- Import Reusable and New Utilities ---
 import text_replace_utils
 import invoice_utils
 import packing_list_utils
 import merge_utils
+
+# Helper function to copy sheets (remains unchanged)
+def copy_sheet_between_workbooks(source_sheet: Worksheet, target_workbook: Workbook) -> Worksheet:
+    """
+    Manually copies a worksheet from a source workbook to a target workbook.
+    This replaces the built-in copy_worksheet which only works within the same workbook.
+    """
+    target_sheet = target_workbook.create_sheet(title=source_sheet.title)
+    for row in source_sheet.iter_rows():
+        for cell in row:
+            new_cell = target_sheet.cell(row=cell.row, column=cell.column, value=cell.value)
+            if cell.has_style:
+                new_cell.font = copy(cell.font)
+                new_cell.border = copy(cell.border)
+                new_cell.fill = copy(cell.fill)
+                new_cell.number_format = cell.number_format
+                new_cell.protection = copy(cell.protection)
+                new_cell.alignment = copy(cell.alignment)
+    for merge_range in source_sheet.merged_cells.ranges:
+        target_sheet.merge_cells(str(merge_range))
+    for col_letter, dim in source_sheet.column_dimensions.items():
+        target_sheet.column_dimensions[col_letter].width = dim.width
+        if dim.hidden:
+             target_sheet.column_dimensions[col_letter].hidden = True
+    for row_idx, dim in source_sheet.row_dimensions.items():
+        target_sheet.row_dimensions[row_idx].height = dim.height
+        if dim.hidden:
+            target_sheet.row_dimensions[row_idx].hidden = True
+    return target_sheet
+
+# Other helper functions (calculate_and_inject_totals, preprocess_data_for_numerics, derive_paths, load_json_file) remain unchanged.
 
 def calculate_and_inject_totals(data: dict) -> dict:
     """
@@ -21,26 +55,9 @@ def calculate_and_inject_totals(data: dict) -> dict:
     if 'raw_data' not in data:
         print("  -> No 'raw_data' found, skipping calculation.")
         return data
-
-    # --- Calculate Grand Total of Pallets ---
-    grand_total_pallets = 0
-    raw_data = data.get('raw_data', {})
-    for table_data in raw_data.values():
-        # The number of pallets is the number of items in the 'pallet_count' list
-        pallet_count_for_table = len(table_data.get('pallet_count', []))
-        grand_total_pallets += pallet_count_for_table
-
+    grand_total_pallets = sum(len(table_data.get('pallet_count', [])) for table_data in data.get('raw_data', {}).values())
     print(f"  -> Calculated Grand Total Pallets: {grand_total_pallets}")
-
-    # --- Inject the calculated total into a predictable location ---
-    # Ensure the target dictionary exists before adding to it
-    if 'aggregated_summary' not in data:
-        data['aggregated_summary'] = {}
-    
-    data['aggregated_summary']['total_pallets'] = grand_total_pallets
-
-    # This function can be expanded later to calculate total CBM, total gross weight, etc.
-
+    data.setdefault('aggregated_summary', {})['total_pallets'] = grand_total_pallets
     return data
 
 def preprocess_data_for_numerics(data: any, keys_to_convert: set) -> any:
@@ -49,31 +66,10 @@ def preprocess_data_for_numerics(data: any, keys_to_convert: set) -> any:
     string values of specified keys into floats.
     """
     if isinstance(data, dict):
-        new_dict = {}
-        for key, value in data.items():
-            if key in keys_to_convert and isinstance(value, list):
-                # This is a target key, process its list of values
-                new_list = []
-                for item in value:
-                    if isinstance(item, str):
-                        try:
-                            # Remove commas and convert to float
-                            new_list.append(float(item.replace(',', '')))
-                        except (ValueError, TypeError):
-                            new_list.append(item) # Keep original if conversion fails
-                    else:
-                        new_list.append(item) # Keep non-string items as is
-                new_dict[key] = new_list
-            else:
-                # Recursively process other values
-                new_dict[key] = preprocess_data_for_numerics(value, keys_to_convert)
-        return new_dict
+        return {key: preprocess_data_for_numerics(value, keys_to_convert) if key not in keys_to_convert or not isinstance(value, list) else [float(item.replace(',', '')) if isinstance(item, str) else item for item in value] for key, value in data.items()}
     elif isinstance(data, list):
-        # If it's a list, process each item in the list
         return [preprocess_data_for_numerics(item, keys_to_convert) for item in data]
-    else:
-        # Return the item as is if it's not a dict or list
-        return data
+    return data
 
 def derive_paths(input_data_path_str: str, template_dir_str: str, config_dir_str: str) -> dict | None:
     """
@@ -81,181 +77,114 @@ def derive_paths(input_data_path_str: str, template_dir_str: str, config_dir_str
     """
     print(f"Deriving paths from input: {input_data_path_str}")
     try:
-        input_data_path = Path(input_data_path_str).resolve()
-        template_dir = Path(template_dir_str).resolve()
-        config_dir = Path(config_dir_str).resolve()
-
-        if not input_data_path.is_file():
-            print(f"Error: Input data file not found: {input_data_path}")
+        input_data_path, template_dir, config_dir = Path(input_data_path_str).resolve(), Path(template_dir_str).resolve(), Path(config_dir_str).resolve()
+        if not all([p.exists() for p in [input_data_path, template_dir, config_dir]]):
+            print("Error: One or more paths (input file, template dir, config dir) not found.")
             return None
-        if not template_dir.is_dir():
-            print(f"Error: Template directory not found: {template_dir}")
-            return None
-        if not config_dir.is_dir():
-            print(f"Error: Config directory not found: {config_dir}")
-            return None
-
-        base_name = input_data_path.stem
-        template_name_part = re.sub(r'(_data|_input|_pkl)$', '', base_name, flags=re.IGNORECASE)
-
+        template_name_part = re.sub(r'(_data|_input|_pkl)$', '', input_data_path.stem, flags=re.IGNORECASE)
         print(f"Derived template name part: '{template_name_part}'")
-
-        # --- Attempt 1: Exact Match ---
-        exact_template_path = template_dir / f"{template_name_part}.xlsx"
-        exact_config_path = config_dir / f"{template_name_part}_config.json"
         
-        if exact_template_path.is_file() and exact_config_path.is_file():
-            print("Found exact match for template and config.")
-            return {
-                "data": input_data_path,
-                "template": exact_template_path,
-                "config": exact_config_path
-            }
-
-        print("Exact match not found. Attempting prefix matching...")
-        
-        # --- Attempt 2: Prefix Match (e.g., "PL" from "PL_data_123") ---
-        prefix_match = re.match(r'^([a-zA-Z]+)', template_name_part)
-        if prefix_match:
-            prefix = prefix_match.group(1)
-            prefix_template_path = template_dir / f"{prefix}.xlsx"
-            prefix_config_path = config_dir / f"{prefix}_config.json"
-            if prefix_template_path.is_file() and prefix_config_path.is_file():
-                print(f"Found prefix match for template and config using prefix: '{prefix}'")
-                return {
-                    "data": input_data_path,
-                    "template": prefix_template_path,
-                    "config": prefix_config_path
-                }
-        
-        print(f"Error: Could not find matching files.")
-        if not exact_template_path.is_file(): print(f"-> Missing: {exact_template_path}")
-        if not exact_config_path.is_file(): print(f"-> Missing: {exact_config_path}")
+        for prefix in [template_name_part, (re.match(r'^([a-zA-Z]+)', template_name_part) or [''])[0]]:
+            if not prefix: continue
+            template_path, config_path = template_dir / f"{prefix}.xlsx", config_dir / f"{prefix}_config.json"
+            if template_path.is_file() and config_path.is_file():
+                print(f"Found match for template and config using prefix: '{prefix}'")
+                return {"data": input_data_path, "template": template_path, "config": config_path}
+                
+        print("Error: Could not find matching template/config files.")
         return None
-
     except Exception as e:
-        print(f"Error deriving file paths: {e}")
-        return None
+        print(f"Error deriving file paths: {e}"); return None
 
 def load_json_file(file_path: Path, file_type: str) -> dict:
     """Loads and parses a JSON file (data or config)."""
     print(f"Loading {file_type} from: {file_path}")
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        with open(file_path, 'r', encoding='utf-8') as f: return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"FATAL ERROR: Could not load or parse {file_type} file {file_path}. Error: {e}")
-        sys.exit(1)
+        print(f"FATAL ERROR: Could not load or parse {file_type} file {file_path}. Error: {e}"); sys.exit(1)
+
 
 def main():
     """Main function to orchestrate hybrid invoice generation."""
-    parser = argparse.ArgumentParser(description="Generate an invoice document using a hybrid approach.")
+    parser = argparse.ArgumentParser(description="Generate invoice documents from a JSON data file.")
     parser.add_argument("input_data_file", help="Path to the input JSON data file. Filename determines template/config.")
-    parser.add_argument("-o", "--output", default="result.xlsx", help="Path for the output Excel file (default: result.xlsx)")
-    parser.add_argument("-t", "--templatedir", default="./TEMPLATE", help="Directory for template files (default: ./TEMPLATE)")
-    parser.add_argument("-c", "--configdir", default="./config", help="Directory for config files (default: ./config)")
+    parser.add_argument("-o", "--outputdir", default=".", help="Output directory for the generated Excel files.")
+    parser.add_argument("-t", "--templatedir", default="./TEMPLATE", help="Directory for template files.")
+    parser.add_argument("-c", "--configdir", default="./config", help="Directory for config files.")
     args = parser.parse_args()
 
     print("--- Starting Hybrid Invoice Generation ---")
     
-    # --- 1. Derive Paths, Load Data and Config ---
     paths = derive_paths(args.input_data_file, args.templatedir, args.configdir)
-    if not paths:
-        sys.exit(1)
+    if not paths: sys.exit(1)
+
+    po_number = paths['data'].stem
+    output_dir = Path(args.outputdir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     invoice_data = load_json_file(paths['data'], "data")
     config = load_json_file(paths['config'], "config")
 
-    # --- NEW: Pre-process data to handle numeric conversions centrally ---
     keys_to_convert = {'net', 'amount', 'price'}
-    print(f"Preprocessing invoice data to convert numeric fields: {keys_to_convert}")
     invoice_data = preprocess_data_for_numerics(invoice_data, keys_to_convert)
     invoice_data = calculate_and_inject_totals(invoice_data)
-    # -------------------------------------------------------------------
-
-    # --- 2. Prepare Output File ---
-    output_path = Path(args.output)
-    print(f"Copying template '{paths['template'].name}' to '{output_path.name}'...")
+    
+    template_workbook = None
     try:
-        shutil.copy(paths['template'], output_path)
-    except Exception as e:
-        print(f"FATAL ERROR: Could not copy template file. Error: {e}")
-        sys.exit(1)
-
-    # --- 3. Process the Workbook ---
-    workbook = None
-    try:
-        workbook = openpyxl.load_workbook(output_path)
+        print(f"Loading template from '{paths['template']}'...")
+        template_workbook = openpyxl.load_workbook(paths['template'])
         sheets_to_process_config = config.get("sheets_to_process", {})
 
         for sheet_name, sheet_config in sheets_to_process_config.items():
-            if sheet_name not in workbook.sheetnames:
-                print(f"Warning: Sheet '{sheet_name}' defined in config not found in template. Skipping.")
+            if sheet_name not in template_workbook.sheetnames:
+                print(f"Warning: Sheet '{sheet_name}' from config not found in template. Skipping.")
                 continue
 
-            print(f"\n--- Processing Sheet: '{sheet_name}' ---")
-            worksheet = workbook[sheet_name]
+            print(f"\n--- Preparing new file for sheet: '{sheet_name}' ---")
+            output_workbook = openpyxl.Workbook()
+            worksheet = copy_sheet_between_workbooks(template_workbook[sheet_name], output_workbook)
+            if 'Sheet' in output_workbook.sheetnames: output_workbook.remove(output_workbook['Sheet'])
+            
+            print(f"--- Processing Content for: '{sheet_name}' ---")
             process_type = sheet_config.get("type")
 
-            # --- HYBRID LOGIC ---
             if process_type == "summary":
-                print(f"Processing '{sheet_name}' as a summary sheet (text replacement).")
-                text_replace_utils.find_and_replace(
-                    workbook=workbook,
-                    rules=sheet_config.get("replacements", []),
-                    limit_rows=50,
-                    limit_cols=20,
-                    invoice_data=invoice_data
-                )
+                print(f"Processing '{sheet_name}' as summary (text replacement).")
+                text_replace_utils.find_and_replace(output_workbook, sheet_config.get("replacements", []), 50, 20, invoice_data)
 
             elif process_type == "packing_list":
-                print(f"Processing '{sheet_name}' as a complex packing list.")
+                print(f"Processing '{sheet_name}' as complex packing list.")
                 start_row = sheet_config.get("start_row", 1)
-
-                print("Step 1: Storing original merges below the header...")
-                merges_to_restore = merge_utils.store_original_merges(workbook, [sheet_name])
-
-                print("Step 2: Calculating space needed for new data...")
+                merges_to_restore = merge_utils.store_original_merges(output_workbook, [sheet_name])
                 rows_to_add = packing_list_utils.calculate_rows_to_generate(invoice_data, sheet_config)
-                
                 if rows_to_add > 0:
-                    print(f"Step 3: Preparing sheet by unmerging data area and inserting {rows_to_add} rows at row {start_row}...")
+                    print(f"Inserting {rows_to_add} rows at row {start_row}...")
                     merge_utils.force_unmerge_from_row_down(worksheet, start_row)
                     worksheet.insert_rows(start_row, amount=rows_to_add)
-                else:
-                    print("Step 3: No data to add, skipping row insertion.")
-
-                print("Step 4: Writing new packing list data into the prepared space...")
-                packing_list_utils.generate_full_packing_list(
-                    worksheet=worksheet,
-                    start_row=start_row,
-                    packing_list_data=invoice_data,
-                    sheet_config=sheet_config
-                )
-                
-                print("Step 5: Restoring original merges in their new, pushed-down locations...")
-                merge_utils.find_and_restore_merges_heuristic(
-                    workbook=workbook,
-                    stored_merges=merges_to_restore,
-                    processed_sheet_names=[sheet_name]
-                )
+                packing_list_utils.generate_full_packing_list(worksheet, start_row, invoice_data, sheet_config)
+                merge_utils.find_and_restore_merges_heuristic(output_workbook, merges_to_restore, [sheet_name])
             
             else:
                 print(f"Warning: Unknown process type '{process_type}' for sheet '{sheet_name}'. Skipping.")
 
-        # --- 4. Save Final Workbook ---
-        print("\n--- Saving final workbook ---")
-        workbook.save(output_path)
-        print(f"✅ Processing complete. Output saved to '{output_path}'")
+            # --- THIS IS THE KEY LINE FOR THE FILENAME ---
+            # It creates the filename as "{Sheet Name} {PO Number}.xlsx"
+            sheet_output_path = output_dir / f"{sheet_name} {po_number}.xlsx"
+            
+            print(f"\n--- Saving final workbook to '{sheet_output_path}' ---")
+            output_workbook.save(sheet_output_path)
+            output_workbook.close()
+            print(f"✅ Processing complete for sheet '{sheet_name}'.")
 
     except Exception as e:
-        print(f"\n--- A CRITICAL ERROR occurred during workbook processing: {e} ---")
+        print(f"\n--- A CRITICAL ERROR occurred: {e} ---")
         import traceback
         traceback.print_exc()
     finally:
-        if workbook:
-            workbook.close()
-            print("Workbook closed.")
+        if template_workbook:
+            template_workbook.close()
+            print("\nTemplate workbook closed.")
 
 if __name__ == "__main__":
     main()

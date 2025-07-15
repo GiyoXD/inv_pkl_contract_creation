@@ -135,33 +135,47 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
     st.header("Approve Amendment?")
     c1, c2, _ = st.columns([1, 1, 4])
     if c1.button("✅ Accept Changes", use_container_width=True):
-        final_containers = manual_containers
-        inv_ref_to_replace = new_df['inv_ref'].iloc[0]
+        # --- ROBUST DELETION LOGIC ---
+        # 1. Get all unique invoice references from the data that was found in the database.
+        # This handles the case where the new file matches multiple old invoices
+        # (e.g., one by inv_ref and another by inv_no).
+        inv_refs_to_delete = existing_df['inv_ref'].unique().tolist()
+
+        # 2. Get the inv_ref for the new records we are about to insert.
+        new_inv_ref = new_df['inv_ref'].iloc[0]
+        # --- END OF FIX ---
+
         conn = None
         try:
             conn = sqlite3.connect(DATABASE_FILE)
             cursor = conn.cursor()
-            archive_filename = f"{inv_ref_to_replace}_archived_on_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+
+            # 3. Archive all found records before deleting.
+            archive_filename = f"matched_records_archived_on_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
             existing_df.to_json(AMENDMENT_ARCHIVE_DIRECTORY / archive_filename, orient='records', indent=4)
 
-            st.write(f"Deleting old records for Invoice Ref: `{inv_ref_to_replace}`...")
-            cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_replace,))
-            cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_replace,))
+            # 4. Loop through each unique inv_ref that was matched and delete all associated records.
+            st.write(f"Deleting all records for matched Invoice Refs: `{', '.join(inv_refs_to_delete)}`...")
+            for ref in inv_refs_to_delete:
+                cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (ref,))
+                cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (ref,))
 
+            # 5. Insert the new records.
             st.write("Inserting new records...")
             new_df.to_sql(TABLE_NAME, conn, if_exists='append', index=False)
 
-            if final_containers:
+            # 6. Insert the new container info.
+            if manual_containers:
                 st.write("Saving container info...")
-                for container in final_containers:
-                    cursor.execute(f"INSERT INTO {CONTAINER_TABLE_NAME} (inv_ref, container_description) VALUES (?, ?)", (inv_ref_to_replace, container))
+                for container in manual_containers:
+                    cursor.execute(f"INSERT INTO {CONTAINER_TABLE_NAME} (inv_ref, container_description) VALUES (?, ?)", (new_inv_ref, container))
             conn.commit()
         finally:
             if conn:
                 conn.close()
 
         shutil.move(str(source_file_path), str(PROCESSED_DIRECTORY / source_file_path.name))
-        st.success("Amendment approved! Old data was replaced in the database.")
+        st.success("Amendment approved! All matching old data was replaced in the database.")
         st.rerun()
 
     if c2.button("❌ Reject Changes", use_container_width=True):

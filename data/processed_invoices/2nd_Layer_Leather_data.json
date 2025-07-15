@@ -512,11 +512,11 @@
         }
     },
     "aggregated_summary": {
-        "gross": 74849.0,
         "cbm": 98.846,
         "net": 73409.0,
-        "description": "wet blue split",
+        "gross": 74849.0,
         "item": "split hide",
+        "description": "wet blue split",
         "po": "TH25008",
         "inv_no": "TH25008",
         "inv_ref": "CLF2025-3",
