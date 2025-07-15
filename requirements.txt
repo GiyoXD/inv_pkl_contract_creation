@@ -4,3 +4,5 @@ questionary
 streamlit
 pandas
 openpyxl
+streamlit_autorefresh
+streamlit_js_eval
