@@ -6,14 +6,53 @@ from streamlit_js_eval import streamlit_js_eval
 # Set the title that will appear in the browser tab and the sidebar.
 st.set_page_config(page_title="Pallet Calculator", layout="centered")
 
+# --- CUSTOM CSS FOR STICKY HEADER ---
+st.markdown("""
+<style>
+    /* This class makes the summary section float */
+    .sticky-header {
+        position: sticky;
+        top: 3.5rem; /* Height of Streamlit's default header (56px) */
+        background-color: #ffffff;
+        border: 1px solid #e6e6e6; /* Replicates the border from st.container */
+        border-radius: 0.5rem; /* Replicates the border-radius */
+        z-index: 1000;
+        padding: 1rem 1rem 0.5rem 1rem;
+        margin-bottom: 1rem;
+    }
+    /* Custom metric card styling to replicate st.metric */
+    .custom-metric {
+        color: #31333F;
+        padding: 0.5rem;
+    }
+    .custom-metric-label {
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+    .custom-metric-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    /* Custom status message styling */
+    .status-message {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        text-align: center;
+        font-weight: 600;
+    }
+    .status-success { background-color: #d4edda; color: #155724; }
+    .status-warning { background-color: #fff3cd; color: #856404; }
+    .status-error   { background-color: #f8d7da; color: #721c24; }
+</style>
+""", unsafe_allow_html=True)
+
+
 st.title("Pallet Weight Calculator")
 st.markdown("Enter your pallet weights for real-time suggestions. The app will auto-update.")
 
 # --- CONDITIONAL AUTO-REFRESH ---
 # This is the core of the intelligent refresh logic.
-# 1. We ask the browser what element is currently active (in focus).
-# 2. If it's NOT an "INPUT" element, we enable the auto-refresh.
-# 3. If it IS an "INPUT" element (meaning you're typing), we disable auto-refresh.
 active_element_tag = streamlit_js_eval(js_expressions='document.activeElement.tagName', key='get_active_element')
 
 if active_element_tag != "INPUT":
@@ -26,9 +65,6 @@ else:
 
 
 # --- INITIALIZE SESSION STATE ---
-# Session state is used to store the weights of the pallets so they persist
-# across reruns when the user interacts with the app.
-# We use None to represent an empty input field.
 if 'pallet_weights' not in st.session_state:
     st.session_state.pallet_weights = [None] * 12 # Default to 12 pallets
 
@@ -56,82 +92,82 @@ with st.container(border=True):
         )
 
 # --- SYNC PALLET COUNT WITH SESSION STATE ---
-# Adjust the list of weights in session_state if the user changes the pallet count.
 current_list_size = len(st.session_state.pallet_weights)
 if pallet_count != current_list_size:
-    # If the user increases the count, add empty (None) slots to the end.
     if pallet_count > current_list_size:
         st.session_state.pallet_weights.extend([None] * (pallet_count - current_list_size))
-    # If the user decreases the count, truncate the list.
     else:
         st.session_state.pallet_weights = st.session_state.pallet_weights[:pallet_count]
 
 
 # --- CALCULATIONS ---
-# These calculations are performed on every rerun of the script.
-# Replace None with 0 for calculation purposes, but keep None in the state for the UI.
 weights = [w if w is not None else 0 for w in st.session_state.pallet_weights]
 current_total_weight = sum(weights)
 pallets_with_weight = sum(1 for w in st.session_state.pallet_weights if w is not None and w > 0)
-
 remaining_weight = max_weight - current_total_weight
 remaining_pallets = pallet_count - pallets_with_weight
+suggested_weight = remaining_weight / remaining_pallets if remaining_pallets > 0 else 0.0
+ideal_average = max_weight / pallet_count if pallet_count > 0 else 0.0
 
-# Calculate the suggested weight for the next unloaded pallet.
-if remaining_pallets > 0:
-    suggested_weight = remaining_weight / remaining_pallets
+# --- BUILD HTML FOR STICKY SUMMARY ---
+# Status Message Logic
+if current_total_weight > max_weight:
+    status_class = "status-error"
+    status_text = f"🚨 DANGER: You are {current_total_weight - max_weight:,.0f} KG OVER the limit!"
+elif current_total_weight > max_weight * 0.95:
+    status_class = "status-warning"
+    status_text = f"⚠️ WARNING: Approaching maximum weight limit."
 else:
-    suggested_weight = 0.0
+    status_class = "status-success"
+    status_text = f"✅ LOOKING GOOD: You are within the weight limit."
 
-# Calculate the ideal average weight across all pallets from the start.
-if pallet_count > 0:
-    ideal_average = max_weight / pallet_count
-else:
-    ideal_average = 0.0
-
-# --- LIVE SUMMARY DISPLAY ---
-with st.container(border=True):
-    st.subheader("Live Summary")
-
-    # Status Message
-    if current_total_weight > max_weight:
-        st.error(f"🚨 DANGER: You are {current_total_weight - max_weight:,.0f} KG OVER the limit!")
-    elif current_total_weight > max_weight * 0.95:
-        st.warning(f"⚠️ WARNING: Approaching maximum weight limit.")
-    else:
-        st.success(f"✅ LOOKING GOOD: You are within the weight limit.")
-
-    # Metric Cards using standard st.metric
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Loaded (KG)", f"{current_total_weight:,.0f}")
-    col2.metric("Remaining (KG)", f"{remaining_weight:,.0f}")
-    col3.metric("Ideal Avg. (KG)", f"{ideal_average:,.0f}")
-    col4.metric("Suggested Next (KG)", f"{suggested_weight:,.0f}")
+# Construct the entire HTML block for the summary
+summary_html = f"""
+<div class="sticky-header">
+    <h3 style="margin-bottom: 1rem;">Live Summary</h3>
+    <div class="status-message {status_class}">
+        {status_text}
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+        <div class="custom-metric">
+            <div class="custom-metric-label">Total Loaded (KG)</div>
+            <div class="custom-metric-value">{current_total_weight:,.0f}</div>
+        </div>
+        <div class="custom-metric">
+            <div class="custom-metric-label">Remaining (KG)</div>
+            <div class="custom-metric-value">{remaining_weight:,.0f}</div>
+        </div>
+        <div class="custom-metric">
+            <div class="custom-metric-label">Ideal Avg. (KG)</div>
+            <div class="custom-metric-value">{ideal_average:,.0f}</div>
+        </div>
+        <div class="custom-metric">
+            <div class="custom-metric-label">Suggested Next (KG)</div>
+            <div class="custom-metric-value">{suggested_weight:,.0f}</div>
+        </div>
+    </div>
+</div>
+"""
+st.markdown(summary_html, unsafe_allow_html=True)
 
 
 # --- PALLET INPUTS ---
 with st.container(border=True):
     st.subheader("Pallet Weights (KG)")
     
-    # Create columns for a cleaner layout on wider screens
     cols = st.columns(3)
     for i in range(pallet_count):
-        # Distribute pallet inputs across the columns
         with cols[i % 3]:
-            # The key is crucial for Streamlit to identify each widget uniquely.
-            # The value is read from and written to our session_state list.
             st.session_state.pallet_weights[i] = st.number_input(
                 f"Pallet {i + 1}", 
                 key=f"pallet_{i}", 
                 min_value=0,
-                value=st.session_state.pallet_weights[i], # This can be None, which makes the input empty
+                value=st.session_state.pallet_weights[i],
                 step=50,
-                placeholder="Empty" # Show a placeholder for empty inputs
+                placeholder="Empty"
             )
     
     st.markdown("---")
-    # Reset Button
     if st.button("Reset All Weights", use_container_width=True):
-        # To reset, we re-initialize the list in session_state with Nones.
         st.session_state.pallet_weights = [None] * pallet_count
         st.rerun()

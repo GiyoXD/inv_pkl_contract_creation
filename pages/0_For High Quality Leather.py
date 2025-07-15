@@ -132,33 +132,22 @@ if uploaded_file and not st.session_state.get('validation_done'):
     with open(temp_file_path, "wb") as f: f.write(uploaded_file.getbuffer())
     
     with st.spinner("Automatically processing and validating your file..."):
-        # --- MODIFICATION START: Added a new, more detailed debugger here ---
         try:
-            st.info("Step 1/3: Starting automatic processing with `run_invoice_automation`...")
             run_invoice_automation(input_excel_override=str(temp_file_path), output_dir_override=str(JSON_OUTPUT_DIR))
             
             json_path = JSON_OUTPUT_DIR / f"{st.session_state['identifier']}.json"
-            st.info("Step 2/3: Checking if JSON file was created...")
             if not json_path.exists():
                 st.error("Processing failed: The JSON data file was not created by the automation script.")
                 st.stop()
             
-            st.info("Step 3/3: Validating the contents of the JSON file...")
             required_columns = ['inv_no', 'inv_date', 'inv_ref', 'po', 'item', 'pcs', 'sqft', 'pallet_count', 'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no']
             st.session_state['missing_fields'] = validate_json_data(json_path, required_columns)
             st.session_state['json_path'] = str(json_path)
             st.session_state['validation_done'] = True
             st.rerun()
-
         except Exception as e:
-            st.error(f"An error occurred during the initial automatic processing.")
-            with st.expander("Show Initial Processing Error Details", expanded=True):
-                st.subheader("Error Message")
-                st.write("The script failed while trying to convert your Excel file to JSON.")
-                st.subheader("Python Exception Trace")
-                st.exception(e)
+            st.error(f"An error occurred during initial processing: {e}")
             st.stop()
-        # --- MODIFICATION END ---
 
 if st.session_state.get('validation_done'):
     st.subheader("✔️ Automatic Validation Complete")
@@ -174,7 +163,6 @@ if st.session_state.get('validation_done'):
         user_inv_no = st.text_input("Invoice No")
         if user_inv_no and check_value_exists('inv_no', user_inv_no): st.warning(f"⚠️ Invoice No `{user_inv_no}` already exists in the database.")
         
-        # Pre-filled the value and added a persistent placeholder hint.
         suggested_ref = get_suggested_inv_ref()
         user_inv_ref = st.text_input(
             "Invoice Ref",
@@ -185,11 +173,8 @@ if st.session_state.get('validation_done'):
 
         if user_inv_ref and check_value_exists('inv_ref', user_inv_ref): st.warning(f"⚠️ Invoice Ref `{user_inv_ref}` already exists in the database.")
         
-        # --- MODIFICATION START ---
-        # Set the default invoice date to tomorrow.
         tomorrow = datetime.date.today() + datetime.timedelta(days=1)
         selected_date_obj = st.date_input("Invoice Date", value=tomorrow, format="DD/MM/YYYY")
-        # --- MODIFICATION END ---
         
         user_inv_date = selected_date_obj.strftime("%d/%m/%Y") if selected_date_obj else ""
     with col2:
@@ -229,7 +214,7 @@ if st.session_state.get('validation_done'):
                             f.seek(0); json.dump(data, f, indent=4); f.truncate()
                             st.success("Overrides applied to JSON file.")
                 except Exception as e:
-                    st.error(f"Error during JSON Override: {e}"); st.exception(e); st.stop()
+                    st.error(f"Error during JSON Override: {e}"); st.stop()
 
         with st.spinner("Generating selected invoice files..."):
             identifier = st.session_state['identifier']
@@ -244,7 +229,17 @@ if st.session_state.get('validation_done'):
 
             success_count = 0
             for mode_name, mode_flags in modes_to_run:
-                output_filename = f"CT&INV&PL {identifier} {mode_name.upper()}.xlsx"
+                # --- MODIFICATION START ---
+                # Determine the final display name for the file based on the mode.
+                final_mode_name = mode_name.upper()
+                if mode_name == 'combine':
+                    # If an incoterm was found, prepend it to "COMBINE".
+                    term_part = f"{detected_term.upper()} " if detected_term else ""
+                    final_mode_name = f"{term_part}COMBINE"
+                
+                output_filename = f"CT&INV&PL {identifier} {final_mode_name}.xlsx"
+                # --- MODIFICATION END ---
+                
                 output_path = invoice_output_dir / output_filename
                 command = [sys.executable, str(INVOICE_GEN_SCRIPT), str(json_path), "--output", str(output_path), "--templatedir", str(TEMPLATE_DIR), "--configdir", str(INVOICE_GEN_DIR / "config")] + mode_flags
                 try:
@@ -252,22 +247,8 @@ if st.session_state.get('validation_done'):
                     files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
                     success_count += 1
                 except subprocess.CalledProcessError as e:
-                    # --- START: Added Debugger Block ---
-                    st.error(f"An error occurred while generating the '{mode_name.upper()}' version.")
-                    with st.expander("Show Debugger & Verifier Error Details", expanded=True):
-                        st.subheader("Failed Command")
-                        st.code(' '.join(command), language='bash')
-
-                        st.subheader("Error Output (stderr)")
-                        st.text_area("Stderr:", value=e.stderr, height=200, help="This is the direct error message from the script.")
-
-                        st.subheader("Standard Output (stdout)")
-                        st.text_area("Stdout:", value=e.stdout, height=150, help="This is the standard output from the script, which might contain useful processing information.")
-
-                        st.subheader("Python Exception Trace")
-                        st.exception(e)
-                    # --- END: Added Debugger Block ---
-
+                    st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
+            
             if success_count > 0:
                 st.success(f"Successfully created {success_count} invoice file(s)!")
                 zip_buffer = io.BytesIO()
@@ -275,4 +256,5 @@ if st.session_state.get('validation_done'):
                     for file_info in files_to_zip: zip_file.writestr(file_info["name"], file_info["data"])
                 st.header("5. Download Your Files")
                 st.download_button(label=f"📥 Download All Files ({len(files_to_zip)}) as ZIP", data=zip_buffer.getvalue(), file_name=f"Invoices-{identifier}.zip", mime="application/zip", use_container_width=True, type="primary")
-            else: st.error("Processing finished, but no files were generated.")
+            else:
+                st.error("Processing finished, but no files were generated. Check for errors above.")
