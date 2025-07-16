@@ -65,7 +65,7 @@ DB_ENABLED = initialize_database(DATABASE_FILE)
 
 # --- Streamlit App UI ---
 st.set_page_config(page_title="Generate Invoice", layout="wide")
-st.title("Automated Invoice Generator ⚙️")
+st.title("Automated Invoice Generator")
 
 # --- Session State Initialization ---
 # Use session_state to store values that need to persist across reruns.
@@ -115,26 +115,71 @@ def get_suggested_inv_ref() -> str:
     except Exception as e:
         st.warning(f"DB error suggesting Ref: {e}"); return default
 
-def update_and_aggregate_json(json_path: Path, inv_ref: str, inv_date: datetime.date, unit_price: float, po_number: str):
-    """Updates the JSON data with invoice details and aggregates summary information."""
+def update_and_aggregate_json(json_path: Path, inv_ref: str, inv_date: datetime.date, unit_price: float, po_number: str) -> dict | None:
+    """
+    Updates the JSON data with invoice details, aggregates summary information,
+    and returns the summary as a dictionary.
+    """
     try:
         with open(json_path, 'r+', encoding='utf-8') as f:
             data = json.load(f)
             raw_data = data.get("raw_data", {})
-            net_value = float(data.get("aggregated_summary", {}).get("net", 0))
+            summary = data.get("aggregated_summary", {})
+            
+            # Extract and calculate values
+            net_value = float(summary.get("net", 0))
             total_pcs = sum(sum(t.get("pcs", [])) for t in raw_data.values())
             total_pallets = sum(len(t.get("pallet_count", [])) for t in raw_data.values())
             total_amount = unit_price * net_value
-            st.info(f"✅ Calculated Totals: Amount={total_amount:,.2f}, Pcs={total_pcs}, Pallets={total_pallets}")
             date_str = inv_date.strftime("%d/%m/%Y")
+
+            # Get representative item and description
+            first_item, first_desc = "N/A", "N/A"
+            for table_data in raw_data.values():
+                if table_data.get("item") and table_data["item"][0]:
+                    first_item = table_data["item"][0]
+                if table_data.get("description") and table_data["description"][0]:
+                    first_desc = table_data["description"][0]
+                if first_item != "N/A" and first_desc != "N/A":
+                    break
+            
+            # Update raw data tables with invoice info
             for table in raw_data.values():
                 entries = len(table.get("po", []))
-                table.update({"inv_no": [po_number] * entries, "inv_ref": [inv_ref] * entries, "inv_date": [date_str] * entries, "unit": [unit_price] * entries})
-            data.setdefault("aggregated_summary", {}).update({"inv_no": po_number, "inv_ref": inv_ref, "inv_date": date_str, "unit": unit_price, "amount": total_amount, "pcs": total_pcs, "pallet_count": total_pallets, "net": net_value})
-            f.seek(0); json.dump(data, f, indent=4); f.truncate()
-        return True
+                table.update({
+                    "inv_no": [po_number] * entries, "inv_ref": [inv_ref] * entries,
+                    "inv_date": [date_str] * entries, "unit": [unit_price] * entries
+                })
+
+            # Update aggregated summary
+            summary.update({
+                "inv_no": po_number, "inv_ref": inv_ref, "inv_date": date_str, "unit": unit_price,
+                "amount": total_amount, "pcs": total_pcs, "pallet_count": total_pallets, "net": net_value
+            })
+            data["aggregated_summary"] = summary
+            
+            # Write changes back to JSON
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+
+            # Prepare dictionary to return for UI display
+            summary_for_ui = {
+                "po_number": po_number,
+                "amount": total_amount,
+                "pcs": total_pcs,
+                "pallet_count": total_pallets,
+                "net": net_value,
+                "gross": summary.get("gross", 0.0),
+                "cbm": summary.get("cbm", 0.0),
+                "item": first_item,
+                "description": first_desc
+            }
+            return summary_for_ui
+
     except Exception as e:
-        st.error(f"Failed to update JSON. Details: {e}"); return False
+        st.error(f"Failed to update JSON. Details: {e}")
+        return None
 
 def get_po_from_json(json_path: Path) -> str | None:
     """Extracts the Purchase Order number from the JSON file."""
@@ -147,15 +192,15 @@ st.header("1. Upload Source Excel File")
 uploaded_file = st.file_uploader("Choose an XLSX file", type="xlsx")
 
 if uploaded_file:
-    st.markdown("---"); st.header("2. Enter Invoice Details")
+    st.markdown("---")
+    st.header("2. Enter Invoice Details")
     col1, col2, col3 = st.columns(3)
     with col1:
         suggested_ref = get_suggested_inv_ref()
         inv_ref = st.text_input("Invoice Reference", value=suggested_ref)
-        # The check for existing inv_ref is kept as a non-blocking warning.
-        if inv_ref and inv_ref != suggested_ref and check_value_exists('inv_ref', inv_ref): st.warning("⚠️ Ref already exists in the database.")
+        if inv_ref and inv_ref != suggested_ref and check_value_exists('inv_ref', inv_ref): st.warning("Ref already exists in the database.")
     with col2: inv_date = st.date_input("Invoice Date", datetime.date.today())
-    with col3: unit_price = st.number_input("Unit Price", min_value=0.0, value=1.0, step=0.01)
+    with col3: unit_price = st.number_input("Unit Price", min_value=0.0, value=0.61, step=0.01)
 
     st.markdown("---")
     if st.button(f"Process '{uploaded_file.name}'", use_container_width=True, type="primary"):
@@ -163,104 +208,118 @@ if uploaded_file:
             st.error("Database is not connected. Cannot proceed.")
             st.stop()
         
-        # This blocking check is removed to allow processing without saving to DB.
-        # if check_value_exists('inv_ref', inv_ref):
-        #     st.error(f"Invoice Reference '{inv_ref}' already exists. Please use a unique reference.")
-        #     st.stop()
-
         temp_file_path = st.session_state.TEMP_UPLOAD_DIR / uploaded_file.name
         try:
+            st.session_state.TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
             with open(temp_file_path, "wb") as f: f.write(uploaded_file.getbuffer())
         except Exception as e:
             st.error(f"Could not save uploaded file: {e}"); st.stop()
 
-        with st.expander("Processing Log", expanded=True):
-            final_json_path, po_number = None, None
+        po_number = None
+        summary_data = None
+        final_json_path = None
 
-            # --- Step 1: Create JSON file ---
-            with st.spinner("Step 1 of 3: Creating data file..."):
-                try:
-                    buffer_file = st.session_state.JSON_OUTPUT_DIR / "__buffer.json"
-                    run_dir = st.session_state.CREATE_JSON_DIR
-                    
-                    # Add a check to ensure the target directory for the subprocess exists
-                    if not run_dir.is_dir():
-                        st.error(f"Processing directory not found. Expected at: {run_dir}")
-                        st.error("Please check your project's directory structure. The 'create_json' folder should be in the main project directory.")
-                        st.stop()
-
-                    subprocess.run([sys.executable, str(run_dir / "Second_Layer(main).py"), str(temp_file_path), "-o", str(buffer_file)], check=True, capture_output=True, text=True, cwd=str(run_dir))
-                    
-                    po_number_from_json = get_po_from_json(buffer_file)
-                    fallback_po_number = Path(uploaded_file.name).stem
-                    po_number = po_number_from_json or fallback_po_number
-                    
-                    if not update_and_aggregate_json(buffer_file, inv_ref, inv_date, unit_price, po_number): st.stop()
-                    
-                    final_json_path = st.session_state.JSON_OUTPUT_DIR / f"{po_number}.json"
-                    buffer_file.replace(final_json_path)
-                    st.success(f"✔️ Step 1 complete: Data file created as '{final_json_path.name}'.")
-                except subprocess.CalledProcessError as e:
-                    st.error("Step 1 FAILED.", icon="🚨"); st.text_area("Full Error Log:", e.stdout + e.stderr, height=200); st.stop()
-                finally:
-                    if 'buffer_file' in locals() and buffer_file.exists(): buffer_file.unlink()
-
-            # --- Step 2: Generate documents ---
-            with st.spinner("Step 2 of 3: Generating documents..."):
-                try:
-                    run_dir = st.session_state.INVOICE_GEN_DIR
-                    result = subprocess.run([
-                        sys.executable, str(run_dir / "hybrid_generate_invoice.py"), str(final_json_path), 
-                        "--outputdir", str(st.session_state.RESULT_DIR), "--templatedir", str(st.session_state.TEMPLATE_DIR), 
-                        "--configdir", str(st.session_state.CONFIG_DIR)
-                    ], check=True, capture_output=True, text=True, cwd=str(run_dir))
-                    st.text(result.stdout)
-                    st.success("✔️ Step 2 complete: All documents generated.")
-                except subprocess.CalledProcessError as e:
-                    st.error("Step 2 FAILED.", icon="🚨"); st.text_area("Full Error Log:", e.stdout + e.stderr, height=300); st.stop()
-
-            # --- Step 3: Save record to database ---
-            #
-            # As requested, this step has been disabled. The script will no longer push data to the SQLite database.
-            #
-            # with st.spinner("Step 3 of 4: Saving record to database..."):
-            #     try:
-            #         with open(final_json_path, 'r', encoding='utf-8') as f:
-            #             summary = json.load(f).get("aggregated_summary", {})
-            #         with sqlite3.connect(st.session_state.DATABASE_FILE) as conn:
-            #             invoice_data = {
-            #                 'inv_no': summary.get('inv_no'), 'inv_date': summary.get('inv_date'),
-            #                 'inv_ref': summary.get('inv_ref'), 'po': po_number,
-            #                 'pcs': str(summary.get('pcs', '')), 'pallet_count': str(summary.get('pallet_count', '')),
-            #                 'unit': str(summary.get('unit', '')), 'amount': str(summary.get('amount', '')),
-            #                 'net': str(summary.get('net', '')), 'creating_date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            #             }
-            #             conn.execute("""
-            #                 INSERT INTO invoices (inv_no, inv_date, inv_ref, po, pcs, pallet_count, unit, amount, net, creating_date)
-            #                 VALUES (:inv_no, :inv_date, :inv_ref, :po, :pcs, :pallet_count, :unit, :amount, :net, :creating_date)
-            #             """, invoice_data)
-            #             conn.commit()
-            #         st.success("✔️ Step 3 complete: Record saved to database.")
-            #     except Exception as e:
-            #         st.error(f"Step 3 FAILED: Could not save to database.", icon="🚨"); st.error(e); st.stop()
-
-            # --- Step 3 (previously Step 4): Archive and Download ---
-            with st.spinner("Step 3 of 3: Archiving files..."):
-                generated_files = list(st.session_state.RESULT_DIR.glob(f"* {po_number}.xlsx"))
-                if not generated_files:
-                    st.error("Could not find any generated files to archive.", icon="🚨"); st.stop()
+        # --- Step 1: Create JSON file ---
+        with st.spinner("Step 1 of 2: Creating data file from Excel..."):
+            try:
+                buffer_file = st.session_state.JSON_OUTPUT_DIR / "__buffer.json"
+                run_dir = st.session_state.CREATE_JSON_DIR
                 
-                zip_path = st.session_state.RESULT_DIR / f"Generated Documents {po_number}.zip"
-                try:
-                    with zipfile.ZipFile(zip_path, 'w') as zipf:
+                if not run_dir.is_dir():
+                    st.error(f"Processing directory not found. Expected at: {run_dir}")
+                    st.error("Please check your project's directory structure. The 'create_json' folder should be in the main project directory.")
+                    st.stop()
+
+                subprocess.run([sys.executable, str(run_dir / "Second_Layer(main).py"), str(temp_file_path), "-o", str(buffer_file)], check=True, capture_output=True, text=True, cwd=str(run_dir), encoding='utf-8')
+                
+                po_number_from_json = get_po_from_json(buffer_file)
+                fallback_po_number = Path(uploaded_file.name).stem
+                po_number = po_number_from_json or fallback_po_number
+                
+                summary_data = update_and_aggregate_json(buffer_file, inv_ref, inv_date, unit_price, po_number)
+                if not summary_data:
+                    st.stop()
+                
+                final_json_path = st.session_state.JSON_OUTPUT_DIR / f"{po_number}.json"
+                buffer_file.replace(final_json_path)
+                st.success(f"Step 1 complete: Data file created as '{final_json_path.name}'.")
+            except subprocess.CalledProcessError as e:
+                st.error("Step 1 FAILED."); st.text_area("Full Error Log:", e.stdout + e.stderr, height=200); st.stop()
+            finally:
+                if 'buffer_file' in locals() and buffer_file.exists(): buffer_file.unlink()
+
+        # --- Step 2: Generate documents ---
+        with st.spinner("Step 2 of 2: Generating documents..."):
+            try:
+                run_dir = st.session_state.INVOICE_GEN_DIR
+                new_backend_script_name = "hybrid_generate_invoice.py"
+                result = subprocess.run([
+                    sys.executable, str(run_dir / new_backend_script_name), str(final_json_path), 
+                    "--outputdir", str(st.session_state.RESULT_DIR), "--templatedir", str(st.session_state.TEMPLATE_DIR), 
+                    "--configdir", str(st.session_state.CONFIG_DIR)
+                ], check=True, capture_output=True, text=True, cwd=str(run_dir), encoding='utf-8')
+                st.success("Step 2 complete: All documents generated.")
+            except subprocess.CalledProcessError as e:
+                st.error("Step 2 FAILED."); st.text_area("Full Error Log:", e.stdout + e.stderr, height=300); st.stop()
+
+        # --- Display Summary and Present Downloads ---
+        if po_number and summary_data:
+            st.markdown("---")
+            st.header("Invoice Summary")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("PO Number", summary_data.get("po_number", "N/A"))
+            col2.metric("Total Amount", f"${summary_data.get('amount', 0):,.2f}")
+            col3.metric("Net Weight (KG)", f"{summary_data.get('net', 0):,.2f}")
+            col4.metric("Gross Weight", f"{summary_data.get('gross', 0):,.2f}")
+
+            col5, col6, col7 = st.columns(3)
+            col5.metric("Total Pcs", f"{summary_data.get('pcs', 0):,}")
+            col6.metric("Total Pallets", summary_data.get('pallet_count', 0))
+            col7.metric("Total CBM", f"{summary_data.get('cbm', 0):,.3f}")
+
+            st.text(f"Item: {summary_data.get('item', 'N/A')}")
+            st.text(f"Description: {summary_data.get('description', 'N/A')}")
+
+            st.markdown("---")
+            st.header("3. Download Generated Documents")
+
+            generated_files = sorted(list(st.session_state.RESULT_DIR.glob(f"* {po_number}.xlsx")))
+            
+            if not generated_files:
+                st.error("Processing seemed to succeed, but no output files were found.")
+                st.stop()
+
+            st.info(f"Found {len(generated_files)} documents for PO **{po_number}** to be packaged.")
+            
+            # --- Section for Combined ZIP Download ---
+            zip_filename = f"{po_number}.zip"
+            zip_path = st.session_state.RESULT_DIR / zip_filename
+            try:
+                with st.spinner("Creating ZIP archive..."):
+                    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                         for file in generated_files:
-                            st.write(f"Compressing `{file.name}`...")
                             zipf.write(file, arcname=file.name)
-                    st.success(f"✔️ Step 3 complete: Archived {len(generated_files)} files successfully!")
-                    with open(zip_path, "rb") as fp:
-                        st.download_button(
-                            label=f"📥 Download All Files ({zip_path.name})", 
-                            data=fp, file_name=zip_path.name, mime="application/zip", use_container_width=True
-                        )
+                
+                with open(zip_path, "rb") as fp:
+                    st.download_button(
+                        label=f"Download Documents (.zip)", data=fp,
+                        file_name=zip_filename, mime="application/zip",
+                        use_container_width=True, type="primary"
+                    )
+            except Exception as e:
+                st.error(f"Failed to create ZIP archive: {e}")
+            
+            # --- Final Cleanup Logic ---
+            st.markdown("---")
+            with st.expander("Cleanup Information"):
+                st.write("The temporary uploaded Excel file will now be removed. The processed data and final documents are retained.")
+                try:
+                    if temp_file_path and temp_file_path.exists():
+                        temp_file_path.unlink()
+                        st.write(f"Removed temporary upload: `{temp_file_path.name}`")
+                        st.success("Cleanup complete!")
+                    else:
+                        st.info("No temporary upload file was found to clean up.")
                 except Exception as e:
-                    st.error(f"Step 3 FAILED: Could not create ZIP archive.", icon="🚨"); st.error(e); st.stop()
+                    st.warning(f"An error occurred during file cleanup: {e}")

@@ -360,8 +360,8 @@
         }
     },
     "aggregated_summary": {
-        "net": 73140.0,
         "gross": 74660.0,
+        "net": 73140.0,
         "cbm": 102.19,
         "po": "TH25020",
         "description": "wet blue split",

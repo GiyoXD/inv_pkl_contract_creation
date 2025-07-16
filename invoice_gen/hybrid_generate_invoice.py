@@ -37,7 +37,7 @@ def copy_sheet_between_workbooks(source_sheet: Worksheet, target_workbook: Workb
     for col_letter, dim in source_sheet.column_dimensions.items():
         target_sheet.column_dimensions[col_letter].width = dim.width
         if dim.hidden:
-             target_sheet.column_dimensions[col_letter].hidden = True
+              target_sheet.column_dimensions[col_letter].hidden = True
     for row_idx, dim in source_sheet.row_dimensions.items():
         target_sheet.row_dimensions[row_idx].height = dim.height
         if dim.hidden:
@@ -126,7 +126,7 @@ def main():
     invoice_data = load_json_file(paths['data'], "data")
     config = load_json_file(paths['config'], "config")
 
-    keys_to_convert = {'net', 'amount', 'price'}
+    keys_to_convert = {'net', 'amount', 'price', 'unit', 'cbm'}
     invoice_data = preprocess_data_for_numerics(invoice_data, keys_to_convert)
     invoice_data = calculate_and_inject_totals(invoice_data)
     
@@ -154,14 +154,23 @@ def main():
                 text_replace_utils.find_and_replace(output_workbook, sheet_config.get("replacements", []), 50, 20, invoice_data)
 
             elif process_type == "packing_list":
-                print(f"Processing '{sheet_name}' as complex packing list.")
+                print(f"Processing '{sheet_name}' as a packing list.")
+                
+                # --- REVISION ---
+                # First, perform the standard text replacement for any placeholders on the sheet.
+                print(" -> Step 1: Performing text replacement for placeholders...")
+                text_replace_utils.find_and_replace(output_workbook, sheet_config.get("replacements", []), 50, 20, invoice_data)
+
+                # Second, continue with the detailed packing list table generation.
+                print(" -> Step 2: Generating detailed packing list table...")
                 start_row = sheet_config.get("start_row", 1)
                 merges_to_restore = merge_utils.store_original_merges(output_workbook, [sheet_name])
                 rows_to_add = packing_list_utils.calculate_rows_to_generate(invoice_data, sheet_config)
                 if rows_to_add > 0:
-                    print(f"Inserting {rows_to_add} rows at row {start_row}...")
+                    print(f"    -> Inserting {rows_to_add} rows at row {start_row}...")
                     merge_utils.force_unmerge_from_row_down(worksheet, start_row)
                     worksheet.insert_rows(start_row, amount=rows_to_add)
+                
                 packing_list_utils.generate_full_packing_list(worksheet, start_row, invoice_data, sheet_config)
                 merge_utils.find_and_restore_merges_heuristic(output_workbook, merges_to_restore, [sheet_name])
             
@@ -175,7 +184,7 @@ def main():
             print(f"\n--- Saving final workbook to '{sheet_output_path}' ---")
             output_workbook.save(sheet_output_path)
             output_workbook.close()
-            print(f"✅ Processing complete for sheet '{sheet_name}'.")
+            print(f"Processing complete for sheet '{sheet_name}'.")
 
     except Exception as e:
         print(f"\n--- A CRITICAL ERROR occurred: {e} ---")

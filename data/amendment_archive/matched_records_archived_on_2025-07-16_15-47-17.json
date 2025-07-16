@@ -1,0 +1,23 @@
+[
+    {
+        "id":65,
+        "inv_no":"TH25021",
+        "inv_date":"2025-07-16",
+        "inv_ref":"CLF2025-217",
+        "po":"TH25021",
+        "item":"split hide",
+        "description":"wet blue split",
+        "pcs":"6171",
+        "sqft":null,
+        "pallet_count":"38",
+        "unit":"0.61",
+        "amount":"44620.28",
+        "net":"73148.0",
+        "gross":"74668.0",
+        "cbm":"103.07",
+        "production_order_no":null,
+        "creating_date":"2025-07-16 15:20:56",
+        "status":"active",
+        "containers":null
+    }
+]

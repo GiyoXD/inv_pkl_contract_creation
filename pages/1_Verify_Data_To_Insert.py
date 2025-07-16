@@ -35,13 +35,15 @@ def setup_directories():
 
 def get_existing_invoice_data(inv_ref, inv_no):
     """
-    Gets all data for a specific invoice, ensuring the database connection is always closed.
+    Gets all data for a specific invoice based on an EXACT match of inv_ref or inv_no.
+    This ensures the user makes the final decision on overwriting data.
     """
     if not os.path.exists(DATABASE_FILE):
         return None
     conn = None
     try:
         conn = sqlite3.connect(DATABASE_FILE)
+        # Standard and safe: Find matches only on equality.
         query = f"""
         SELECT i.*,
                (SELECT GROUP_CONCAT(c.container_description, ', ')
