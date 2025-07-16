@@ -10,6 +10,8 @@ import zipfile
 import json
 import datetime
 import sqlite3
+import time
+import tempfile # --- MODIFICATION: Added for temporary file handling
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
@@ -42,15 +44,44 @@ except (ImportError, IndexError) as e:
 DATA_DIR = PROJECT_ROOT / "data"
 JSON_OUTPUT_DIR = DATA_DIR / "invoices_to_process"
 TEMP_UPLOAD_DIR = DATA_DIR / "temp_uploads"
-RESULT_DIR = PROJECT_ROOT / "result"
+# --- MODIFICATION START: Remove RESULT_DIR as it's no longer needed ---
+# RESULT_DIR = PROJECT_ROOT / "result"
+# --- MODIFICATION END ---
 TEMPLATE_DIR = INVOICE_GEN_DIR / "TEMPLATE"
 DATA_DIRECTORY = DATA_DIR / 'Invoice Record'
 DATABASE_FILE = DATA_DIRECTORY / 'master_invoice_data.db'
 TABLE_NAME = 'invoices'
 CONTAINER_TABLE_NAME = 'invoice_containers'
 
-for dir_path in [JSON_OUTPUT_DIR, TEMP_UPLOAD_DIR, RESULT_DIR, DATA_DIRECTORY]:
+# --- MODIFICATION START: Keep the result directory out of creation ---
+for dir_path in [JSON_OUTPUT_DIR, TEMP_UPLOAD_DIR, DATA_DIRECTORY]:
     dir_path.mkdir(parents=True, exist_ok=True)
+# --- MODIFICATION END ---
+
+# --- MODIFICATION START: Generalize cleanup and apply to JSON dir as well ---
+def cleanup_old_files(directories: list, max_age_seconds: int = 3600):
+    """
+    Deletes files older than a specified age in a list of directories.
+    Runs at startup to clear out transient files from abandoned sessions.
+    """
+    cutoff_time = time.time() - max_age_seconds
+    for directory in directories:
+        if not directory.exists(): continue
+        try:
+            for filepath in directory.iterdir():
+                if filepath.is_file():
+                    try:
+                        if filepath.stat().st_mtime < cutoff_time:
+                            filepath.unlink()
+                    except OSError:
+                        pass # Ignore errors if file is locked or already gone
+        except Exception:
+            pass # Fail silently if a directory can't be read
+
+# Run the cleanup function at the start of the script for all transient data
+cleanup_old_files([TEMP_UPLOAD_DIR, JSON_OUTPUT_DIR])
+# --- MODIFICATION END ---
+
 
 # --- Helper and Validation Functions ---
 def get_suggested_inv_ref():
@@ -129,25 +160,38 @@ uploaded_file = st.file_uploader("Choose an XLSX file", type="xlsx", on_change=r
 if uploaded_file and not st.session_state.get('validation_done'):
     st.session_state['identifier'] = Path(uploaded_file.name).stem
     temp_file_path = TEMP_UPLOAD_DIR / uploaded_file.name
-    with open(temp_file_path, "wb") as f: f.write(uploaded_file.getbuffer())
     
-    with st.spinner("Automatically processing and validating your file..."):
-        try:
-            run_invoice_automation(input_excel_override=str(temp_file_path), output_dir_override=str(JSON_OUTPUT_DIR))
-            
-            json_path = JSON_OUTPUT_DIR / f"{st.session_state['identifier']}.json"
-            if not json_path.exists():
-                st.error("Processing failed: The JSON data file was not created by the automation script.")
+    try:
+        with open(temp_file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        with st.spinner("Automatically processing and validating your file..."):
+            try:
+                run_invoice_automation(input_excel_override=str(temp_file_path), output_dir_override=str(JSON_OUTPUT_DIR))
+                
+                json_path = JSON_OUTPUT_DIR / f"{st.session_state['identifier']}.json"
+                if not json_path.exists():
+                    st.error("Processing failed: The JSON data file was not created by the automation script.")
+                    st.stop()
+                
+                required_columns = ['inv_no', 'inv_date', 'inv_ref', 'po', 'item', 'pcs', 'sqft', 'pallet_count', 'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no']
+                st.session_state['missing_fields'] = validate_json_data(json_path, required_columns)
+                st.session_state['json_path'] = str(json_path)
+                st.session_state['validation_done'] = True
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"An error occurred during initial processing: {e}")
+                st.exception(e) 
                 st.stop()
-            
-            required_columns = ['inv_no', 'inv_date', 'inv_ref', 'po', 'item', 'pcs', 'sqft', 'pallet_count', 'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no']
-            st.session_state['missing_fields'] = validate_json_data(json_path, required_columns)
-            st.session_state['json_path'] = str(json_path)
-            st.session_state['validation_done'] = True
-            st.rerun()
-        except Exception as e:
-            st.error(f"An error occurred during initial processing: {e}")
-            st.stop()
+
+    finally:
+        if temp_file_path.exists():
+            try:
+                temp_file_path.unlink() 
+            except OSError as e:
+                st.warning(f"Could not delete temporary file: {temp_file_path}. Error: {e}")
+
 
 if st.session_state.get('validation_done'):
     st.subheader("✔️ Automatic Validation Complete")
@@ -219,8 +263,7 @@ if st.session_state.get('validation_done'):
         with st.spinner("Generating selected invoice files..."):
             identifier = st.session_state['identifier']
             files_to_zip = [{"name": json_path.name, "data": json_path.read_bytes()}]
-            invoice_output_dir = RESULT_DIR / identifier
-            invoice_output_dir.mkdir(parents=True, exist_ok=True)
+            
             detected_term = find_incoterm_from_template(identifier)
             modes_to_run = [("fob", ["--fob"]), ("combine", ["--custom"])]
             if gen_normal: modes_to_run.insert(0, (detected_term if detected_term else "normal", []))
@@ -228,26 +271,29 @@ if st.session_state.get('validation_done'):
             if not gen_combine: modes_to_run = [m for m in modes_to_run if m[0] != 'combine']
 
             success_count = 0
-            for mode_name, mode_flags in modes_to_run:
-                # --- MODIFICATION START ---
-                # Determine the final display name for the file based on the mode.
-                final_mode_name = mode_name.upper()
-                if mode_name == 'combine':
-                    # If an incoterm was found, prepend it to "COMBINE".
-                    term_part = f"{detected_term.upper()} " if detected_term else ""
-                    final_mode_name = f"{term_part}COMBINE"
-                
-                output_filename = f"CT&INV&PL {identifier} {final_mode_name}.xlsx"
-                # --- MODIFICATION END ---
-                
-                output_path = invoice_output_dir / output_filename
-                command = [sys.executable, str(INVOICE_GEN_SCRIPT), str(json_path), "--output", str(output_path), "--templatedir", str(TEMPLATE_DIR), "--configdir", str(INVOICE_GEN_DIR / "config")] + mode_flags
-                try:
-                    subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace')
-                    files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
-                    success_count += 1
-                except subprocess.CalledProcessError as e:
-                    st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
+            # --- MODIFICATION START: Use a temporary directory for output files ---
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_dir_path = Path(temp_dir)
+                for mode_name, mode_flags in modes_to_run:
+                    final_mode_name = mode_name.upper()
+                    if mode_name == 'combine':
+                        term_part = f"{detected_term.upper()} " if detected_term else ""
+                        final_mode_name = f"{term_part}COMBINE"
+                    
+                    output_filename = f"CT&INV&PL {identifier} {final_mode_name}.xlsx"
+                    # Generate the file inside the temporary directory
+                    output_path = temp_dir_path / output_filename
+                    
+                    command = [sys.executable, str(INVOICE_GEN_SCRIPT), str(json_path), "--output", str(output_path), "--templatedir", str(TEMPLATE_DIR), "--configdir", str(INVOICE_GEN_DIR / "config")] + mode_flags
+                    try:
+                        subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace')
+                        # Read the generated file's bytes from the temp dir into memory
+                        files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
+                        success_count += 1
+                    except subprocess.CalledProcessError as e:
+                        st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
+            # The temporary directory and its contents are automatically deleted here
+            # --- MODIFICATION END ---
             
             if success_count > 0:
                 st.success(f"Successfully created {success_count} invoice file(s)!")

@@ -8,6 +8,8 @@ import sqlite3
 import re
 import os
 import zipfile
+import io
+import tempfile
 
 # --- Database Initialization Function ---
 def initialize_database(db_file: Path):
@@ -248,78 +250,94 @@ if uploaded_file:
             finally:
                 if 'buffer_file' in locals() and buffer_file.exists(): buffer_file.unlink()
 
-        # --- Step 2: Generate documents ---
-        with st.spinner("Step 2 of 2: Generating documents..."):
-            try:
-                run_dir = st.session_state.INVOICE_GEN_DIR
-                new_backend_script_name = "hybrid_generate_invoice.py"
-                result = subprocess.run([
-                    sys.executable, str(run_dir / new_backend_script_name), str(final_json_path), 
-                    "--outputdir", str(st.session_state.RESULT_DIR), "--templatedir", str(st.session_state.TEMPLATE_DIR), 
-                    "--configdir", str(st.session_state.CONFIG_DIR)
-                ], check=True, capture_output=True, text=True, cwd=str(run_dir), encoding='utf-8')
-                st.success("Step 2 complete: All documents generated.")
-            except subprocess.CalledProcessError as e:
-                st.error("Step 2 FAILED."); st.text_area("Full Error Log:", e.stdout + e.stderr, height=300); st.stop()
+        # --- Step 2: Generate documents into a temporary directory ---
+        # A temporary directory is created to hold the output files.
+        # It will be automatically deleted at the end of this process.
+        temp_output_dir_obj = tempfile.TemporaryDirectory()
+        temp_output_dir = Path(temp_output_dir_obj.name)
 
-        # --- Display Summary and Present Downloads ---
-        if po_number and summary_data:
-            st.markdown("---")
-            st.header("Invoice Summary")
-            
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("PO Number", summary_data.get("po_number", "N/A"))
-            col2.metric("Total Amount", f"${summary_data.get('amount', 0):,.2f}")
-            col3.metric("Net Weight (KG)", f"{summary_data.get('net', 0):,.2f}")
-            col4.metric("Gross Weight", f"{summary_data.get('gross', 0):,.2f}")
+        try:
+            with st.spinner("Step 2 of 2: Generating documents..."):
+                try:
+                    run_dir = st.session_state.INVOICE_GEN_DIR
+                    new_backend_script_name = "hybrid_generate_invoice.py"
+                    # The subprocess now writes the output to the temporary directory
+                    result = subprocess.run([
+                        sys.executable, str(run_dir / new_backend_script_name), str(final_json_path),
+                        "--outputdir", str(temp_output_dir), "--templatedir", str(st.session_state.TEMPLATE_DIR),
+                        "--configdir", str(st.session_state.CONFIG_DIR)
+                    ], check=True, capture_output=True, text=True, cwd=str(run_dir), encoding='utf-8')
+                    st.success("Step 2 complete: Documents generated temporarily.")
+                except subprocess.CalledProcessError as e:
+                    st.error("Step 2 FAILED."); st.text_area("Full Error Log:", e.stdout + e.stderr, height=300); st.stop()
 
-            col5, col6, col7 = st.columns(3)
-            col5.metric("Total Pcs", f"{summary_data.get('pcs', 0):,}")
-            col6.metric("Total Pallets", summary_data.get('pallet_count', 0))
-            col7.metric("Total CBM", f"{summary_data.get('cbm', 0):,.3f}")
-
-            st.text(f"Item: {summary_data.get('item', 'N/A')}")
-            st.text(f"Description: {summary_data.get('description', 'N/A')}")
-
-            st.markdown("---")
-            st.header("3. Download Generated Documents")
-
-            generated_files = sorted(list(st.session_state.RESULT_DIR.glob(f"* {po_number}.xlsx")))
-            
-            if not generated_files:
-                st.error("Processing seemed to succeed, but no output files were found.")
-                st.stop()
-
-            st.info(f"Found {len(generated_files)} documents for PO **{po_number}** to be packaged.")
-            
-            # --- Section for Combined ZIP Download ---
-            zip_filename = f"{po_number}.zip"
-            zip_path = st.session_state.RESULT_DIR / zip_filename
-            try:
-                with st.spinner("Creating ZIP archive..."):
-                    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                        for file in generated_files:
-                            zipf.write(file, arcname=file.name)
+            # --- Display Summary and Prepare In-Memory ZIP for Download ---
+            if po_number and summary_data:
+                st.markdown("---")
+                st.header("Invoice Summary")
                 
-                with open(zip_path, "rb") as fp:
-                    st.download_button(
-                        label=f"Download Documents (.zip)", data=fp,
-                        file_name=zip_filename, mime="application/zip",
-                        use_container_width=True, type="primary"
-                    )
-            except Exception as e:
-                st.error(f"Failed to create ZIP archive: {e}")
-            
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("PO Number", summary_data.get("po_number", "N/A"))
+                col2.metric("Total Amount", f"${summary_data.get('amount', 0):,.2f}")
+                col3.metric("Net Weight (KG)", f"{summary_data.get('net', 0):,.2f}")
+                col4.metric("Gross Weight", f"{summary_data.get('gross', 0):,.2f}")
+
+                col5, col6, col7 = st.columns(3)
+                col5.metric("Total Pcs", f"{summary_data.get('pcs', 0):,}")
+                col6.metric("Total Pallets", summary_data.get('pallet_count', 0))
+                col7.metric("Total CBM", f"{summary_data.get('cbm', 0):,.3f}")
+
+                st.text(f"Item: {summary_data.get('item', 'N/A')}")
+                st.text(f"Description: {summary_data.get('description', 'N/A')}")
+
+                st.markdown("---")
+                st.header("3. Download Generated Documents")
+
+                generated_files = sorted(list(temp_output_dir.glob(f"* {po_number}.xlsx")))
+                
+                if not generated_files:
+                    st.error("Processing succeeded, but no output files were found to package.")
+                    st.stop()
+
+                st.info(f"Found {len(generated_files)} documents for PO **{po_number}** to be packaged.")
+                
+                # --- Create ZIP in memory, not on disk ---
+                zip_filename = f"{po_number}.zip"
+                zip_buffer = io.BytesIO()  # Create an in-memory binary buffer
+
+                with st.spinner("Creating ZIP archive in memory..."):
+                    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                        for file_path in generated_files:
+                            # Write the file from the temp directory into the in-memory zip
+                            zipf.write(file_path, arcname=file_path.name)
+                
+                # Prepare the in-memory buffer for reading
+                zip_buffer.seek(0)
+                
+                st.download_button(
+                    label=f"Download Documents (.zip)",
+                    data=zip_buffer,  # Use the in-memory buffer as the data source
+                    file_name=zip_filename,
+                    mime="application/zip",
+                    use_container_width=True,
+                    type="primary"
+                )
+
+        finally:
             # --- Final Cleanup Logic ---
+            # This block runs regardless of success or failure, ensuring cleanup.
             st.markdown("---")
             with st.expander("Cleanup Information"):
-                st.write("The temporary uploaded Excel file will now be removed. The processed data and final documents are retained.")
+                st.write("Temporary files are being removed from the server.")
                 try:
+                    # Clean up the original uploaded file
                     if temp_file_path and temp_file_path.exists():
                         temp_file_path.unlink()
-                        st.write(f"Removed temporary upload: `{temp_file_path.name}`")
-                        st.success("Cleanup complete!")
-                    else:
-                        st.info("No temporary upload file was found to clean up.")
+                        st.write(f"- Removed temporary upload: `{temp_file_path.name}`")
+                    
+                    # Clean up the temporary directory containing the generated Excel files
+                    temp_output_dir_obj.cleanup()
+                    st.write(f"- Removed temporary document output directory.")
+                    st.success("Cleanup complete!")
                 except Exception as e:
                     st.warning(f"An error occurred during file cleanup: {e}")

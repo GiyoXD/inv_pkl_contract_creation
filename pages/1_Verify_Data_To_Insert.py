@@ -15,7 +15,7 @@ st.title("Add / Amend Invoice ➕")
 DATA_ROOT = Path("data")
 JSON_DIRECTORY = DATA_ROOT / 'invoices_to_process'
 PROCESSED_DIRECTORY = DATA_ROOT / 'processed_invoices'
-REJECTED_DIRECTORY = DATA_ROOT / 'rejected_invoices'
+# REJECTED_DIRECTORY is no longer needed as files will be deleted.
 AMENDMENT_ARCHIVE_DIRECTORY = DATA_ROOT / 'amendment_archive'
 DB_DIRECTORY = DATA_ROOT / 'Invoice Record'
 DATABASE_FILE = DB_DIRECTORY / 'master_invoice_data.db'
@@ -30,20 +30,19 @@ FINAL_COLUMNS = [
 # --- Helper Functions ---
 def setup_directories():
     """Create all necessary directories if they don't exist."""
-    for directory in [JSON_DIRECTORY, PROCESSED_DIRECTORY, REJECTED_DIRECTORY, AMENDMENT_ARCHIVE_DIRECTORY, DB_DIRECTORY]:
+    # REJECTED_DIRECTORY has been removed from this setup.
+    for directory in [JSON_DIRECTORY, PROCESSED_DIRECTORY, AMENDMENT_ARCHIVE_DIRECTORY, DB_DIRECTORY]:
         directory.mkdir(exist_ok=True)
 
 def get_existing_invoice_data(inv_ref, inv_no):
     """
     Gets all data for a specific invoice based on an EXACT match of inv_ref or inv_no.
-    This ensures the user makes the final decision on overwriting data.
     """
     if not os.path.exists(DATABASE_FILE):
         return None
     conn = None
     try:
         conn = sqlite3.connect(DATABASE_FILE)
-        # Standard and safe: Find matches only on equality.
         query = f"""
         SELECT i.*,
                (SELECT GROUP_CONCAT(c.container_description, ', ')
@@ -61,7 +60,7 @@ def get_existing_invoice_data(inv_ref, inv_no):
 
 def process_json_file(file_path):
     """
-    ✨ UPDATED: Processes JSON focusing on 'processed_tables_data' and
+    Processes JSON focusing on 'processed_tables_data' and
     extracts container info if provided by the upstream script.
     """
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -82,13 +81,11 @@ def process_json_file(file_path):
     df['inv_ref'] = df['inv_ref'].apply(lambda x: str(x).strip() if isinstance(x, str) and x.strip() else pd.NA).ffill()
     df['inv_date'] = pd.to_datetime(df['inv_date'], errors='coerce').ffill().dt.strftime('%Y-%m-%d')
 
-    # --- Extract Container Info (from Script 0) ---
+    # --- Extract Container Info ---
     manual_containers = []
     if 'container_type' in df.columns:
-        # Get the first valid container string, it's the same for all rows
         container_str = df['container_type'].dropna().astype(str).unique()
         if len(container_str) > 0:
-            # Split the string '40GP, 20GP' into a list ['40GP', '20GP']
             manual_containers = [c.strip() for c in container_str[0].split(',') if c.strip()]
 
     # --- Common final processing ---
@@ -118,11 +115,10 @@ def display_containers(container_list):
 
 
 def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
-    """The UI for approving an amendment, displaying container data read-only."""
+    """The UI for approving an amendment, now with deletion for rejected files."""
     st.warning(f"This Invoice Ref **'{new_df['inv_ref'].iloc[0]}'** or Invoice No **'{new_df['inv_no'].iloc[0]}'** already exists. Please review the changes and approve the amendment.", icon="⚠️")
 
     st.header("Review Changes")
-
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Current Data in Database")
@@ -132,41 +128,27 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
         st.dataframe(new_df)
 
     st.subheader("Containers / Trucks")
-    display_containers(manual_containers) # Display as colorful tags
+    display_containers(manual_containers)
 
     st.header("Approve Amendment?")
     c1, c2, _ = st.columns([1, 1, 4])
     if c1.button("✅ Accept Changes", use_container_width=True):
-        # --- ROBUST DELETION LOGIC ---
-        # 1. Get all unique invoice references from the data that was found in the database.
-        # This handles the case where the new file matches multiple old invoices
-        # (e.g., one by inv_ref and another by inv_no).
         inv_refs_to_delete = existing_df['inv_ref'].unique().tolist()
-
-        # 2. Get the inv_ref for the new records we are about to insert.
         new_inv_ref = new_df['inv_ref'].iloc[0]
-        # --- END OF FIX ---
 
         conn = None
         try:
             conn = sqlite3.connect(DATABASE_FILE)
             cursor = conn.cursor()
 
-            # 3. Archive all found records before deleting.
-            archive_filename = f"matched_records_archived_on_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-            existing_df.to_json(AMENDMENT_ARCHIVE_DIRECTORY / archive_filename, orient='records', indent=4)
-
-            # 4. Loop through each unique inv_ref that was matched and delete all associated records.
             st.write(f"Deleting all records for matched Invoice Refs: `{', '.join(inv_refs_to_delete)}`...")
             for ref in inv_refs_to_delete:
                 cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (ref,))
                 cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (ref,))
 
-            # 5. Insert the new records.
             st.write("Inserting new records...")
             new_df.to_sql(TABLE_NAME, conn, if_exists='append', index=False)
 
-            # 6. Insert the new container info.
             if manual_containers:
                 st.write("Saving container info...")
                 for container in manual_containers:
@@ -177,37 +159,35 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
                 conn.close()
 
         shutil.move(str(source_file_path), str(PROCESSED_DIRECTORY / source_file_path.name))
-        st.success("Amendment approved! All matching old data was replaced in the database.")
+        st.success("Amendment approved! Old data was replaced and the source file was processed.")
         st.rerun()
 
     if c2.button("❌ Reject Changes", use_container_width=True):
-        shutil.move(str(source_file_path), str(REJECTED_DIRECTORY / source_file_path.name))
-        st.warning("Amendment rejected. The new file has been moved to the 'rejected_invoices' folder.")
+        os.remove(source_file_path) # DELETES the file
+        st.warning("Amendment rejected. The source JSON file has been permanently deleted.")
         st.rerun()
 
 
 def handle_new_invoice(source_file_path, new_df, manual_containers):
-    """The UI for adding a new invoice, displaying container data read-only."""
+    """The UI for adding a new invoice, now with deletion for rejected files."""
     st.info(f"Now verifying new invoice: **{source_file_path.name}**")
     new_inv_ref = new_df['inv_ref'].iloc[0]
 
     st.dataframe(new_df)
-
     st.subheader("Containers / Trucks")
-    display_containers(manual_containers) # Display as colorful tags
+    display_containers(manual_containers)
 
     c1, c2, _ = st.columns([1, 1, 4])
     if c1.button("✅ Accept", use_container_width=True):
-        final_containers = manual_containers
         conn = None
         try:
             conn = sqlite3.connect(DATABASE_FILE)
             new_df.to_sql(TABLE_NAME, conn, if_exists='append', index=False)
 
-            if final_containers:
+            if manual_containers:
                 cursor = conn.cursor()
                 st.write("Saving container info...")
-                for container in final_containers:
+                for container in manual_containers:
                     cursor.execute(f"INSERT INTO {CONTAINER_TABLE_NAME} (inv_ref, container_description) VALUES (?, ?)",
                                    (new_inv_ref, container))
                 conn.commit()
@@ -219,8 +199,8 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         st.success(f"Invoice '{new_inv_ref}' was added."); st.rerun()
 
     if c2.button("❌ Reject", use_container_width=True):
-        shutil.move(str(source_file_path), str(REJECTED_DIRECTORY / source_file_path.name))
-        st.warning(f"Invoice '{new_inv_ref}' was rejected."); st.rerun()
+        os.remove(source_file_path) # DELETES the file
+        st.warning(f"Invoice '{new_inv_ref}' was rejected and the source file has been deleted."); st.rerun()
 
 # --- Main Application Logic ---
 setup_directories()
@@ -253,7 +233,9 @@ try:
 except Exception as e:
     st.error(f"Error processing file '{file_to_process.name}': {e}")
     st.exception(e)
-    if st.button("Move Corrupted File to Rejected"):
-        shutil.move(str(file_to_process), str(REJECTED_DIRECTORY / file_to_process.name))
+    # Changed button text and action to "Delete"
+    if st.button("🗑️ Delete Corrupted File"):
+        os.remove(file_to_process) # DELETES the file
+        st.warning(f"The corrupted file '{file_to_process.name}' has been deleted.")
         st.rerun()
     st.stop()
