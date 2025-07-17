@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 import shutil
 import json
+import time
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Add Invoice", layout="wide")
@@ -14,8 +15,8 @@ st.title("Add / Amend Invoice ➕")
 # --- Configuration ---
 DATA_ROOT = Path("data")
 JSON_DIRECTORY = DATA_ROOT / 'invoices_to_process'
-PROCESSED_DIRECTORY = DATA_ROOT / 'processed_invoices'
-# REJECTED_DIRECTORY is no longer needed as files will be deleted.
+# REMOVED: PROCESSED_DIRECTORY is no longer needed.
+FAILED_DIRECTORY = DATA_ROOT / 'failed_invoices'
 AMENDMENT_ARCHIVE_DIRECTORY = DATA_ROOT / 'amendment_archive'
 DB_DIRECTORY = DATA_ROOT / 'Invoice Record'
 DATABASE_FILE = DB_DIRECTORY / 'master_invoice_data.db'
@@ -30,8 +31,8 @@ FINAL_COLUMNS = [
 # --- Helper Functions ---
 def setup_directories():
     """Create all necessary directories if they don't exist."""
-    # REJECTED_DIRECTORY has been removed from this setup.
-    for directory in [JSON_DIRECTORY, PROCESSED_DIRECTORY, AMENDMENT_ARCHIVE_DIRECTORY, DB_DIRECTORY]:
+    # REMOVED: PROCESSED_DIRECTORY is no longer created.
+    for directory in [JSON_DIRECTORY, FAILED_DIRECTORY, AMENDMENT_ARCHIVE_DIRECTORY, DB_DIRECTORY]:
         directory.mkdir(exist_ok=True)
 
 def get_existing_invoice_data(inv_ref, inv_no):
@@ -158,8 +159,9 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
             if conn:
                 conn.close()
 
-        shutil.move(str(source_file_path), str(PROCESSED_DIRECTORY / source_file_path.name))
-        st.success("Amendment approved! Old data was replaced and the source file was processed.")
+        # MODIFIED: Changed from moving the file to deleting it.
+        os.remove(source_file_path)
+        st.success("Amendment approved! Old data was replaced and the source file has been deleted.")
         st.rerun()
 
     if c2.button("❌ Reject Changes", use_container_width=True):
@@ -194,9 +196,10 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         finally:
             if conn:
                 conn.close()
-
-        shutil.move(str(source_file_path), str(PROCESSED_DIRECTORY / source_file_path.name))
-        st.success(f"Invoice '{new_inv_ref}' was added."); st.rerun()
+        
+        # MODIFIED: Changed from moving the file to deleting it.
+        os.remove(source_file_path)
+        st.success(f"Invoice '{new_inv_ref}' was added and the source file has been deleted."); st.rerun()
 
     if c2.button("❌ Reject", use_container_width=True):
         os.remove(source_file_path) # DELETES the file
@@ -231,11 +234,24 @@ try:
         handle_new_invoice(file_to_process, new_invoice_df, manual_containers)
 
 except Exception as e:
-    st.error(f"Error processing file '{file_to_process.name}': {e}")
+    st.error("An Error Occurred While Processing a File", icon="🚨")
+    
+    st.subheader("Problematic File Name:")
+    st.code(file_to_process.name, language=None)
+
+    st.subheader("Error Details:")
     st.exception(e)
-    # Changed button text and action to "Delete"
-    if st.button("🗑️ Delete Corrupted File"):
-        os.remove(file_to_process) # DELETES the file
-        st.warning(f"The corrupted file '{file_to_process.name}' has been deleted.")
+
+    # Define the path for the failed file
+    failed_file_path = FAILED_DIRECTORY / file_to_process.name
+
+    st.warning(f"""
+    This file will be moved from the `invoices_to_process` folder to the `failed_invoices` folder.
+    """)
+
+    if st.button("Move File and Continue to Next Invoice ➡️", use_container_width=True, key="continue_after_error"):
+        shutil.move(str(file_to_process), str(failed_file_path))
+        st.success(f"File '{file_to_process.name}' moved successfully. Loading next file...")
+        time.sleep(2)
         st.rerun()
     st.stop()

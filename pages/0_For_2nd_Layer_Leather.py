@@ -295,11 +295,11 @@ if uploaded_file:
 
                 generated_files = sorted(list(temp_output_dir.glob(f"* {po_number}.xlsx")))
                 
-                if not generated_files:
+                if not generated_files and (not final_json_path or not final_json_path.exists()):
                     st.error("Processing succeeded, but no output files were found to package.")
                     st.stop()
 
-                st.info(f"Found {len(generated_files)} documents for PO **{po_number}** to be packaged.")
+                st.info(f"Found {len(generated_files)} documents and 1 data file for PO **{po_number}** to be packaged.")
                 
                 # --- Create ZIP in memory, not on disk ---
                 zip_filename = f"{po_number}.zip"
@@ -307,15 +307,22 @@ if uploaded_file:
 
                 with st.spinner("Creating ZIP archive in memory..."):
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                        # Add the generated Excel documents to the zip
                         for file_path in generated_files:
                             # Write the file from the temp directory into the in-memory zip
                             zipf.write(file_path, arcname=file_path.name)
+                        
+                        # --- MODIFICATION START ---
+                        # Add the data.json file to the zip
+                        if final_json_path and final_json_path.exists():
+                            zipf.write(final_json_path, arcname=final_json_path.name)
+                        # --- MODIFICATION END ---
                 
                 # Prepare the in-memory buffer for reading
                 zip_buffer.seek(0)
                 
                 st.download_button(
-                    label=f"Download Documents (.zip)",
+                    label=f"Download All Documents and Data (.zip)",
                     data=zip_buffer,  # Use the in-memory buffer as the data source
                     file_name=zip_filename,
                     mime="application/zip",
@@ -338,6 +345,11 @@ if uploaded_file:
                     # Clean up the temporary directory containing the generated Excel files
                     temp_output_dir_obj.cleanup()
                     st.write(f"- Removed temporary document output directory.")
+                    
+                    # NOTE: The final_json_path is intentionally NOT deleted here
+                    # because it is part of the persistent data flow.
+                    # It resides in `data/invoices_to_process` and should be managed separately.
+                    
                     st.success("Cleanup complete!")
                 except Exception as e:
                     st.warning(f"An error occurred during file cleanup: {e}")
