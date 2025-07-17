@@ -1,144 +1,245 @@
-# Invoice Generation Automation
+# Invoice Management System
 
-## 1. Overview
+A comprehensive business automation platform for leather industry invoice processing, featuring automated Excel-to-invoice generation, web-based management interface, and complete invoice lifecycle management.
 
-This project automates the process of generating customized commercial invoices, packing lists, and contracts from a single source Excel file. It is designed to handle complex data layouts with multiple tables, perform calculations and data distribution, and apply specific formatting based on templates and configuration files.
+## 🎯 Overview
 
-The automation is a two-step process:
+This system provides end-to-end invoice management capabilities:
 
-1. **JSON Creation:** It first reads the input Excel file, parses the data according to predefined rules, performs calculations (like CBM distribution), and aggregates the data. The result is a structured JSON file.
+- **Automated Invoice Generation**: Convert Excel files to professional invoices using customizable templates
+- **Web Dashboard**: Streamlit-based interface for invoice management and analytics
+- **Database Management**: SQLite-powered storage with full CRUD operations
+- **Multi-format Support**: Generate Normal, FOB, and Custom invoice variants
+- **Data Validation**: Built-in verification workflows to ensure data integrity
 
-2. **Invoice Generation:** It then uses the generated JSON data along with an Excel template to populate the final invoice document. It supports generating multiple versions of the invoice (e.g., Normal, FOB, Custom) from the same data.
+## 🏗️ System Architecture
 
-## 2. Project Structure
-
-For the automation to work correctly, your files must be organized in the following structure:
+### Core Components
 
 ```
-.
-├── create_json/
-│   ├── config.py               # Main configuration for data parsing
-│   ├── data_processor.py       # Handles data calculations and aggregation
-│   ├── excel_handler.py        # Utility for handling Excel files
-│   ├── handle_json.py          # Utility for handling JSON files
-│   ├── main.py                 # Main script for the JSON creation process
-│   └── sheet_parser.py         # Parses the structure of the input Excel sheet
+├── 📊 Web Interface (Streamlit)
+│   ├── app.py                    # Main dashboard with KPIs and analytics
+│   └── pages/                    # Feature-specific pages
 │
-├── invoice_gen/
-│   ├── config/
-│   │   ├── JF_config.json      # Example: Config for templates prefixed with "JF"
-│   │   └── MOTO_config.json    # Example: Config for templates prefixed with "MOTO"
-│   ├── TEMPLATE/
-│   │   ├── JF.xlsx             # Example: Template for "JF" invoices
-│   │   └── MOTO.xlsx           # Example: Template for "MOTO" invoices
-│   ├── generate_invoice.py     # Main script for invoice generation
-│   ├── invoice_utils.py        # Utility functions for invoice generation
-│   ├── merge_utils.py          # Utility for handling merged cells in Excel
-│   └── text_replace_utils.py   # Utility for find-and-replace operations
+├── 🔄 Automation Pipeline
+│   ├── main.py                   # Master automation orchestrator
+│   ├── create_json/              # Excel → JSON conversion
+│   └── invoice_gen/              # JSON → Invoice generation
 │
-├── data/                         # Output folder for intermediate JSON files
-├── result/                       # Output folder for final Excel invoices
-├── run_automation.py             # The main script to run the entire process
-└── requirement.bat               # Script to install required libraries
+├── 💾 Data Management
+│   └── data/                     # All data storage
+│       ├── invoices_to_process/  # Incoming JSON files
+│       ├── Invoice Record/       # SQLite database
+│       ├── processed_invoices/   # Completed invoices
+│       ├── failed_invoices/      # Error handling
+│       └── backups/              # Database backups
+│
+└── 📄 Templates & Configuration
+    └── invoice_gen/
+        ├── TEMPLATE/             # Excel invoice templates
+        └── config/               # Template configurations
 ```
 
-## 3. Setup
+## 🚀 Quick Start
 
-### Step 1: Install Required Libraries
-
-Before running the automation for the first time, you need to install the necessary Python libraries.
-
-Simply run the `requirement.bat` file included in the project. It will execute the following commands:
-
-```
-pip install openpyxl
-pip install python-dateutil
-```
-
-### Step 2: Configuration
-
-The automation is highly configurable.
-
-#### **`create_json/config.py`**
-
-This is the primary configuration file for data extraction and processing.
-
-* `TARGET_HEADERS_MAP`: This is the most critical part. You must map the column headers from your source Excel file to the script's internal "canonical" names. The script can recognize multiple variations (including in different languages) for each header.
-
-* `COLUMNS_TO_DISTRIBUTE`: Specify which columns (like 'net' and 'gross' weight) should have their values distributed across empty rows based on a basis column.
-
-* `DISTRIBUTION_BASIS_COLUMN`: Defines the column (e.g., 'pcs') used as the basis for the distribution calculation.
-
-* `CUSTOM_AGGREGATION_WORKBOOK_PREFIXES`: A list of prefixes (e.g., "JF", "MOTO"). If an input Excel file's name starts with one of these prefixes, it will use a "custom" aggregation logic.
-
-#### **`invoice_gen/TEMPLATE/`**
-
-Place your master Excel templates in this directory. The filename of the template (e.g., `JF.xlsx`) is important, as it's used to find the corresponding configuration.
-
-#### **`invoice_gen/config/`**
-
-This directory holds JSON configuration files that control the layout and styling of the final generated invoice.
-
-* The name of the config file must match the prefix of the template it corresponds to (e.g., `JF_config.json` is used for the `JF.xlsx` template).
-
-* These files define where data is placed, how headers and footers are written, column widths, font styles, and cell merging rules.
-
-## 4. How to Run the Automation
-
-The entire process is started by running the `run_automation.py` script from your terminal from the root directory.
-
-### **Option 1: Interactive Mode (Recommended)**
-
-If you run the script without any arguments, a file selection dialog will open, allowing you to choose the input Excel file.
+### Prerequisites
 
 ```bash
-python run_automation.py
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-By default, this will generate three versions of the invoice: **Normal**, **FOB**, and **Custom**.
+**Required packages:**
+- `streamlit` - Web interface
+- `pandas` - Data processing
+- `openpyxl` - Excel file handling
+- `sqlite3` - Database (built-in)
+- `python-dateutil` - Date processing
 
-### **Option 2: Command-Line Mode**
+### Launch the Application
 
-You can specify the input file and limit the output versions using command-line arguments.
+```bash
+# Start the web interface
+streamlit run app.py
+```
 
-* `-i` or `--input`: Specify the path to the input Excel file.
+The dashboard will open at `http://localhost:8501`
 
-* `--fob`: Use this flag to generate *only* the FOB version of the invoice.
+## 📋 Features
 
-* `--custom`: Use this flag to generate *only* the Custom version of the invoice.
+### 🖥️ Web Interface Features
 
-**Examples:**
+| Page | Function | Description |
+|------|----------|-------------|
+| **Dashboard** | Analytics & KPIs | Revenue tracking, invoice metrics, visual analytics |
+| **High Quality Leather** | Data Entry | Specialized form for premium leather products |
+| **2nd Layer Leather** | Data Entry | Form for secondary leather products |
+| **Verify Data** | Quality Control | Review and approve incoming invoice data |
+| **Edit Invoice** | Data Management | Modify existing invoices with undo/redo |
+| **View Database** | Data Explorer | Advanced filtering and search capabilities |
+| **Reference Numbers** | Lookup | Quick reference number verification |
+| **Void Invoice** | Status Management | Deactivate invoices (soft delete) |
+| **Backup Database** | Data Protection | Create and manage database backups |
+| **Export Data** | Reporting | Export filtered data to various formats |
+| **Pallet Calculator** | Utility | Calculate shipping pallet requirements |
 
-* To process a specific file and generate all invoice versions:
+### 🤖 Automation Features
 
-  ```bash
-  python run_automation.py -i "path/to/your/JF12345.xlsx"
-  ```
+- **Batch Processing**: Process multiple Excel files automatically
+- **Template System**: Configurable invoice layouts per client/product type
+- **Multi-variant Generation**: Create Normal, FOB, and Custom versions simultaneously
+- **Error Handling**: Automatic failure detection and quarantine
+- **Data Validation**: Built-in checks for data integrity
 
-* To process a file and generate *only* the FOB version:
+## 🔧 Configuration
 
-  ```bash
-  python run_automation.py -i "path/to/your/JF12345.xlsx" --fob
-  ```
+### Invoice Templates
 
-## 5. Output
+Templates are stored in `invoice_gen/TEMPLATE/` and named by prefix:
+- `JF.xlsx` - For files starting with "JF"
+- `MOTO.xlsx` - For files starting with "MOTO"
 
-The script generates two sets of outputs in the project's root directory:
+### Template Configuration
 
-1. **Intermediate JSON Data (`/data/`)**: A `data` folder will be created. It contains the structured JSON file generated from the source Excel (e.g., `JF12345.json`). This file is used as the input for the final invoice generation step and is useful for debugging.
+Each template requires a corresponding config file in `invoice_gen/config/`:
+- `JF_config.json` - Layout rules for JF template
+- `MOTO_config.json` - Layout rules for MOTO template
 
-2. **Final Invoices (`/result/<identifier>/`)**: A `result` folder is created. Inside it, a subfolder named after the input file's identifier (e.g., `JF12345`) will contain the final Excel invoices.
+### Data Processing Rules
 
-   * `CT&INV&PL JF12345 NORMAL.xlsx`
+Configure data extraction in `create_json/config.py`:
+- **Header Mapping**: Map Excel columns to system fields
+- **Distribution Logic**: Define how values spread across rows
+- **Aggregation Rules**: Custom calculations per client type
 
-   * `CT&INV&PL JF12345 FOB.xlsx`
+## 📊 Usage Examples
 
-   * `CT&INV&PL JF12345 CUSTOM.xlsx`
+### Automated Invoice Generation
 
-## 6. Important Notes
+```bash
+# Interactive mode (file picker)
+python main.py
 
-* **Logging**: The script produces detailed logs in the terminal. If something goes wrong, the log messages are the first place to look for errors.
+# Command line with specific file
+python main.py -i "path/to/JF12345.xlsx"
 
-* **File Naming**: The automation relies heavily on file naming conventions. Ensure your template and config files are named correctly according to their corresponding prefixes.
+# Generate only FOB version
+python main.py -i "path/to/JF12345.xlsx" --fob
 
-* **Excel Headers**: If the script fails to extract data, the most likely cause is a mismatch between the headers in your Excel file and the variations defined in the `TARGET_HEADERS_MAP` within `create_json/config.py`.
+# Generate only Custom version
+python main.py -i "path/to/JF12345.xlsx" --custom
+```
+
+### Web Interface Workflow
+
+1. **Upload Data**: Use specialized forms or place JSON files in `data/invoices_to_process/`
+2. **Verify**: Review incoming data in "Verify Data To Insert" page
+3. **Process**: Accept or reject data with built-in validation
+4. **Manage**: Edit, view, or void invoices as needed
+5. **Export**: Generate reports and backups
+
+## 📁 Data Flow
+
+```
+Excel File → JSON Conversion → Invoice Generation → Database Storage
+     ↓              ↓                    ↓                    ↓
+  Raw Data    Structured Data      Final Output        Persistent Store
+```
+
+### File Processing States
+
+- **Incoming**: `data/invoices_to_process/` - Awaiting verification
+- **Failed**: `data/failed_invoices/` - Processing errors
+- **Processed**: Database storage - Successfully imported
+- **Generated**: `result/` - Final invoice files
+
+## 🛡️ Data Management
+
+### Database Schema
+
+**Main Tables:**
+- `invoices` - Core invoice line items
+- `invoice_containers` - Shipping container/truck information
+
+**Key Fields:**
+- `inv_ref` - Primary invoice reference
+- `inv_no` - Invoice number
+- `status` - active/voided
+- `creating_date` - Timestamp
+- `amount`, `sqft`, `pcs` - Quantities
+- `net`, `gross`, `cbm` - Shipping metrics
+
+### Backup & Recovery
+
+- **Automatic Backups**: Available through web interface
+- **Export Options**: CSV, Excel, JSON formats
+- **Data Integrity**: Transaction-based updates
+- **Soft Deletes**: Voided invoices retained for audit
+
+## 🎨 Customization
+
+### Adding New Templates
+
+1. Create Excel template in `invoice_gen/TEMPLATE/`
+2. Add corresponding config JSON in `invoice_gen/config/`
+3. Update `create_json/config.py` for data mapping
+4. Test with sample data
+
+### Extending Web Interface
+
+- Add new pages in `pages/` directory
+- Follow naming convention: `N_Page_Name.py`
+- Use existing database connection patterns
+- Implement consistent UI styling
+
+## 🔍 Troubleshooting
+
+### Common Issues
+
+**Excel Processing Fails**
+- Check header mapping in `create_json/config.py`
+- Verify Excel file format and structure
+- Review error logs in failed_invoices folder
+
+**Template Not Found**
+- Ensure template filename matches prefix
+- Verify config file exists with correct naming
+- Check file permissions
+
+**Database Errors**
+- Verify SQLite file permissions
+- Check disk space availability
+- Review data types and constraints
+
+### Logging
+
+All operations are logged with timestamps. Check console output for detailed error information during processing.
+
+## 📈 Analytics & Reporting
+
+The dashboard provides:
+- **Revenue Tracking**: Total amounts by time period
+- **Volume Metrics**: Square footage and piece counts
+- **Product Analysis**: Top-performing items
+- **Trend Visualization**: Monthly/quarterly patterns
+- **Export Capabilities**: Filtered data extraction
+
+## 🔒 Security Notes
+
+- Database files stored locally
+- No external network dependencies
+- Sensitive operations require confirmation
+- Audit trail maintained for all changes
+- Backup functionality for data protection
+
+## 📞 Support
+
+For issues or enhancements:
+1. Check troubleshooting section
+2. Review error logs
+3. Verify configuration files
+4. Test with sample data
+
+---
+
+*Built for efficient leather industry invoice management with focus on automation, accuracy, and user experience.*
