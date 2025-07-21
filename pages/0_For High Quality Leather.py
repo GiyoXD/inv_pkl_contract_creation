@@ -11,7 +11,7 @@ import json
 import datetime
 import sqlite3
 import time
-import tempfile # --- MODIFICATION: Added for temporary file handling
+import tempfile
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
@@ -44,21 +44,15 @@ except (ImportError, IndexError) as e:
 DATA_DIR = PROJECT_ROOT / "data"
 JSON_OUTPUT_DIR = DATA_DIR / "invoices_to_process"
 TEMP_UPLOAD_DIR = DATA_DIR / "temp_uploads"
-# --- MODIFICATION START: Remove RESULT_DIR as it's no longer needed ---
-# RESULT_DIR = PROJECT_ROOT / "result"
-# --- MODIFICATION END ---
 TEMPLATE_DIR = INVOICE_GEN_DIR / "TEMPLATE"
 DATA_DIRECTORY = DATA_DIR / 'Invoice Record'
 DATABASE_FILE = DATA_DIRECTORY / 'master_invoice_data.db'
 TABLE_NAME = 'invoices'
 CONTAINER_TABLE_NAME = 'invoice_containers'
 
-# --- MODIFICATION START: Keep the result directory out of creation ---
 for dir_path in [JSON_OUTPUT_DIR, TEMP_UPLOAD_DIR, DATA_DIRECTORY]:
     dir_path.mkdir(parents=True, exist_ok=True)
-# --- MODIFICATION END ---
 
-# --- MODIFICATION START: Generalize cleanup and apply to JSON dir as well ---
 def cleanup_old_files(directories: list, max_age_seconds: int = 3600):
     """
     Deletes files older than a specified age in a list of directories.
@@ -80,7 +74,6 @@ def cleanup_old_files(directories: list, max_age_seconds: int = 3600):
 
 # Run the cleanup function at the start of the script for all transient data
 cleanup_old_files([TEMP_UPLOAD_DIR, JSON_OUTPUT_DIR])
-# --- MODIFICATION END ---
 
 
 # --- Helper and Validation Functions ---
@@ -271,7 +264,6 @@ if st.session_state.get('validation_done'):
             if not gen_combine: modes_to_run = [m for m in modes_to_run if m[0] != 'combine']
 
             success_count = 0
-            # --- MODIFICATION START: Use a temporary directory for output files ---
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_dir_path = Path(temp_dir)
                 for mode_name, mode_flags in modes_to_run:
@@ -281,20 +273,25 @@ if st.session_state.get('validation_done'):
                         final_mode_name = f"{term_part}COMBINE"
                     
                     output_filename = f"CT&INV&PL {identifier} {final_mode_name}.xlsx"
-                    # Generate the file inside the temporary directory
                     output_path = temp_dir_path / output_filename
                     
                     command = [sys.executable, str(INVOICE_GEN_SCRIPT), str(json_path), "--output", str(output_path), "--templatedir", str(TEMPLATE_DIR), "--configdir", str(INVOICE_GEN_DIR / "config")] + mode_flags
+                    
+                    # --- FIX STARTS HERE ---
+                    # Get the current environment and force UTF-8 for the subprocess
+                    sub_env = os.environ.copy()
+                    sub_env['PYTHONIOENCODING'] = 'utf-8'
+
                     try:
-                        subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace')
+                        # Add the env=sub_env argument to the subprocess call
+                        subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace', env=sub_env)
                         # Read the generated file's bytes from the temp dir into memory
                         files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
                         success_count += 1
                     except subprocess.CalledProcessError as e:
                         st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
-            # The temporary directory and its contents are automatically deleted here
-            # --- MODIFICATION END ---
-            
+                    # --- FIX ENDS HERE ---
+
             if success_count > 0:
                 st.success(f"Successfully created {success_count} invoice file(s)!")
                 zip_buffer = io.BytesIO()

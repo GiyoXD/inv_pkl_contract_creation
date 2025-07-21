@@ -19,6 +19,7 @@ import shutil
 import openpyxl
 import traceback
 import sys
+import time # Added for timing operations
 from pathlib import Path
 from typing import Optional, Dict, Any, Union, List, Tuple
 import ast # <-- Add import for literal_eval
@@ -575,6 +576,9 @@ def process_single_table_sheet(
 
 def main():
     """Main function to orchestrate invoice generation."""
+    # Start timing the invoice generation process
+    start_time = time.time()
+    
     parser = argparse.ArgumentParser(description="Generate Invoice from Template and Data using configuration files.")
     parser.add_argument("input_data_file", help="Path to the input data file (.json or .pkl). Filename base determines template/config.")
     parser.add_argument("-o", "--output", default="result.xlsx", help="Path for the output Excel file (default: result.xlsx)")
@@ -585,6 +589,7 @@ def main():
     args = parser.parse_args()
 
     print("--- Starting Invoice Generation ---")
+    print(f"🕒 Started at: {time.strftime('%H:%M:%S', time.localtime(start_time))}")
     print(f"Input Data: {args.input_data_file}"); print(f"Template Dir: {args.templatedir}"); print(f"Config Dir: {args.configdir}"); print(f"Output File: {args.output}")
 
     print("\n1. Deriving file paths..."); paths = derive_paths(args.input_data_file, args.templatedir, args.configdir)
@@ -978,7 +983,15 @@ def main():
             try: workbook.close(); print("Workbook closed.")
             except Exception: pass
 
+    # Calculate and log total processing time
+    total_time = time.time() - start_time
+    input_file_name = Path(args.input_data_file).name if args.input_data_file else "Unknown"
+    output_file_name = Path(args.output).name if args.output else "Unknown"
+    
     print("\n--- Invoice Generation Finished ---")
+    print(f"🕒 INVOICE GENERATION TIME: {total_time:.2f} seconds ({total_time/60:.1f} minutes)")
+    print(f"📄 Input: {input_file_name} → Output: {output_file_name}")
+    print(f"🏁 Completed at: {time.strftime('%H:%M:%S', time.localtime())}")
 
 # --- Run Main ---
 if __name__ == "__main__":

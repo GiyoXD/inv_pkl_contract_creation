@@ -46,6 +46,11 @@ class ExcelHandler:
                 logging.info(f"No sheet name specified. Successfully loaded active sheet: '{self.sheet.title}'")
 
             logging.info(f"Sheet dimensions: Max Row={self.sheet.max_row}, Max Col={self.sheet.max_column}")
+            
+            # Add diagnostic info for MOTO files
+            if "MOTO" in str(self.file_path):
+                logging.warning(f"MOTO FILE DETECTED - Large max_row might cause performance issues: {self.sheet.max_row}")
+            
             return self.sheet
         except FileNotFoundError: # Already handled in __init__, but belt-and-suspenders
              logging.error(f"File not found exception during load: {self.file_path}")

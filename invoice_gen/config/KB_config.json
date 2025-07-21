@@ -7,7 +7,7 @@
   },
   "data_mapping": {
     "Invoice": {
-      "start_row": 21,
+      "start_row": 20,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
         "2": "HS CODE: 4202.92.00"
@@ -177,7 +177,7 @@
       }
     },
     "Packing list": {
-      "start_row": 21,
+      "start_row": 19,
       "add_blank_before_footer": true,
       "static_content_before_footer": {
         "2": "LEATHER (HS.CODE: 4107.12.00)"

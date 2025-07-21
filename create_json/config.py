@@ -137,7 +137,7 @@ DISTRIBUTION_BASIS_COLUMN = "pcs"
 # Custom aggregation sums 'sqft' and 'amount' based ONLY on 'po' and 'item'.
 # Standard aggregation sums 'sqft' based on 'po', 'item', and 'unit'.
 # Example: If INPUT_EXCEL_FILE is "JF_Report_Q1.xlsx", it will match "JF".
-CUSTOM_AGGREGATION_WORKBOOK_PREFIXES = ("JF", "MOTO") # Renamed Variable
+CUSTOM_AGGREGATION_WORKBOOK_PREFIXES = () # Renamed Variable
 
 
 # --- END OF FULL FILE: config.py ---

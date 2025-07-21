@@ -78,15 +78,40 @@ def derive_paths(input_data_path_str: str, template_dir_str: str, config_dir_str
     print(f"Deriving paths from input: {input_data_path_str}")
     try:
         input_data_path, template_dir, config_dir = Path(input_data_path_str).resolve(), Path(template_dir_str).resolve(), Path(config_dir_str).resolve()
+        
+        # --- START OF DEBUG BLOCK 1 ---
+        print("\n--- WEB APP PATH DIAGNOSTICS ---")
+        print(f"DEBUG: Input data file path resolves to: {input_data_path}")
+        print(f"DEBUG: Template directory resolves to: {template_dir}")
+        print(f"DEBUG: Config directory resolves to: {config_dir}")
+        print(f"DEBUG: Checking initial existence...")
+        print(f"DEBUG:   Input exists? -> {input_data_path.exists()}")
+        print(f"DEBUG:   Template dir exists? -> {template_dir.exists()}")
+        print(f"DEBUG:   Config dir exists? -> {config_dir.exists()}")
+        print("--- END OF DEBUG BLOCK 1 ---\n")
+        # --- END OF DEBUG BLOCK 1 ---
+
         if not all([p.exists() for p in [input_data_path, template_dir, config_dir]]):
             print("Error: One or more paths (input file, template dir, config dir) not found.")
             return None
+        
         template_name_part = re.sub(r'(_data|_input|_pkl)$', '', input_data_path.stem, flags=re.IGNORECASE)
         print(f"Derived template name part: '{template_name_part}'")
         
         for prefix in [template_name_part, (re.match(r'^([a-zA-Z]+)', template_name_part) or [''])[0]]:
             if not prefix: continue
             template_path, config_path = template_dir / f"{prefix}.xlsx", config_dir / f"{prefix}_config.json"
+            
+            # --- START OF DEBUG BLOCK 2 ---
+            print("-" * 20)
+            print(f"DEBUG: Attempting with prefix: '{prefix}'")
+            print(f"DEBUG: Checking for template -> {template_path.resolve()}")
+            print(f"DEBUG: Template exists? -> {template_path.is_file()}")
+            print(f"DEBUG: Checking for config -> {config_path.resolve()}")
+            print(f"DEBUG: Config exists? -> {config_path.is_file()}")
+            print("-" * 20)
+            # --- END OF DEBUG BLOCK 2 ---
+
             if template_path.is_file() and config_path.is_file():
                 print(f"Found match for template and config using prefix: '{prefix}'")
                 return {"data": input_data_path, "template": template_path, "config": config_path}

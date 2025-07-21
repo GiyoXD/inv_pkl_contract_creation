@@ -277,16 +277,20 @@ def _apply_cell_style(cell, column_id: Optional[str], sheet_styling_config: Opti
             
         # --- Apply Number Format ---
         number_format = col_specific_style.get("number_format")
-        if number_format and cell.number_format != FORMAT_TEXT and not fob_mode:
-            cell.number_format = number_format
-        elif number_format and cell.number_format != FORMAT_TEXT and fob_mode:
-            if column_id != 'col_pcs':
+        
+        # PCS always uses config format, never forced format
+        if column_id in ['col_pcs', 'col_qty_pcs']:
+            if number_format and cell.number_format != FORMAT_TEXT:
+                cell.number_format = number_format
+        else:
+            # Non-PCS columns follow FOB mode logic
+            if number_format and cell.number_format != FORMAT_TEXT and not fob_mode:
+                cell.number_format = number_format
+            elif number_format and cell.number_format != FORMAT_TEXT and fob_mode:
                 cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
-            else:
-                cell.number_format = FORMAT_NUMBER_COMMA
-        elif cell.number_format != FORMAT_TEXT and (cell.number_format == FORMAT_GENERAL or cell.number_format is None):
-            if isinstance(cell.value, float): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
-            elif isinstance(cell.value, int): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED1
+            elif cell.number_format != FORMAT_TEXT and (cell.number_format == FORMAT_GENERAL or cell.number_format is None):
+                if isinstance(cell.value, float): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
+                elif isinstance(cell.value, int): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED1
 
     except Exception as style_err:
         print(f"Error applying cell style for ID {column_id}: {style_err}")
@@ -1414,7 +1418,7 @@ def write_footer_row(
                     
                     # Apply Number Formatting from Config if fob
                     number_format_str = number_format_config.get(col_id)
-                    if number_format_str and fob_mode:
+                    if number_format_str and fob_mode and col_id not in ['col_pcs', 'col_qty_pcs']:
                         cell.number_format = "##,00.00"
                     elif number_format_str:
                         cell.number_format = number_format_str["number_format"]

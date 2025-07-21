@@ -11,6 +11,7 @@ import datetime # <<< ADDED IMPORT for datetime handling
 import argparse # <<< ADDED IMPORT for argument parsing
 from pathlib import Path # <<< ADDED IMPORT for pathlib
 from typing import Dict, List, Any, Optional, Tuple, Union
+import time # Added for timing operations
 
 # Import from our refactored modules
 try:
@@ -366,7 +367,10 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
        Uses input_excel_override if provided, otherwise falls back to cfg.INPUT_EXCEL_FILE.
        Saves output JSON to output_dir_override if provided, otherwise uses CWD.
     """
+    # Start timing the entire process
+    start_time = time.time()
     logging.info("--- Starting Invoice Automation ---")
+    
     handler = None
     actual_sheet_name = None
     input_filename = "Unknown"
@@ -714,11 +718,24 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
         # --- End JSON Generation ---
 
 
+        # Calculate and log total processing time
+        total_time = time.time() - start_time
         logging.info("--- Invoice Automation Finished Successfully ---")
+        logging.info(f"🕒 TOTAL PROCESSING TIME: {total_time:.2f} seconds ({total_time/60:.1f} minutes)")
+        logging.info(f"📁 Processed file: {input_filename}")
 
-    except FileNotFoundError as e: logging.error(f"Input file error: {e}")
-    except RuntimeError as e: logging.error(f"Processing halted due to critical error: {e}")
-    except Exception as e: logging.error(f"An unexpected error occurred in the main script execution: {e}", exc_info=True)
+    except FileNotFoundError as e: 
+        total_time = time.time() - start_time
+        logging.error(f"Input file error: {e}")
+        logging.info(f"🕒 Processing failed after {total_time:.2f} seconds")
+    except RuntimeError as e: 
+        total_time = time.time() - start_time
+        logging.error(f"Processing halted due to critical error: {e}")
+        logging.info(f"🕒 Processing failed after {total_time:.2f} seconds")
+    except Exception as e: 
+        total_time = time.time() - start_time
+        logging.error(f"An unexpected error occurred in the main script execution: {e}", exc_info=True)
+        logging.info(f"🕒 Processing failed after {total_time:.2f} seconds")
     finally:
         if handler:
             handler.close()

@@ -81,7 +81,7 @@ st.write("To prevent accidental deletion, please enter the special database rese
 
 # This password should be different from your main login password for added security.
 # IMPORTANT: For a real application, use st.secrets for this password!
-NUKE_PASSWORD = "nuke_it_all_2025" 
+NUKE_PASSWORD = "hengh428" 
 
 password_input = st.text_input("Enter Reset Password:", type="password", key="nuke_password")
 

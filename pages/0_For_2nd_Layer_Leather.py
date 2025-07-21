@@ -35,7 +35,7 @@ def initialize_database(db_file: Path):
             """)
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS invoice_containers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 inv_ref TEXT NOT NULL,
                 container_description TEXT NOT NULL,
                 FOREIGN KEY (inv_ref) REFERENCES invoices (inv_ref)
