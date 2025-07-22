@@ -124,7 +124,7 @@
       },
       "footer_configurations": {
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
-        "total_text": "TOTAL:",
+        "total_text": "TOTAL OF:",
         "total_text_column_id": "col_po",
         "pallet_count_column_id": "col_item",
         "sum_column_ids": [
@@ -170,6 +170,10 @@
           }
         },
         "merge_rules": [
+          {
+            "start_column_id": "col_static_1",
+            "colspan": 2
+          },
           {
             "start_column_id": "col_po",
             "colspan": 1
@@ -308,7 +312,7 @@
       },
       "footer_configurations": {
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
-        "total_text": "TOTAL:",
+        "total_text": "TOTAL OF:",
         "total_text_column_id": "col_no",
         "sum_column_ids": [
           "col_qty_pcs",
@@ -444,7 +448,7 @@
           "row": 0,
           "col": 1,
           "text": "HS CODE",
-          "id": "col_static_1",
+          "id": "col_hs",
           "rowspan": 2
         },
         {
@@ -526,6 +530,10 @@
             "id": "col_desc",
             "fallback_on_none": "LEATHER"
           },
+          "hs_code": {
+            "id": "col_hs",
+            "fallback_on_none": "4107.12.00"
+          },
           "pcs": {
             "id": "col_qty_pcs"
           },
@@ -545,9 +553,9 @@
       },
       "footer_configurations": {
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
-        "total_text": "TOTAL:",
+        "total_text": "TOTAL OF:",
         "total_text_column_id": "col_static",
-        "pallet_count_column_id": "col_static_1",
+        "pallet_count_column_id": "col_hs",
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",
@@ -593,10 +601,6 @@
           {
             "start_column_id": "col_po",
             "colspan": 1
-          },
-          {
-            "start_column_id": "col_static_1",
-            "colspan": 2
           }
         ]
       },

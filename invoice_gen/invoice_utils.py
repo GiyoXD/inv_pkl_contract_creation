@@ -1884,6 +1884,16 @@ def fill_invoice_data(
                     col_id_to_merge=pallet_col_id,
                     column_id_map=col_id_map
                 )
+        if data_start_row > 0 and data_end_row > data_start_row:
+            pallet_col_id = "col_hs" 
+            if col_id_map.get(pallet_col_id):
+                merge_contiguous_cells_by_id(
+                    worksheet=worksheet,
+                    start_row=data_start_row,
+                    end_row=data_end_row,
+                    col_id_to_merge=pallet_col_id,
+                    column_id_map=col_id_map
+                )
 
 # --- Fill Row Before Footer ---
         if add_blank_before_footer and row_before_footer_idx > 0:
