@@ -300,7 +300,7 @@ with tab1:
                         data = json.load(f); was_modified = False
                         
                         # **MODIFICATION START**
-                        # Get current time in Cambodia for the creation date
+                        # Only set creating_date if it doesn't exist (preserve original creation time)
                         cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
                         creating_date_str = datetime.datetime.now(cambodia_tz).strftime("%Y-%m-%d %H:%M:%S")
                         
@@ -309,8 +309,9 @@ with tab1:
                                 num_rows = len(table_data.get('amount', []))
                                 if num_rows == 0: continue
                                 
-                                # Add the creation date to the data
-                                table_data['creating_date'] = [creating_date_str] * num_rows; was_modified = True
+                                # Only add creating_date if it doesn't already exist
+                                if 'creating_date' not in table_data or not table_data['creating_date']:
+                                    table_data['creating_date'] = [creating_date_str] * num_rows; was_modified = True
                                 # **MODIFICATION END**
                                 
                                 if user_inv_no: table_data['inv_no'] = [user_inv_no.strip()] * num_rows; was_modified = True

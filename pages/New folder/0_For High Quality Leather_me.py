@@ -310,7 +310,7 @@ if st.session_state.get('validation_done'):
                     with open(json_path, 'r+', encoding='utf-8') as f:
                         data = json.load(f); was_modified = False
                         
-                        # Get current time in Cambodia timezone for the creation date
+                        # Only set creating_date if it doesn't exist (preserve original creation time)
                         cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
                         creating_date_str = datetime.datetime.now(cambodia_tz).strftime("%Y-%m-%d %H:%M:%S")
                         
@@ -319,8 +319,9 @@ if st.session_state.get('validation_done'):
                                 if 'amount' not in table_data or not isinstance(table_data['amount'], list): continue
                                 num_rows = len(table_data['amount'])
                                 
-                                # Add the creation date using Cambodia timezone
-                                table_data['creating_date'] = [creating_date_str] * num_rows; was_modified = True
+                                # Only add creating_date if it doesn't already exist
+                                if 'creating_date' not in table_data or not table_data['creating_date']:
+                                    table_data['creating_date'] = [creating_date_str] * num_rows; was_modified = True
                                 
                                 if user_inv_no: table_data['inv_no'] = [user_inv_no.strip()] * num_rows; was_modified = True
                                 if final_user_inv_ref: table_data['inv_ref'] = [final_user_inv_ref.strip()] * num_rows; was_modified = True
