@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import math
 import io
 import csv
+from zoneinfo import ZoneInfo
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Invoice Management Suite", layout="wide")
@@ -162,7 +163,9 @@ with tab1:
         f_col1.text_input("Filter by Invoice Ref:", key='summary_ref_filter')
         f_col2.text_input("Filter by Invoice No:", key='summary_no_filter')
 
-        today_date_summary = datetime.now().date()
+        # Use Cambodia timezone for today's date
+        cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+        today_date_summary = datetime.now(cambodia_tz).date()
         st.date_input("Filter by Creation Date Range:", value=st.session_state.get('summary_date_range'), key='summary_date_range')
         st.button("Reset Summary Filters", on_click=reset_summary_filters_and_page, use_container_width=True, key="reset_summary")
 

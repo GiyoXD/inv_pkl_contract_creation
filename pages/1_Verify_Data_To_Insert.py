@@ -7,6 +7,7 @@ from datetime import datetime
 import shutil
 import json
 import time
+from zoneinfo import ZoneInfo
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Add Invoice", layout="wide")
@@ -73,7 +74,9 @@ def process_json_file(file_path):
         container_str = df['container_type'].dropna().astype(str).unique()
         if len(container_str) > 0:
             manual_containers = [c.strip() for c in container_str[0].split(',') if c.strip()]
-    df['creating_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Use Cambodia timezone for creating_date
+    cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+    df['creating_date'] = datetime.now(cambodia_tz).strftime('%Y-%m-%d %H:%M:%S')
     df['status'] = 'active'
     for col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='ignore')

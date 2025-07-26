@@ -3,6 +3,7 @@ import os
 import shutil
 from datetime import datetime
 import sqlite3
+from zoneinfo import ZoneInfo
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Database Admin", layout="wide")
@@ -28,7 +29,9 @@ def create_backup():
         st.error("Database file not found. Cannot perform backup.")
         return
     os.makedirs(BACKUP_DIRECTORY, exist_ok=True)
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    # Use Cambodia timezone for backup timestamp
+    cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+    timestamp = datetime.now(cambodia_tz).strftime('%Y-%m-%d_%H-%M-%S')
     backup_file_name = f"master_invoice_data_{timestamp}.db"
     backup_file_path = os.path.join(BACKUP_DIRECTORY, backup_file_name)
     try:

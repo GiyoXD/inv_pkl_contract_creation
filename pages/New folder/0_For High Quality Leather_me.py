@@ -12,6 +12,7 @@ import datetime
 import sqlite3
 import time
 import tempfile
+from zoneinfo import ZoneInfo
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
@@ -308,10 +309,19 @@ if st.session_state.get('validation_done'):
                 try:
                     with open(json_path, 'r+', encoding='utf-8') as f:
                         data = json.load(f); was_modified = False
+                        
+                        # Get current time in Cambodia timezone for the creation date
+                        cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+                        creating_date_str = datetime.datetime.now(cambodia_tz).strftime("%Y-%m-%d %H:%M:%S")
+                        
                         if 'processed_tables_data' in data:
                             for table_data in data['processed_tables_data'].values():
                                 if 'amount' not in table_data or not isinstance(table_data['amount'], list): continue
                                 num_rows = len(table_data['amount'])
+                                
+                                # Add the creation date using Cambodia timezone
+                                table_data['creating_date'] = [creating_date_str] * num_rows; was_modified = True
+                                
                                 if user_inv_no: table_data['inv_no'] = [user_inv_no.strip()] * num_rows; was_modified = True
                                 if final_user_inv_ref: table_data['inv_ref'] = [final_user_inv_ref.strip()] * num_rows; was_modified = True
                                 if user_inv_date: table_data['inv_date'] = [user_inv_date] * num_rows; was_modified = True

@@ -114,7 +114,9 @@ def get_suggested_inv_ref():
     Efficiently suggests the next invoice reference number for the current year
     by querying the database for the maximum existing number.
     """
-    current_year = datetime.datetime.now().strftime('%Y')
+    # Use Cambodia timezone for current year
+    cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+    current_year = datetime.datetime.now(cambodia_tz).strftime('%Y')
     prefix = "INV"
     suggestion = f"{prefix}{current_year}-1"
     if not DB_ENABLED: return suggestion
