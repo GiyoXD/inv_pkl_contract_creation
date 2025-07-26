@@ -10,20 +10,17 @@ import os
 import zipfile
 import io
 import tempfile
+from zoneinfo import ZoneInfo # <--- Import ZoneInfo for timezone handling
 
 # --- Database Initialization Function ---
 def initialize_database(db_file: Path):
     """
-    Initializes the database by creating tables if they don't already exist.
-    This function is designed to be run every time the script starts to ensure
-    the database is always ready before any operations are attempted.
+    Initializes the database by creating tables and performance indexes
+    if they don't already exist.
     """
     try:
-        # The 'with' statement ensures the connection is properly closed.
         with sqlite3.connect(db_file) as conn:
             cursor = conn.cursor()
-            # Use 'IF NOT EXISTS' to prevent errors on subsequent runs.
-            # This makes the operation idempotent and safe.
             cursor.execute("""
             CREATE TABLE IF NOT EXISTS invoices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, inv_no TEXT, inv_date TEXT,
@@ -41,27 +38,27 @@ def initialize_database(db_file: Path):
                 FOREIGN KEY (inv_ref) REFERENCES invoices (inv_ref)
             );
             """)
+            # --- MODIFICATION START ---
+            # These function-based indexes dramatically speed up the check_value_exists function.
+            # They allow the database to use an index for case-insensitive searches.
+            st.write("Creating performance indexes...")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_lower_inv_ref ON invoices (LOWER(inv_ref));")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_lower_inv_no ON invoices (LOWER(inv_no));")
+            # --- MODIFICATION END ---
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_inv_ref ON invoice_containers (inv_ref);")
             conn.commit()
         return True
     except sqlite3.Error as e:
-        # If any SQLite error occurs during initialization, display it.
         st.error(f"Database Initialization Failed: {e}")
         return False
 
 # --- Path and Constant Setup ---
-# Resolve paths relative to the script's location.
 APP_DIR = Path(__file__).resolve().parent
-# Assuming a standard Streamlit layout where this script is in a 'pages' folder,
-# the project root is the parent directory of the script's directory.
 PROJECT_ROOT = APP_DIR.parent
 DATABASE_FILE = PROJECT_ROOT / "data" / "Invoice Record" / 'master_invoice_data.db'
 
 # --- Early Database Setup ---
-# Create the directory for the database file if it doesn't exist.
 DATABASE_FILE.parent.mkdir(parents=True, exist_ok=True)
-# Initialize the database immediately. The result is stored in a global-like
-# constant to indicate if the DB is usable throughout this script run.
 DB_ENABLED = initialize_database(DATABASE_FILE)
 
 
@@ -70,7 +67,6 @@ st.set_page_config(page_title="Generate Invoice", layout="wide")
 st.title("Automated Invoice Generator")
 
 # --- Session State Initialization ---
-# Use session_state to store values that need to persist across reruns.
 if 'paths_initialized' not in st.session_state:
     st.session_state.paths_initialized = True
     st.session_state.db_enabled = DB_ENABLED
@@ -85,7 +81,7 @@ if 'paths_initialized' not in st.session_state:
 
 # --- Helper Functions ---
 def check_value_exists(column_name: str, value: str) -> bool:
-    """Checks if a specific value exists in a given column."""
+    """Checks if a specific value exists in a given column. Now optimized with an index."""
     if not st.session_state.get('db_enabled'): return False
     try:
         with sqlite3.connect(st.session_state.DATABASE_FILE) as conn:
@@ -94,28 +90,84 @@ def check_value_exists(column_name: str, value: str) -> bool:
     except Exception as e:
         st.warning(f"DB error checking existence: {e}"); return False
 
-def get_suggested_inv_ref() -> str:
-    """Generates a suggested invoice reference number based on existing entries."""
-    default = f"INV{datetime.datetime.now().strftime('%Y')}-1"
-    if not st.session_state.get('db_enabled'): return default
+def check_existing_identifiers(inv_no: str = None, inv_ref: str = None) -> dict:
+    """
+    Checks for the existence of an invoice number and/or invoice reference in a single database query.
+
+    Args:
+        inv_no: The invoice number to check.
+        inv_ref: The invoice reference to check.
+
+    Returns:
+        A dictionary indicating existence, e.g., {'inv_no': True, 'inv_ref': False}.
+    """
+    results = {}
+    if not os.path.exists(st.session_state.DATABASE_FILE) or (not inv_no and not inv_ref):
+        return results
+
     try:
         with sqlite3.connect(st.session_state.DATABASE_FILE) as conn:
-            refs = [r[0] for r in conn.execute(f"SELECT inv_ref FROM {st.session_state.TABLE_NAME} WHERE inv_ref IS NOT NULL")]
-        if not refs: return default
-        pattern = re.compile(r"([a-zA-Z]+)(\d{4})-(\d+)")
-        max_num, prefix = -1, 'INV'
-        current_year = datetime.datetime.now().strftime('%Y')
-        for ref in refs:
-            if m := pattern.match(str(ref)):
-                year, num_str = m.group(2), m.group(3)
-                if year == current_year:
-                    num = int(num_str)
-                    if num > max_num:
-                        max_num = num
-                        prefix = m.group(1)
-        return f"{prefix}{current_year}-{max_num + 1}"
+            cursor = conn.cursor()
+            if inv_no:
+                query_no = f"SELECT 1 FROM {st.session_state.TABLE_NAME} WHERE LOWER(inv_no) = LOWER(?) LIMIT 1"
+                cursor.execute(query_no, (inv_no,))
+                if cursor.fetchone():
+                    results['inv_no'] = True
+            if inv_ref:
+                query_ref = f"SELECT 1 FROM {st.session_state.TABLE_NAME} WHERE LOWER(inv_ref) = LOWER(?) LIMIT 1"
+                cursor.execute(query_ref, (inv_ref,))
+                if cursor.fetchone():
+                    results['inv_ref'] = True
     except Exception as e:
-        st.warning(f"DB error suggesting Ref: {e}"); return default
+        st.warning(f"DB error checking for existing values: {e}")
+
+    return results
+
+
+def get_suggested_inv_ref():
+    """
+    Efficiently suggests the next invoice reference number for the current year
+    by querying the database for the maximum existing number.
+    """
+    current_year = datetime.datetime.now().strftime('%Y')
+    prefix = "INV"  # Default prefix
+    suggestion = f"{prefix}{current_year}-1"
+
+    if not os.path.exists(st.session_state.DATABASE_FILE):
+        return suggestion
+
+    try:
+        with sqlite3.connect(st.session_state.DATABASE_FILE) as conn:
+            cursor = conn.cursor()
+            # This query efficiently finds the highest inv_ref for the current year
+            # by numerically sorting the number part of the string.
+            query = f"""
+                SELECT inv_ref FROM {st.session_state.TABLE_NAME}
+                WHERE inv_ref LIKE ?
+                ORDER BY CAST(SUBSTR(inv_ref, INSTR(inv_ref, '-') + 1) AS INTEGER) DESC
+                LIMIT 1
+            """
+            # The pattern looks for any prefix, the current year, a hyphen, and then numbers.
+            pattern = f"_%{current_year}-%"
+            cursor.execute(query, (pattern,))
+            last_ref = cursor.fetchone()
+
+            if not last_ref:
+                return suggestion
+
+            # Parse the single result in Python
+            last_ref_str = last_ref[0]
+            match = re.match(r"([a-zA-Z]+)(\d{4})-(\d+)", last_ref_str)
+            if match:
+                prefix = match.group(1)
+                last_num = int(match.group(3))
+                return f"{prefix}{current_year}-{last_num + 1}"
+            else:
+                return suggestion # Fallback if parsing fails
+
+    except Exception as e:
+        st.warning(f"DB error suggesting Invoice Ref: {e}")
+        return suggestion
 
 def update_and_aggregate_json(json_path: Path, inv_ref: str, inv_date: datetime.date, unit_price: float, po_number: str) -> dict | None:
     """
@@ -128,6 +180,12 @@ def update_and_aggregate_json(json_path: Path, inv_ref: str, inv_date: datetime.
             raw_data = data.get("raw_data", {})
             summary = data.get("aggregated_summary", {})
             
+            # --- MODIFICATION START: Set Cambodia Timezone ---
+            cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+            creating_date_dt = datetime.datetime.now(cambodia_tz)
+            creating_date_str = creating_date_dt.strftime("%Y-%m-%d %H:%M:%S")
+            # --- MODIFICATION END ---
+
             # Extract and calculate values
             net_value = float(summary.get("net", 0))
             total_pcs = sum(sum(t.get("pcs", [])) for t in raw_data.values())
@@ -156,7 +214,8 @@ def update_and_aggregate_json(json_path: Path, inv_ref: str, inv_date: datetime.
             # Update aggregated summary
             summary.update({
                 "inv_no": po_number, "inv_ref": inv_ref, "inv_date": date_str, "unit": unit_price,
-                "amount": total_amount, "pcs": total_pcs, "pallet_count": total_pallets, "net": net_value
+                "amount": total_amount, "pcs": total_pcs, "pallet_count": total_pallets, "net": net_value,
+                "creating_date": creating_date_str # <-- Add the new creating_date
             })
             data["aggregated_summary"] = summary
             
@@ -251,8 +310,6 @@ if uploaded_file:
                 if 'buffer_file' in locals() and buffer_file.exists(): buffer_file.unlink()
 
         # --- Step 2: Generate documents into a temporary directory ---
-        # A temporary directory is created to hold the output files.
-        # It will be automatically deleted at the end of this process.
         temp_output_dir_obj = tempfile.TemporaryDirectory()
         temp_output_dir = Path(temp_output_dir_obj.name)
 
@@ -261,7 +318,6 @@ if uploaded_file:
                 try:
                     run_dir = st.session_state.INVOICE_GEN_DIR
                     new_backend_script_name = "hybrid_generate_invoice.py"
-                    # The subprocess now writes the output to the temporary directory
                     result = subprocess.run([
                         sys.executable, str(run_dir / new_backend_script_name), str(final_json_path),
                         "--outputdir", str(temp_output_dir), "--templatedir", str(st.session_state.TEMPLATE_DIR),
@@ -301,29 +357,22 @@ if uploaded_file:
 
                 st.info(f"Found {len(generated_files)} documents and 1 data file for PO **{po_number}** to be packaged.")
                 
-                # --- Create ZIP in memory, not on disk ---
                 zip_filename = f"{po_number}.zip"
-                zip_buffer = io.BytesIO()  # Create an in-memory binary buffer
+                zip_buffer = io.BytesIO()
 
                 with st.spinner("Creating ZIP archive in memory..."):
                     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                        # Add the generated Excel documents to the zip
                         for file_path in generated_files:
-                            # Write the file from the temp directory into the in-memory zip
                             zipf.write(file_path, arcname=file_path.name)
                         
-                        # --- MODIFICATION START ---
-                        # Add the data.json file to the zip
                         if final_json_path and final_json_path.exists():
                             zipf.write(final_json_path, arcname=final_json_path.name)
-                        # --- MODIFICATION END ---
                 
-                # Prepare the in-memory buffer for reading
                 zip_buffer.seek(0)
                 
                 st.download_button(
                     label=f"Download All Documents and Data (.zip)",
-                    data=zip_buffer,  # Use the in-memory buffer as the data source
+                    data=zip_buffer,
                     file_name=zip_filename,
                     mime="application/zip",
                     use_container_width=True,
@@ -331,24 +380,16 @@ if uploaded_file:
                 )
 
         finally:
-            # --- Final Cleanup Logic ---
-            # This block runs regardless of success or failure, ensuring cleanup.
             st.markdown("---")
             with st.expander("Cleanup Information"):
                 st.write("Temporary files are being removed from the server.")
                 try:
-                    # Clean up the original uploaded file
                     if temp_file_path and temp_file_path.exists():
                         temp_file_path.unlink()
                         st.write(f"- Removed temporary upload: `{temp_file_path.name}`")
                     
-                    # Clean up the temporary directory containing the generated Excel files
                     temp_output_dir_obj.cleanup()
                     st.write(f"- Removed temporary document output directory.")
-                    
-                    # NOTE: The final_json_path is intentionally NOT deleted here
-                    # because it is part of the persistent data flow.
-                    # It resides in `data/invoices_to_process` and should be managed separately.
                     
                     st.success("Cleanup complete!")
                 except Exception as e:

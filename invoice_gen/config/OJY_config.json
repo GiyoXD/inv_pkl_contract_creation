@@ -10,7 +10,7 @@
       "start_row": 19,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
-        "2": "HS CODE: 4202.92.00"
+        "2": ""
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",                "id": "col_static",         "rowspan": 1 },
@@ -99,7 +99,7 @@
       }
     },
     "Contract": {
-      "start_row": 21,
+      "start_row": 20,
       "header_to_write": [
         { "row": 0, "col": 0, "text": "P.O Nº",              "id": "col_po",         "rowspan": 1 },
         { "row": 0, "col": 1, "text": "Name of Cormodity\nTên và miêu tả",              "id": "col_item",       "rowspan": 1 },

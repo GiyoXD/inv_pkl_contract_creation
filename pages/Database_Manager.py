@@ -20,11 +20,7 @@ RESTORE_CONFIRM_PHRASE = "overwrite my live data"
 DELETE_CONFIRM_PHRASE = "delete this backup forever"
 NUKE_PASSWORD = "hengh428"  # IMPORTANT: Use st.secrets in a real application
 
-# Table names for the nuke functionality
-TABLE_NAME = 'invoices'
-CONTAINER_TABLE_NAME = 'invoice_containers'
-
-# --- Helper Functions (Identical to previous script) ---
+# --- Helper Functions ---
 
 def create_backup():
     """Creates a timestamped backup of the live database file."""
@@ -61,13 +57,29 @@ def delete_backup_file(backup_file_name):
     os.remove(backup_file_path)
 
 def initialize_empty_database():
-    """Drops existing tables and creates new, empty ones."""
+    """
+    Drops all existing tables, triggers, and indexes, creates the new
+    schema from scratch, and reclaims unused disk space.
+    """
     try:
         os.makedirs(os.path.dirname(DATABASE_FILE), exist_ok=True)
         with sqlite3.connect(DATABASE_FILE) as conn:
             cursor = conn.cursor()
-            cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
-            cursor.execute(f"DROP TABLE IF EXISTS {CONTAINER_TABLE_NAME}")
+
+            # --- Drop all existing objects to ensure a clean slate ---
+            # Drop triggers first
+            cursor.execute("DROP TRIGGER IF EXISTS summary_au;")
+            cursor.execute("DROP TRIGGER IF EXISTS summary_ad;")
+            cursor.execute("DROP TRIGGER IF EXISTS summary_ai;")
+            
+            # Drop tables (associated indexes/FTS data are dropped automatically)
+            cursor.execute("DROP TABLE IF EXISTS summary_fts;")
+            cursor.execute("DROP TABLE IF EXISTS invoice_summary;")
+            cursor.execute("DROP TABLE IF EXISTS invoice_containers;")
+            cursor.execute("DROP TABLE IF EXISTS invoices;")
+
+            # --- Create new schema ---
+            # Create 'invoices' table
             cursor.execute("""
                 CREATE TABLE invoices (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, inv_no TEXT, inv_date TEXT,
@@ -77,6 +89,8 @@ def initialize_empty_database():
                     status TEXT DEFAULT 'active'
                 );
             """)
+
+            # Create 'invoice_containers' table
             cursor.execute("""
                 CREATE TABLE invoice_containers (
                     id INTEGER PRIMARY KEY AUTOINCREMENT, inv_ref TEXT NOT NULL,
@@ -84,8 +98,63 @@ def initialize_empty_database():
                     FOREIGN KEY (inv_ref) REFERENCES invoices (inv_ref)
                 );
             """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_inv_ref ON invoice_containers (inv_ref);")
-        return True, "Database re-initialized successfully."
+
+            # Create 'invoice_summary' table
+            cursor.execute("""
+                CREATE TABLE invoice_summary (
+                    inv_ref TEXT PRIMARY KEY, inv_no TEXT, inv_date TEXT,
+                    status TEXT, total_sqft REAL, total_amount REAL,
+                    total_pcs INTEGER, total_net REAL, total_gross REAL,
+                    total_cbm REAL, creating_date TEXT, containers TEXT
+                );
+            """)
+
+            # Create FTS5 virtual table for searching the summary
+            cursor.execute("""
+                CREATE VIRTUAL TABLE summary_fts USING fts5(
+                    inv_ref, inv_no, containers,
+                    content='invoice_summary',
+                    content_rowid='rowid'
+                );
+            """)
+
+            # --- Create Triggers to keep FTS table synchronized ---
+            cursor.execute("""
+                CREATE TRIGGER summary_ai AFTER INSERT ON invoice_summary BEGIN
+                    INSERT INTO summary_fts(rowid, inv_ref, inv_no, containers)
+                    VALUES (new.rowid, new.inv_ref, new.inv_no, new.containers);
+                END;
+            """)
+            cursor.execute("""
+                CREATE TRIGGER summary_ad AFTER DELETE ON invoice_summary BEGIN
+                    INSERT INTO summary_fts(summary_fts, rowid, inv_ref, inv_no, containers)
+                    VALUES ('delete', old.rowid, old.inv_ref, old.inv_no, old.containers);
+                END;
+            """)
+            cursor.execute("""
+                CREATE TRIGGER summary_au AFTER UPDATE ON invoice_summary BEGIN
+                    INSERT INTO summary_fts(summary_fts, rowid, inv_ref, inv_no, containers)
+                    VALUES ('delete', old.rowid, old.inv_ref, old.inv_no, old.containers);
+                    INSERT INTO summary_fts(rowid, inv_ref, inv_no, containers)
+                    VALUES (new.rowid, new.inv_ref, new.inv_no, new.containers);
+                END;
+            """)
+            
+            # --- Create Indexes for performance ---
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_inv_ref ON invoices (inv_ref);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_containers_inv_ref ON invoice_containers (inv_ref);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_summary_inv_ref ON invoice_summary (inv_ref);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_summary_inv_no ON invoice_summary(inv_no);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_summary_creating_date ON invoice_summary(creating_date);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_summary_containers ON invoice_summary(containers);")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_lower_inv_ref ON invoices (LOWER(inv_ref));")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_lower_inv_no ON invoices (LOWER(inv_no));")
+
+            # --- Reclaim Unused Space to Shrink File Size ---
+            st.info("Reclaiming unused disk space... This may take a moment.")
+            cursor.execute("VACUUM;")
+
+        return True, "Database re-initialized and file size reclaimed successfully."
     except Exception as e:
         return False, f"An error occurred during database initialization: {e}"
 
@@ -152,8 +221,9 @@ with tab1:
 with tab2:
     st.header("Permanent Database Reset")
     st.warning(
-        "**CRITICAL WARNING:** This action will permanently delete all invoice and container data from the live database. "
-        "This is irreversible and should only be done if you are absolutely certain. Creating a backup first is highly recommended."
+        "**CRITICAL WARNING:** This action will permanently delete all invoice and container data from the live database "
+        "and shrink the database file. This is irreversible and should only be done if you are absolutely certain. "
+        "Creating a backup first is highly recommended."
     )
     
     st.subheader("Authorization Required")
@@ -169,7 +239,7 @@ with tab2:
                 success, message = initialize_empty_database()
                 if success:
                     st.success("✅✅✅ DATABASE RESET COMPLETE! ✅✅✅")
-                    st.info("The database has been cleared and re-initialized with empty tables.")
+                    st.info("The database has been cleared, re-initialized, and the file size has been reclaimed.")
                     st.balloons()
                 else:
                     st.error(f"Failed to reset the database. Error: {message}")

@@ -1,0 +1,363 @@
+{
+  "title": "📖 Invoice Management System - User Guide",
+  "language_selector": "🌐 Language / ភាសា / 语言",
+  "tabs": {
+    "getting_started": "🏠 Getting Started",
+    "dashboard": "📊 Dashboard",
+    "adding_invoices": "➕ Adding Invoices",
+    "managing_data": "✏️ Managing Data",
+    "header_mapping": "🔧 Header Mapping",
+    "troubleshooting": "❓ Troubleshooting"
+  },
+  "getting_started": {
+    "welcome_title": "🏠 Welcome to the Invoice Management System",
+    "what_is_system": "### What is this system?",
+    "system_desc": "This is an **automated invoice processing system** designed specifically for leather industry businesses. It helps you convert Excel files into professional invoices and manage your invoice database.",
+    "what_can_do": "### What can it do for you?",
+    "features": [
+      "📄 **Convert Excel files** into professional invoices automatically",
+      "📊 **Track your business** with dashboard analytics",
+      "💾 **Store all invoices** in an organized database",
+      "📈 **Generate reports** and view business trends",
+      "✏️ **Edit and manage** invoice data easily"
+    ],
+    "who_for": "🎯 Who is this for?",
+    "who_list": [
+      "**Business owners** managing leather exports",
+      "**Accounting staff** processing invoices",
+      "**Sales teams** tracking orders",
+      "**Anyone** who needs to convert Excel data to invoices"
+    ],
+    "benefits": "⚡ Key Benefits",
+    "benefits_list": [
+      "**Save time** - No manual invoice creation",
+      "**Reduce errors** - Automated calculations",
+      "**Stay organized** - All data in one place",
+      "**Track performance** - Built-in analytics"
+    ],
+    "quick_start": "🚀 Quick Start - 3 Simple Steps",
+    "step1_title": "### Step 1: Prepare Your Excel File",
+    "step1_desc": "- Use your existing Excel format\n- Make sure it has columns like:\n  - PO Number\n  - Item Code\n  - Quantity\n  - Price\n  - Amount",
+    "step2_title": "### Step 2: Upload & Process",
+    "step2_desc": "- Go to the appropriate page:\n  - \"High Quality Leather\" for premium products\n  - \"2nd Layer Leather\" for secondary products\n- Upload your Excel file\n- Click \"Process\"",
+    "step3_title": "### Step 3: Review & Approve",
+    "step3_desc": "- Check the \"Verify\" page\n- Review the processed data\n- Click \"Accept\" to add to database\n- Your invoices are ready!"
+  },
+  "dashboard": {
+    "title": "📊 Understanding the Dashboard",
+    "desc": "The **Dashboard** is your main control center. Here's what you'll see:",
+    "key_metrics": "📈 Key Metrics",
+    "metrics_list": [
+      "**Total Invoiced Amount** - Your total revenue",
+      "**Total Square Feet** - Total product quantity",
+      "**Unique Invoices** - Number of invoices processed"
+    ],
+    "date_filtering": "📅 Date Filtering",
+    "date_filter_list": [
+      "Use the date picker to filter data",
+      "View specific time periods",
+      "Compare different months/quarters"
+    ],
+    "charts_graphs": "📊 Charts & Graphs",
+    "charts_list": [
+      "**Monthly Revenue** - See your income trends",
+      "**Top Products** - Best-selling items",
+      "**Performance Tracking** - Business growth"
+    ],
+    "what_to_look": "🔍 What to Look For",
+    "look_for_list": [
+      "**Growing trends** - Increasing revenue",
+      "**Top performers** - Best products",
+      "**Seasonal patterns** - Busy periods"
+    ]
+  },
+  "adding_invoices": {
+    "title": "➕ Adding New Invoices",
+    "desc": "There are **two ways** to add invoices to the system:",
+    "method1_title": "Method 1: Using the Web Forms",
+    "high_quality_steps": "#### For High Quality Leather:",
+    "high_quality_list": [
+      "Click \"**High Quality Leather**\" in the sidebar",
+      "Upload your Excel file",
+      "Fill in any additional information",
+      "Click \"**Process File**\"",
+      "Wait for processing to complete"
+    ],
+    "second_layer_steps": "#### For 2nd Layer Leather:",
+    "second_layer_list": [
+      "Click \"**2nd Layer Leather**\" in the sidebar",
+      "Upload your Excel file",
+      "Fill in any additional information",
+      "Click \"**Process File**\"",
+      "Wait for processing to complete"
+    ],
+    "method2_title": "Method 2: Direct File Processing",
+    "method2_list": [
+      "Place your Excel file in the system folder",
+      "Run the automation command",
+      "Check \"**Verify**\" page",
+      "Review and approve the data"
+    ],
+    "verification_title": "📋 Data Verification Process",
+    "verification_desc": "After processing, you'll need to **verify your data**:",
+    "verification_steps": [
+      "Go to \"**Verify**\" page",
+      "You'll see a preview of your data",
+      "Check that all information is correct:",
+      "- PO numbers",
+      "- Item codes",
+      "- Quantities",
+      "- Prices",
+      "- Amounts",
+      "If everything looks good, click \"**✅ Accept**\"",
+      "If there are errors, click \"**❌ Reject**\" and fix your Excel file"
+    ],
+    "tip_message": "💡 **Tip**: Always double-check your data before accepting. Once accepted, the data goes into your permanent database."
+  },
+  "managing_data": {
+    "title": "✏️ Managing Your Invoice Data",
+    "viewing_database": "🔍 Viewing Your Database",
+    "viewing_desc": "The \"**Database**\" page lets you:",
+    "viewing_features": [
+      "See all your invoices",
+      "Filter by date, PO number, or item",
+      "Search for specific records",
+      "Export data to Excel"
+    ],
+    "editing_invoices": "✏️ Editing Invoices",
+    "editing_desc": "To edit an existing invoice:",
+    "editing_steps": [
+      "Go to \"**Edit Invoice**\" page",
+      "Search for the invoice by:",
+      "- Invoice Number, or",
+      "- Invoice Reference",
+      "Select the invoice from the list",
+      "Make your changes in the data editor",
+      "Update container/truck information if needed",
+      "Click \"**💾 Save Changes**\""
+    ],
+    "voiding_invoices": "🗑️ Voiding Invoices",
+    "voiding_desc": "To void (cancel) an invoice:",
+    "voiding_steps": [
+      "Go to \"**Void Invoice**\" page",
+      "Search for the invoice",
+      "Select it from the list",
+      "Click \"**Void Invoice**\"",
+      "Confirm your action"
+    ],
+    "voiding_note": "**Note**: Voided invoices are not deleted, just marked as inactive.",
+    "backup_export": "💾 Backup & Export",
+    "backup_title": "#### Creating Backups:",
+    "backup_steps": [
+      "Go to \"**Backup Database**\"",
+      "Click \"**Create Backup**\"",
+      "Your data is safely stored",
+      "Keep backups regularly!"
+    ],
+    "export_title": "#### Exporting Data:",
+    "export_steps": [
+      "Go to \"**Export Data**\"",
+      "Choose your filters",
+      "Select export format",
+      "Download your file"
+    ]
+  },
+  "header_mapping": {
+    "title": "🔧 Excel Header Mapping Guide",
+    "desc": "⚠️ **CRITICAL**: Without proper header mapping, NO DATA will flow through to create invoices! Use this guide to ensure your Excel headers match exactly what the system expects.",
+    "what_is_mapping": "### What is Header Mapping?",
+    "mapping_desc": "The system needs to identify which columns in your Excel file contain specific data (like PO numbers, quantities, etc.). Sometimes your column names might be different from what the system expects.",
+    "required_headers": "📋 Required Headers & Their Mappings",
+    "required_headers_desc": "Your Excel file must contain these data types. Here are the **actual mappings from the system** - use the EASIEST option first:",
+    "header_mappings": [
+      "**PO Number** → EASIEST: 'po' | Also accepts: 'PO', 'PO NO.', '订单号'",
+      "**Item Code** → EASIEST: 'item' | Also accepts: '物料代码', 'ITEM NO.', 'Item No'",
+      "**Pieces/Quantity** → EASIEST: 'pcs' | Also accepts: 'PCS', '总张数', '张数'",
+      "**Unit Price** → EASIEST: 'unit' | Also accepts: 'USD', '单价', 'price'",
+      "**Total Amount** → EASIEST: 'amount' | Also accepts: '金额', 'USD', 'total'",
+      "**Square Feet** → EASIEST: 'sqft' | Also accepts: 'SF', '尺数', '出货数量(sf)'",
+      "**Net Weight** → EASIEST: 'net' | Also accepts: 'NW', '净重', 'net weight'",
+      "**Gross Weight** → EASIEST: 'gross' | Also accepts: 'GW', '毛重', 'Gross'",
+      "**Description** → EASIEST: 'description' | Also accepts: '产品名称', '品名规格', 'desc'",
+      "**CBM/Remarks** → EASIEST: 'cbm' | Also accepts: '材积', 'CBM', '备注'",
+      "**Production Order** → EASIEST: 'production_order_no' | Also accepts: 'TTX编号', '生产单号'"
+    ],
+    "common_issues_mapping": "⚠️ Common Header Issues",
+    "mapping_issues": [
+      "**Different Language**: Headers in local language (Khmer, Chinese, etc.)",
+      "**Abbreviations**: Using non-standard abbreviations",
+      "**Extra Spaces**: Headers with leading/trailing spaces",
+      "**Special Characters**: Headers with symbols or punctuation",
+      "**Merged Cells**: Headers spanning multiple cells"
+    ],
+    "solutions_title": "✅ Solutions When Headers Don't Match",
+    "solution_option1": "#### Option 1: Edit Your Excel File (Recommended)",
+    "solution1_steps": [
+      "Open your Excel file",
+      "Rename column headers to the EASIEST options above",
+      "Examples: '订单号' → 'po', '物料代码' → 'item', '总张数' → 'pcs'",
+      "Use simple lowercase English words when possible",
+      "Save the file and try processing again"
+    ],
+    "solution_option2": "#### Option 2: Report to Administrator",
+    "solution2_steps": [
+      "Take a screenshot of your Excel headers",
+      "Note which columns contain which data",
+      "Contact your system administrator with:",
+      "- Screenshot of your Excel file headers",
+      "- Description of what data each column contains",
+      "- Request to add your header names to the system mapping"
+    ],
+    "example_mapping": "📝 Example Header Mapping",
+    "example_desc": "Here's an example of how to map common variations:",
+    "example_table": [
+      "**Your Header** → **EASIEST Change** → **What It Maps To**",
+      "'订单号' → 'po' → PO Number (CRITICAL for invoices)",
+      "'物料代码' → 'item' → Item Code (CRITICAL for invoices)",
+      "'总张数' → 'pcs' → Pieces/Quantity (CRITICAL for invoices)",
+      "'单价' → 'unit' → Unit Price (CRITICAL for invoices)",
+      "'金额' → 'amount' → Total Amount (CRITICAL for invoices)",
+      "'出货数量(sf)' → 'sqft' → Square Feet (CRITICAL for invoices)",
+      "'净重' → 'net' → Net Weight",
+      "'毛重' → 'gross' → Gross Weight",
+      "'TTX编号' → 'production_order_no' → Production Order",
+      "'材积' → 'cbm' → CBM/Remarks"
+    ],
+    "best_practices_headers": "💡 Best Practices for Excel Headers",
+    "header_best_practices": [
+      "**Use English names** when possible for better compatibility",
+      "**Keep headers simple** - avoid special characters",
+      "**Be consistent** - use the same header names across all files",
+      "**No empty columns** between data columns",
+      "**First row only** - put headers in the first row of your Excel file"
+    ],
+    "admin_contact": "📞 Need Help with Mapping?",
+    "admin_help": [
+      "If you frequently use Excel files with non-standard headers:",
+      "Contact your administrator to add your header variations to the system",
+      "Provide examples of your typical Excel file formats",
+      "The admin can configure the system to recognize your specific header names"
+    ]
+  },
+  "troubleshooting": {
+    "title": "❓ Troubleshooting & FAQ",
+    "common_issues": "🚨 Common Issues",
+    "issue0_title": "🔧 MOST COMMON: Headers not recognized",
+    "issue0_desc": "**90% of problems are caused by incorrect column headers!**",
+    "issue0_solution": "**SOLUTION: Go to Header Mapping tab and use these exact headers:**",
+    "issue0_headers": [
+      "'po' for PO numbers",
+      "'item' for item codes",
+      "'pcs' for quantities",
+      "'unit' for unit prices",
+      "'amount' for total amounts",
+      "'sqft' for square feet"
+    ],
+    "issue1_title": "❌ My Excel file won't process",
+    "issue1_causes": "**Possible causes:**",
+    "issue1_cause_list": [
+      "Excel file format is not supported (use .xlsx)",
+      "❗ **MOST COMMON**: Wrong column headers - system can't find your data!",
+      "Missing required columns (PO, Item, Amount, etc.)",
+      "Data in wrong format (text in number columns)"
+    ],
+    "issue1_solutions": "**Solutions:**",
+    "issue1_solution_list": [
+      "Save your file as .xlsx format",
+      "🔧 **CHECK HEADER MAPPING TAB FIRST** - Fix your column headers!",
+      "Use simple headers like: 'po', 'item', 'pcs', 'unit', 'amount', 'sqft'",
+      "Make sure numbers are formatted as numbers, not text"
+    ],
+    "issue2_title": "⏳ Processing is taking too long",
+    "issue2_causes": "**This can happen when:**",
+    "issue2_cause_list": [
+      "Excel file is very large",
+      "File has many empty rows",
+      "Complex formulas in the Excel file"
+    ],
+    "issue2_solutions": "**Solutions:**",
+    "issue2_solution_list": [
+      "Remove empty rows from your Excel file",
+      "Copy data to a new, clean Excel file",
+      "Contact support if problem persists"
+    ],
+    "issue3_title": "🔍 I can't find my invoice",
+    "issue3_causes": "**Check these things:**",
+    "issue3_cause_list": [
+      "Is the invoice actually in the database? (Check \"Database\")",
+      "Are you searching with the correct reference number?",
+      "Has the invoice been voided?",
+      "Check your date filters"
+    ],
+    "issue4_title": "💾 My data disappeared",
+    "issue4_desc": "**Don't panic! Your data might be:**",
+    "issue4_cause_list": [
+      "Filtered out (check your date/search filters)",
+      "In a different status (check voided invoices)",
+      "In a backup file"
+    ],
+    "issue4_recovery": "**Recovery steps:**",
+    "issue4_recovery_list": [
+      "Clear all filters in \"Database\"",
+      "Check \"Backup Database\" for recent backups",
+      "Contact your system administrator"
+    ],
+    "issue5_title": "🚫 No data processed / Empty results",
+    "issue5_desc": "**Excel file uploads but no invoices are created:**",
+    "issue5_cause_list": [
+      "❗ **#1 REASON**: Column headers don't match system expectations",
+      "System can't find PO, Item, Amount, or other critical columns",
+      "Headers in wrong language or format",
+      "Typos in column names"
+    ],
+    "issue5_solutions": "**SOLUTION:**",
+    "issue5_solution_list": [
+      "🔧 **GO TO HEADER MAPPING TAB** - This fixes 90% of issues!",
+      "Use the EASIEST headers: 'po', 'item', 'pcs', 'unit', 'amount', 'sqft'",
+      "Check your Excel headers match the examples exactly",
+      "If still failing, try the alternative headers listed in Header Mapping tab"
+    ],
+    "getting_help": "📞 Getting Help",
+    "before_help": "#### Before Asking for Help:",
+    "before_help_list": [
+      "🔧 **CHECK HEADER MAPPING TAB FIRST** - Solves most problems!",
+      "Verify your Excel headers match the system requirements",
+      "Try restarting the application",
+      "Check if your Excel file works with other data",
+      "Note any error messages you see"
+    ],
+    "when_contacting": "#### When Contacting Support:",
+    "when_contacting_list": [
+      "Describe what you were trying to do",
+      "Share any error messages",
+      "Mention which file you were processing",
+      "Include screenshots if helpful"
+    ],
+    "pro_tips": "💡 Pro Tips for Success",
+    "excel_tips": "#### Excel File Tips:",
+    "excel_tips_list": [
+      "Keep files clean and organized",
+      "Use consistent column names",
+      "Remove empty rows",
+      "Save as .xlsx format"
+    ],
+    "data_tips": "#### Data Management:",
+    "data_tips_list": [
+      "Create backups regularly",
+      "Review data before accepting",
+      "Use clear, consistent naming",
+      "Keep original Excel files"
+    ],
+    "system_tips": "#### System Usage:",
+    "system_tips_list": [
+      "Process files during off-peak hours",
+      "Don't close browser during processing",
+      "Check dashboard regularly",
+      "Export important reports"
+    ]
+  },
+  "footer": {
+    "help_contact": "📧 Need more help? Contact your system administrator",
+    "last_updated": "🔄 Last updated: JULY 2025"
+  }
+}

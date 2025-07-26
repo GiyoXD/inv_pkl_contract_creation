@@ -17,6 +17,34 @@ import tempfile
 st.set_page_config(page_title="Process & Generate Invoices", layout="wide")
 st.title("Process Excel & Generate Final Invoices ⚙️📄")
 
+# --- Database Initialization (FAST TWEAK) ---
+def initialize_database(db_file: Path):
+    """
+    Creates tables and performance indexes if they don't exist.
+    The function-based indexes here are the key to the speed improvement.
+    """
+    try:
+        with sqlite3.connect(db_file) as conn:
+            cursor = conn.cursor()
+            # Create main table if it doesn't exist
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS invoices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, inv_no TEXT, inv_date TEXT,
+                inv_ref TEXT UNIQUE, po TEXT, item TEXT, description TEXT, pcs TEXT,
+                sqft TEXT, pallet_count TEXT, unit TEXT, amount TEXT, net TEXT,
+                gross TEXT, cbm TEXT, production_order_no TEXT, creating_date TEXT,
+                status TEXT DEFAULT 'active'
+            );
+            """)
+            # Create function-based indexes for fast, case-insensitive lookups
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_lower_inv_ref ON invoices (LOWER(inv_ref));")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_lower_inv_no ON invoices (LOWER(inv_no));")
+            conn.commit()
+        return True
+    except sqlite3.Error as e:
+        st.error(f"Database Initialization Failed: {e}")
+        return False
+
 # --- Session State Initialization ---
 def reset_workflow_state():
     """Callback to reset the state when a new file is uploaded."""
@@ -48,16 +76,18 @@ TEMPLATE_DIR = INVOICE_GEN_DIR / "TEMPLATE"
 DATA_DIRECTORY = DATA_DIR / 'Invoice Record'
 DATABASE_FILE = DATA_DIRECTORY / 'master_invoice_data.db'
 TABLE_NAME = 'invoices'
-CONTAINER_TABLE_NAME = 'invoice_containers'
 
 for dir_path in [JSON_OUTPUT_DIR, TEMP_UPLOAD_DIR, DATA_DIRECTORY]:
     dir_path.mkdir(parents=True, exist_ok=True)
 
+# --- Call the Database Initializer ---
+DB_ENABLED = initialize_database(DATABASE_FILE)
+if not DB_ENABLED:
+    st.error("Database connection could not be established. The app may not function correctly.")
+    st.stop()
+
 def cleanup_old_files(directories: list, max_age_seconds: int = 3600):
-    """
-    Deletes files older than a specified age in a list of directories.
-    Runs at startup to clear out transient files from abandoned sessions.
-    """
+    """Deletes files older than a specified age in a list of directories."""
     cutoff_time = time.time() - max_age_seconds
     for directory in directories:
         if not directory.exists(): continue
@@ -68,34 +98,80 @@ def cleanup_old_files(directories: list, max_age_seconds: int = 3600):
                         if filepath.stat().st_mtime < cutoff_time:
                             filepath.unlink()
                     except OSError:
-                        pass # Ignore errors if file is locked or already gone
+                        pass
         except Exception:
-            pass # Fail silently if a directory can't be read
+            pass
 
-# Run the cleanup function at the start of the script for all transient data
 cleanup_old_files([TEMP_UPLOAD_DIR, JSON_OUTPUT_DIR])
 
 
-# --- Helper and Validation Functions ---
+# --- Helper and Validation Functions (OPTIMIZED) ---
 def get_suggested_inv_ref():
+    """
+    Efficiently suggests the next invoice reference number for the current year
+    by querying the database for the maximum existing number.
+    """
     current_year = datetime.datetime.now().strftime('%Y')
-    default_suggestion = f"INV{current_year}-1"
-    if not os.path.exists(DATABASE_FILE): return default_suggestion
+    prefix = "INV"
+    suggestion = f"{prefix}{current_year}-1"
+
+    if not os.path.exists(DATABASE_FILE):
+        return suggestion
+
     try:
         with sqlite3.connect(DATABASE_FILE) as conn:
-            cursor = conn.execute(f"SELECT inv_ref FROM {TABLE_NAME} WHERE inv_ref IS NOT NULL")
-            all_refs = [ref[0] for ref in cursor.fetchall()]
-        if not all_refs: return default_suggestion
-        pattern = re.compile(r"([a-zA-Z]+)(\d{4})-(\d+)")
-        max_num = -1; highest_ref_info = {'prefix': 'INV', 'number': 0}
-        for ref in all_refs:
-            match = pattern.match(str(ref))
-            if match and (num := int(match.group(3))) > max_num:
-                max_num = num; highest_ref_info['prefix'] = match.group(1); highest_ref_info['number'] = num
-        if max_num == -1: return default_suggestion
-        return f"{highest_ref_info['prefix']}{current_year}-{highest_ref_info['number'] + 1}"
+            cursor = conn.cursor()
+            query = f"""
+                SELECT inv_ref FROM {TABLE_NAME}
+                WHERE inv_ref LIKE ?
+                ORDER BY CAST(SUBSTR(inv_ref, INSTR(inv_ref, '-') + 1) AS INTEGER) DESC
+                LIMIT 1
+            """
+            pattern = f"_%{current_year}-%"
+            cursor.execute(query, (pattern,))
+            last_ref = cursor.fetchone()
+
+            if not last_ref:
+                return suggestion
+
+            last_ref_str = last_ref[0]
+            match = re.match(r"([a-zA-Z]+)(\d{4})-(\d+)", last_ref_str)
+            if match:
+                prefix = match.group(1)
+                last_num = int(match.group(3))
+                return f"{prefix}{current_year}-{last_num + 1}"
+            else:
+                return suggestion
+
     except Exception as e:
-        st.warning(f"DB error suggesting Invoice Ref: {e}"); return default_suggestion
+        st.warning(f"DB error suggesting Invoice Ref: {e}")
+        return suggestion
+
+def check_existing_identifiers(inv_no: str = None, inv_ref: str = None) -> dict:
+    """
+    Checks for the existence of an invoice number and/or invoice reference
+    in a single database connection. This is now fast due to the indexes.
+    """
+    results = {}
+    if not os.path.exists(DATABASE_FILE) or (not inv_no and not inv_ref):
+        return results
+
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            cursor = conn.cursor()
+            if inv_no:
+                query_no = f"SELECT 1 FROM {TABLE_NAME} WHERE LOWER(inv_no) = LOWER(?) LIMIT 1"
+                cursor.execute(query_no, (inv_no,))
+                if cursor.fetchone():
+                    results['inv_no'] = True
+            if inv_ref:
+                query_ref = f"SELECT 1 FROM {TABLE_NAME} WHERE LOWER(inv_ref) = LOWER(?) LIMIT 1"
+                cursor.execute(query_ref, (inv_ref,))
+                if cursor.fetchone():
+                    results['inv_ref'] = True
+    except Exception as e:
+        st.warning(f"DB error checking for existing values: {e}")
+    return results
 
 def find_incoterm_from_template(identifier: str):
     terms_to_find = ["DAP", "FCA", "CIP"]
@@ -117,17 +193,6 @@ def find_incoterm_from_template(identifier: str):
         workbook.close()
     except Exception: pass
     return None
-
-def check_value_exists(column_name: str, value: str) -> bool:
-    if not os.path.exists(DATABASE_FILE): return False
-    try:
-        with sqlite3.connect(DATABASE_FILE) as conn:
-            cursor = conn.cursor()
-            query = f"SELECT 1 FROM {TABLE_NAME} WHERE LOWER({column_name}) = LOWER(?) LIMIT 1"
-            cursor.execute(query, (value,))
-            return cursor.fetchone() is not None
-    except Exception as e:
-        st.warning(f"DB error checking for existing value: {e}"); return False
 
 def validate_json_data(json_path: Path, required_keys: list) -> list:
     if not json_path.exists():
@@ -185,7 +250,6 @@ if uploaded_file and not st.session_state.get('validation_done'):
             except OSError as e:
                 st.warning(f"Could not delete temporary file: {temp_file_path}. Error: {e}")
 
-
 if st.session_state.get('validation_done'):
     st.subheader("✔️ Automatic Validation Complete")
     missing_fields = st.session_state.get('missing_fields', [])
@@ -196,24 +260,32 @@ if st.session_state.get('validation_done'):
     st.header("2. Optional Invoice Overrides")
     st.markdown("Use these fields to add or correct data.")
     col1, col2 = st.columns(2)
+
+    suggested_ref = get_suggested_inv_ref()
+
     with col1:
-        user_inv_no = st.text_input("Invoice No")
-        if user_inv_no and check_value_exists('inv_no', user_inv_no): st.warning(f"⚠️ Invoice No `{user_inv_no}` already exists in the database.")
-        
-        suggested_ref = get_suggested_inv_ref()
+        user_inv_no = st.text_input("Invoice No", key="user_inv_no")
         user_inv_ref = st.text_input(
             "Invoice Ref",
             value=suggested_ref,
-            placeholder=suggested_ref,
-            help="This is the automatically suggested Invoice Ref. If you clear the field, the suggestion will remain as a placeholder."
+            key="user_inv_ref",
+            help="This is the automatically suggested Invoice Ref. You can override it."
         )
 
-        if user_inv_ref and check_value_exists('inv_ref', user_inv_ref): st.warning(f"⚠️ Invoice Ref `{user_inv_ref}` already exists in the database.")
-        
+        check_no = user_inv_no.strip()
+        check_ref = user_inv_ref.strip() if user_inv_ref != suggested_ref else None
+
+        if check_no or check_ref:
+            existing = check_existing_identifiers(inv_no=check_no, inv_ref=check_ref)
+            if existing.get('inv_no'):
+                st.warning(f"⚠️ Invoice No `{check_no}` already exists in the database.")
+            if existing.get('inv_ref'):
+                st.warning(f"⚠️ Invoice Ref `{check_ref}` already exists in the database.")
+
         tomorrow = datetime.date.today() + datetime.timedelta(days=1)
         selected_date_obj = st.date_input("Invoice Date", value=tomorrow, format="DD/MM/YYYY")
-        
         user_inv_date = selected_date_obj.strftime("%d/%m/%Y") if selected_date_obj else ""
+
     with col2:
         user_container_types = st.text_area("Container / Truck (One per line)", height=150)
 
@@ -229,7 +301,6 @@ if st.session_state.get('validation_done'):
 
         json_path = Path(st.session_state['json_path'])
         final_user_inv_ref = user_inv_ref if user_inv_ref else get_suggested_inv_ref()
-        
         container_list = [line.strip() for line in user_container_types.split('\n') if line.strip()]
 
         if user_inv_no or final_user_inv_ref or user_inv_date or container_list:
@@ -245,8 +316,7 @@ if st.session_state.get('validation_done'):
                                 if final_user_inv_ref: table_data['inv_ref'] = [final_user_inv_ref.strip()] * num_rows; was_modified = True
                                 if user_inv_date: table_data['inv_date'] = [user_inv_date] * num_rows; was_modified = True
                                 if container_list:
-                                    table_data['container_type'] = [', '.join(container_list)] * num_rows
-                                    was_modified = True
+                                    table_data['container_type'] = [', '.join(container_list)] * num_rows; was_modified = True
                         if was_modified:
                             f.seek(0); json.dump(data, f, indent=4); f.truncate()
                             st.success("Overrides applied to JSON file.")
@@ -277,20 +347,15 @@ if st.session_state.get('validation_done'):
                     
                     command = [sys.executable, str(INVOICE_GEN_SCRIPT), str(json_path), "--output", str(output_path), "--templatedir", str(TEMPLATE_DIR), "--configdir", str(INVOICE_GEN_DIR / "config")] + mode_flags
                     
-                    # --- FIX STARTS HERE ---
-                    # Get the current environment and force UTF-8 for the subprocess
                     sub_env = os.environ.copy()
                     sub_env['PYTHONIOENCODING'] = 'utf-8'
 
                     try:
-                        # Add the env=sub_env argument to the subprocess call
                         subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace', env=sub_env)
-                        # Read the generated file's bytes from the temp dir into memory
                         files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
                         success_count += 1
                     except subprocess.CalledProcessError as e:
                         st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
-                    # --- FIX ENDS HERE ---
 
             if success_count > 0:
                 st.success(f"Successfully created {success_count} invoice file(s)!")

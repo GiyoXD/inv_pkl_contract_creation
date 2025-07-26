@@ -1,0 +1,265 @@
+{
+    "metadata": {
+        "workbook_filename": "OJY25015.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-07-26T10:17:04.821991"
+    },
+    "processed_tables_data": {
+        "1": {
+            "production_order_no": [
+                "2503027-01",
+                "2503027-01",
+                "2503027-01",
+                "2503027-01",
+                "2503027-01",
+                "2503027-01",
+                "2506021-01",
+                "2506021-01",
+                "2506021-01",
+                "2506021-01",
+                "2506021-01",
+                "2506021-01",
+                "2506021-01"
+            ],
+            "po": [
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363",
+                "GYOJY_M24363"
+            ],
+            "reference_code": [
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664",
+                "XPSY-FT-\u9ed1664"
+            ],
+            "item": [
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656",
+                "BLACK CHERRY BLACK 656"
+            ],
+            "pcs": [
+                190,
+                185,
+                190,
+                185,
+                195,
+                205,
+                180,
+                185,
+                185,
+                160,
+                115,
+                28,
+                131
+            ],
+            "sqft": [
+                10248.2,
+                10175.4,
+                10288.9,
+                10047.7,
+                10167.7,
+                11408.3,
+                10004.9,
+                10038.6,
+                10232.2,
+                8820.4,
+                6336.1,
+                1410.8,
+                6222.7
+            ],
+            "pallet_count": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                1
+            ],
+            "unit": [
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.26,
+                1.01,
+                1.26
+            ],
+            "amount": [
+                12912.732,
+                12821.004,
+                12964.014,
+                12660.102,
+                12811.302,
+                14374.458,
+                12606.174,
+                12648.636,
+                12892.572,
+                11113.704,
+                7983.486,
+                1424.908,
+                7840.602
+            ],
+            "net": [
+                "871",
+                "864.5",
+                "869.5",
+                "851.5",
+                "871",
+                "963",
+                "883.5",
+                "893.5",
+                "913.5",
+                "779",
+                "480.9091",
+                "117.0909",
+                "545"
+            ],
+            "gross": [
+                "916",
+                "909.5",
+                "914.5",
+                "896.5",
+                "916",
+                "1008",
+                "928.5",
+                "938.5",
+                "958.5",
+                "824",
+                "517.0979",
+                "125.9021",
+                "590"
+            ],
+            "cbm": [
+                "2.3760",
+                "2.3760",
+                "2.6136",
+                "2.4552",
+                "2.6136",
+                "2.7720",
+                "2.4552",
+                "2.5740",
+                "2.5740",
+                "2.5344",
+                "1.8152",
+                "0.4420",
+                "1.9008"
+            ],
+            "inv_no": [
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015",
+                "OJY25015"
+            ],
+            "inv_ref": [
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229",
+                "CLF2025-229"
+            ],
+            "inv_date": [
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025",
+                "29/07/2025"
+            ]
+        }
+    },
+    "standard_aggregation_results": {
+        "('GYOJY_M24363', 'BLACK CHERRY BLACK 656', Decimal('1.26'), None)": {
+            "sqft_sum": "113991.1",
+            "amount_sum": "143628.786"
+        },
+        "('GYOJY_M24363', 'BLACK CHERRY BLACK 656', Decimal('1.01'), None)": {
+            "sqft_sum": "1410.8",
+            "amount_sum": "1424.908"
+        }
+    },
+    "custom_aggregation_results": {
+        "('GYOJY_M24363', 'BLACK CHERRY BLACK 656', None, None)": {
+            "sqft_sum": "115401.9",
+            "amount_sum": "145053.694"
+        }
+    },
+    "final_fob_compounded_result": {
+        "1": {
+            "combined_po": "GYOJY_M24363",
+            "combined_item": "BLACK CHERRY BLACK 656",
+            "combined_description": "",
+            "total_sqft": "115401.9",
+            "total_amount": "145053.694"
+        }
+    }
+}
