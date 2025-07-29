@@ -39,9 +39,22 @@
     "step1_title": "### Step 1: Prepare Your Excel File",
     "step1_desc": "- Use your existing Excel format\n- Make sure it has columns like:\n  - PO Number\n  - Item Code\n  - Quantity\n  - Price\n  - Amount",
     "step2_title": "### Step 2: Upload & Process",
-    "step2_desc": "- Go to the appropriate page:\n  - \"High Quality Leather\" for premium products\n  - \"2nd Layer Leather\" for secondary products\n- Upload your Excel file\n- Click \"Process\"",
-    "step3_title": "### Step 3: Review & Approve",
-    "step3_desc": "- Check the \"Verify\" page\n- Review the processed data\n- Click \"Accept\" to add to database\n- Your invoices are ready!"
+    "step2_desc": "- Go to `0_Generate Invoice.py` page\n- Choose the appropriate tab:\n  - \"High Quality Leather\" for premium products\n  - \"2nd Layer Leather\" for secondary products\n- Upload your Excel file\n- System automatically processes and validates",
+    "step3_title": "### Step 3: Review & Download",
+    "step3_desc": "- Review validation results\n- Add any optional overrides\n- Select invoice versions to generate\n- Download your completed invoices",
+    "system_pages_overview": "🗂️ System Pages Overview",
+    "main_pages_title": "#### 📄 Main Pages:",
+    "main_pages_list": [
+      "**`0_Generate Invoice.py`** - Main invoice generation (both leather types)",
+      "**`1_Verify_Data_To_Insert.py`** - Manual data entry and amendments",
+      "**`997_Invoice Explorer.py`** - View and manage existing invoices"
+    ],
+    "admin_pages_title": "#### 🛠️ Admin Pages:",
+    "admin_pages_list": [
+      "**`998_Database_Manager.py`** - Backup and database management",
+      "**`999_Guide.py`** - This user guide (current page)"
+    ],
+    "start_here_tip": "💡 **Start Here:** Most users should begin with `0_Generate Invoice.py` for processing Excel files."
   },
   "dashboard": {
     "title": "📊 Understanding the Dashboard",
@@ -73,23 +86,77 @@
   },
   "adding_invoices": {
     "title": "➕ Adding New Invoices",
-    "desc": "There are **two ways** to add invoices to the system:",
+    "desc": "The unified invoice generation system handles both High-Quality and 2nd Layer leather processing in one convenient interface.",
+    "location": "**Location:** Go to `0_Generate Invoice.py` page",
+    "tabs_description": "This page contains **two tabs** for different leather types:",
+    "high_quality_tab": "#### 📋 Tab 1: For High-Quality Leather",
+    "second_layer_tab": "#### 📋 Tab 2: For 2nd Layer Leather",
+    "process_label": "**Process:**",
+    "high_quality_steps": [
+      "Upload your Excel file (.xlsx format)",
+      "System automatically processes and validates data", 
+      "Review validation results and missing fields",
+      "Add optional overrides (Invoice No, Ref, Date, Containers)",
+      "Select invoice versions (Normal, FOB, Combine)",
+      "Generate and download final invoices as ZIP"
+    ],
+    "second_layer_steps": [
+      "Upload your Excel file (.xlsx format)",
+      "Enter invoice details (Reference, Date, Unit Price)",
+      "System processes file and creates JSON data",
+      "Review invoice summary with metrics",
+      "Download generated documents and data as ZIP"
+    ],
+    "high_quality_best_for": "✅ **Best for:** Complex invoices with multiple product lines",
+    "second_layer_best_for": "✅ **Best for:** Simpler invoices with aggregated data",
+    "automatic_processing": "#### ⚡ Automatic Processing",
+    "flexible_overrides": "#### 🎛️ Flexible Overrides", 
+    "complete_output": "#### 📦 Complete Output",
+    "automatic_features": [
+      "- Real-time validation",
+      "- Cambodia timezone support",
+      "- Duplicate detection", 
+      "- Smart invoice reference suggestions"
+    ],
+    "flexible_features": [
+      "- Custom invoice numbers",
+      "- Date modifications",
+      "- Container/truck information",
+      "- Multiple output formats"
+    ],
+    "complete_features": [
+      "- Multiple invoice versions",
+      "- JSON data files", 
+      "- ZIP packaging",
+      "- Ready for distribution"
+    ],
+    "verification_desc": "After processing, the system provides comprehensive validation:",
+    "verification_features": [
+      "**Automatic Field Validation:** System checks for all required data fields",
+      "**Missing Data Alerts:** Clear warnings for any missing information", 
+      "**Database Duplicate Check:** Prevents duplicate invoice numbers/references",
+      "**Real-time Preview:** See exactly what will be generated before final processing",
+      "**Cambodia Timezone:** All timestamps use Asia/Phnom_Penh timezone"
+    ],
+    "pro_tip": "💡 **Pro Tip:** The unified interface eliminates the need to switch between different pages - everything is handled in one place!",
     "method1_title": "Method 1: Using the Web Forms",
     "high_quality_steps": "#### For High Quality Leather:",
     "high_quality_list": [
-      "Click \"**High Quality Leather**\" in the sidebar",
-      "Upload your Excel file",
-      "Fill in any additional information",
-      "Click \"**Process File**\"",
-      "Wait for processing to complete"
+      "Go to `0_Generate Invoice.py` page",
+      "Click the \"For High-Quality Leather\" tab",
+      "Upload your Excel file (.xlsx format)",
+      "System automatically processes and validates data",
+      "Add optional overrides (Invoice No, Ref, Date, Containers)",
+      "Select invoice versions and generate final invoices"
     ],
     "second_layer_steps": "#### For 2nd Layer Leather:",
     "second_layer_list": [
-      "Click \"**2nd Layer Leather**\" in the sidebar",
-      "Upload your Excel file",
-      "Fill in any additional information",
-      "Click \"**Process File**\"",
-      "Wait for processing to complete"
+      "Go to `0_Generate Invoice.py` page",
+      "Click the \"For 2nd Layer Leather\" tab",
+      "Upload your Excel file (.xlsx format)",
+      "Enter invoice details (Reference, Date, Unit Price)",
+      "Review invoice summary with metrics",
+      "Download generated documents and data as ZIP"
     ],
     "method2_title": "Method 2: Direct File Processing",
     "method2_list": [
@@ -116,51 +183,161 @@
   },
   "managing_data": {
     "title": "✏️ Managing Your Invoice Data",
-    "viewing_database": "🔍 Viewing Your Database",
-    "viewing_desc": "The \"**Database**\" page lets you:",
+    "system_overview": "The system provides comprehensive tools for viewing, editing, and managing your invoice database. Here's how to use each component:",
+    "viewing_database": "🔍 Viewing & Exploring Invoices",
+    "viewing_desc": "The `997_Invoice Explorer.py` page lets you:",
+    "main_features": "#### 📊 Main Features:",
     "viewing_features": [
-      "See all your invoices",
-      "Filter by date, PO number, or item",
-      "Search for specific records",
-      "Export data to Excel"
+      "View all invoices in a searchable table",
+      "Filter by date ranges, invoice numbers, or references",
+      "Export data to Excel or CSV formats",
+      "See invoice summaries and totals",
+      "Check invoice status (active/voided)",
+      "View container information for each invoice",
+      "**Direct Editing:** ✏️ Edit This Invoice button",
+      "**Void Functionality:** 🚫 Void Invoice button with confirmation"
     ],
-    "editing_invoices": "✏️ Editing Invoices",
-    "editing_desc": "To edit an existing invoice:",
-    "editing_steps": [
-      "Go to \"**Edit Invoice**\" page",
-      "Search for the invoice by:",
-      "- Invoice Number, or",
-      "- Invoice Reference",
-      "Select the invoice from the list",
-      "Make your changes in the data editor",
-      "Update container/truck information if needed",
-      "Click \"**💾 Save Changes**\""
+    "export_features": [
+      "**Excel Export:** Download filtered data as .xlsx",
+      "**CSV Export:** Export for external analysis",
+      "**Summarized Reports:** Aggregate data by invoice",
+      "**Detailed Reports:** Complete line-item data",
+      "**Date Range Exports:** Export specific time periods"
     ],
-    "voiding_invoices": "🗑️ Voiding Invoices",
-    "voiding_desc": "To void (cancel) an invoice:",
+    "action_buttons": "#### 🎛️ Invoice Action Buttons",
+    "action_buttons_desc": "Each invoice in the summary table has three action buttons:",
+    "view_button": "**📄 View Line Items**",
+    "view_features": [
+      "- Shows detailed breakdown",
+      "- All product lines displayed",
+      "- Read-only view",
+      "- Click again to hide"
+    ],
+    "edit_button": "**✏️ Edit This Invoice**",
+    "edit_button_features": [
+      "- Opens interactive editor",
+      "- Modify any field values",
+      "- Add/remove product lines",
+      "- Save changes to database"
+    ],
+    "void_button": "**🚫 Void Invoice**",
+    "void_button_features": [
+      "- Marks invoice as cancelled",
+      "- Requires confirmation",
+      "- Excludes from totals",
+      "- Can be reactivated later"
+    ],
+    "direct_editing": "✏️ Direct Invoice Editing",
+    "direct_editing_location": "**Location:** `997_Invoice Explorer.py` (Invoice Summary Tab)",
+    "direct_editing_desc": "**The system provides powerful direct editing capabilities right in the Invoice Explorer!**",
+    "how_to_edit": "#### 🎯 How to Edit Invoices:",
+    "edit_steps_detailed": [
+      "Go to `997_Invoice Explorer.py`",
+      "Navigate to the 'Invoice Summary' tab",
+      "Find the invoice you want to edit",
+      "Click the **'✏️ Edit This Invoice'** button",
+      "Use the interactive data editor to modify:",
+      "  - Invoice numbers, references, dates, PO numbers",
+      "  - Item codes, descriptions, quantities",
+      "  - Prices, amounts, weights, dimensions",
+      "  - Production order numbers",
+      "Edit container/truck information",
+      "Click **'💾 Save Changes'** to update database"
+    ],
+    "edit_features": "#### ⚡ Edit Features:",
+    "edit_features_list": [
+      "**Interactive Data Editor:** Spreadsheet-like interface",
+      "**Add/Remove Rows:** Dynamic row management",
+      "**Field Validation:** System prevents invalid changes and duplicate references",
+      "**Container Management:** Edit shipping container info",
+      "**Flexible References:** Invoice references can be changed (with duplicate checking)",
+      "**Real-time Preview:** See changes before saving",
+      "**Automatic Updates:** Summary tables updated instantly",
+      "**Error Handling:** Clear error messages if issues occur"
+    ],
+    "json_upload": "📁 Adding & Amending via JSON Upload",
+    "json_upload_location": "**Location:** `1_Verify_Data_To_Insert.py`",
+    "adding_new_data": "#### 🆕 Adding New Data:",
+    "adding_when_to_use": "**When to use:** You have JSON data from invoice generation that needs to be added to the database.",
+    "adding_steps": [
+      "Upload your JSON file (from invoice generation)",
+      "System automatically detects data structure",
+      "Review the data preview table",
+      "Check for any validation warnings",
+      "Click 'Insert Data' to add to database",
+      "System creates summary records automatically"
+    ],
+    "amending_data": "#### 🔄 Amending Existing Data:",
+    "amending_when_to_use": "**When to use:** You need to update or correct existing invoice information.",
+    "amending_steps": [
+      "Upload JSON with corrected data",
+      "System detects existing invoice by reference/number",
+      "Shows 'AMENDMENT' mode with before/after comparison",
+      "Review changes in the preview",
+      "Confirm amendment to update database",
+      "Original data is archived automatically"
+    ],
+    "amendment_warning": "⚠️ **Important:** Amendments update existing records. The system automatically archives the original data for safety.",
+    "reprocessing": "🔄 Alternative: Re-processing with Overrides",
+    "reprocessing_location": "**Location:** `0_Generate Invoice.py`",
+    "reprocessing_when_to_use": "**When to use:** You want to regenerate invoices with different information (numbers, dates, containers).",
+    "reprocessing_steps": [
+      "Upload the original Excel file again",
+      "Use the override fields to make changes:",
+      "  - Invoice Number",
+      "  - Invoice Reference",
+      "  - Invoice Date",
+      "  - Container/Truck information",
+      "Generate new invoice versions",
+      "Download updated files"
+    ],
+    "reprocessing_tip": "💡 **Pro Tip:** This method generates new files but doesn't automatically update the database. Use the Verify page to add the new data.",
+    "status_management": "🗑️ Managing Invoice Status",
+    "voiding_invoices_detailed": "#### Voiding Invoices:",
+    "voiding_desc": "**Location:** `997_Invoice Explorer.py` (Invoice Summary Tab)",
     "voiding_steps": [
-      "Go to \"**Void Invoice**\" page",
-      "Search for the invoice",
-      "Select it from the list",
-      "Click \"**Void Invoice**\"",
-      "Confirm your action"
+      "Go to `997_Invoice Explorer.py`",
+      "Find the invoice in the Invoice Summary tab",
+      "Click the **'🚫 Void Invoice'** button",
+      "System shows confirmation warning",
+      "Click **'✅ Yes, Confirm Void'** to proceed",
+      "Invoice status changes to 'voided' and is excluded from totals"
     ],
-    "voiding_note": "**Note**: Voided invoices are not deleted, just marked as inactive.",
-    "backup_export": "💾 Backup & Export",
-    "backup_title": "#### Creating Backups:",
-    "backup_steps": [
-      "Go to \"**Backup Database**\"",
-      "Click \"**Create Backup**\"",
-      "Your data is safely stored",
-      "Keep backups regularly!"
+    "voiding_note": "**Note**: Voiding is reversible - you can reactivate voided invoices if needed.",
+    "status_tracking": "#### ♻️ Status Management:",
+    "status_info": [
+      "**Active Status:** Normal, valid invoices (included in totals)",
+      "**Voided Status:** Cancelled invoices (excluded from totals)",
+      "**Reactivation:** Voided invoices can be reactivated",
+      "**Visual Indicators:** Voided invoices are clearly marked",
+      "**Disabled Actions:** Cannot edit or void already-voided invoices",
+      "**Audit Trail:** All status changes are tracked",
+      "**Automatic Updates:** Grand totals update immediately",
+      "**Data Preservation:** No data is ever permanently deleted"
     ],
-    "export_title": "#### Exporting Data:",
-    "export_steps": [
-      "Go to \"**Export Data**\"",
-      "Choose your filters",
-      "Select export format",
-      "Download your file"
-    ]
+    "database_management": "💾 Database Management & Backup",
+    "database_location": "**Location:** `998_Database_Manager.py`",
+    "backup_features": "#### 🔒 Backup Features:",
+    "backup_features_list": [
+      "**Create Backups:** Generate timestamped database copies",
+      "**Restore from Backup:** Revert to previous database state",
+      "**Backup Management:** View and delete old backups",
+      "**Cambodia Timezone:** Backup timestamps use local time"
+    ],
+    "admin_warning": "⚠️ **Admin Only:** Backup operations require administrator access.",
+    "safety_features": "#### 🛡️ Safety Features:",
+    "safety_features_list": [
+      "**Confirmation Required:** Multiple confirmations for destructive operations",
+      "**Automatic Timestamps:** All backups are dated",
+      "**Amendment Archives:** Original data is preserved during updates",
+      "**Database Integrity:** System maintains data consistency"
+    ],
+    "best_practice": "💡 **Best Practice:** Create regular backups before making major changes to your invoice database!",
+    "export_options_title": "#### 📤 Export Options:",
+    "cambodia_timezone_info": "🕐 **Cambodia Timezone:** All timestamps display in Asia/Phnom_Penh timezone regardless of server location!",
+    "two_scenarios": "This page handles two main scenarios:",
+    "void_functionality_desc": "**The system has built-in void functionality:**",
+    "void_use_cases": "💡 **Use Cases:** Void invoices for cancellations, corrections, or duplicate entries. Reactivate if voided by mistake."
   },
   "header_mapping": {
     "title": "🔧 Excel Header Mapping Guide",
@@ -244,7 +421,11 @@
     "common_issues": "🚨 Common Issues",
     "issue0_title": "🔧 MOST COMMON: Headers not recognized",
     "issue0_desc": "**90% of problems are caused by incorrect column headers!**",
-    "issue0_solution": "**SOLUTION: Go to Header Mapping tab and use these exact headers:**",
+    "issue0_solution": "**SOLUTION:** Check the Header Mapping tab in this guide for the exact headers needed.",
+    "hq_headers_label": "**Required headers for High-Quality Leather:**",
+    "hq_headers_list": ["inv_no", "inv_date", "inv_ref", "po", "item", "pcs", "sqft", "pallet_count", "unit", "amount", "net", "gross", "cbm", "production_order_no"],
+    "second_layer_note": "**For 2nd Layer Leather:** Headers are more flexible but must include PO, item descriptions, quantities, and weights.",
+    "solution_tip": "💡 This solves 90% of processing problems!",
     "issue0_headers": [
       "'po' for PO numbers",
       "'item' for item codes",

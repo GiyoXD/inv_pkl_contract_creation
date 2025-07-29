@@ -60,20 +60,44 @@ def get_invoice_containers(inv_ref):
         cursor.execute(f"SELECT container_description FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (inv_ref,))
         return [row[0] for row in cursor.fetchall()]
 
-def update_invoice_data(inv_ref, edited_df, container_list):
+def update_invoice_data(original_inv_ref, edited_df, container_list):
+    """
+    Updates invoice data, handling inv_ref changes properly.
+    original_inv_ref: The original invoice reference (used to find existing records)
+    edited_df: The edited dataframe (may contain new inv_ref values)
+    """
     with sqlite3.connect(DATABASE_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("BEGIN TRANSACTION;")
         try:
-            # ... (rest of function is unchanged)
-            cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (inv_ref,))
-            cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (inv_ref,))
+            # Get the new inv_ref from the edited data (all rows should have the same inv_ref)
+            new_inv_refs = edited_df['inv_ref'].unique()
+            if len(new_inv_refs) != 1:
+                raise ValueError("All rows must have the same invoice reference")
+            new_inv_ref = new_inv_refs[0]
+            
+            # Check if the new inv_ref already exists (and it's not the same as original)
+            if new_inv_ref != original_inv_ref:
+                cursor.execute(f"SELECT COUNT(*) FROM {TABLE_NAME} WHERE inv_ref = ? AND inv_ref != ?", (new_inv_ref, original_inv_ref))
+                if cursor.fetchone()[0] > 0:
+                    raise ValueError(f"Invoice reference '{new_inv_ref}' already exists in the database")
+            
+            # Delete old records using original inv_ref
+            cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (original_inv_ref,))
+            cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (original_inv_ref,))
+            cursor.execute(f"DELETE FROM {SUMMARY_TABLE_NAME} WHERE inv_ref = ?", (original_inv_ref,))
+            
+            # Insert new records with potentially new inv_ref
             df_to_save = edited_df.copy()
             df_to_save['status'] = 'active'
             df_to_save.to_sql(TABLE_NAME, conn, if_exists='append', index=False)
+            
+            # Insert container data with new inv_ref
             if container_list:
-                container_data = [(inv_ref, desc) for desc in container_list]
+                container_data = [(new_inv_ref, desc) for desc in container_list]
                 cursor.executemany(f"INSERT INTO {CONTAINER_TABLE_NAME} (inv_ref, container_description) VALUES (?, ?)", container_data)
+            
+            # Update summary with new inv_ref
             summary_update_query = f"""
                 REPLACE INTO {SUMMARY_TABLE_NAME} (inv_ref, inv_no, inv_date, status, total_sqft, total_amount, total_pcs, total_net, total_gross, total_cbm, creating_date, containers)
                 SELECT
@@ -83,9 +107,11 @@ def update_invoice_data(inv_ref, edited_df, container_list):
                     COALESCE(SUM(CAST(i.gross AS REAL)), 0), COALESCE(SUM(CAST(i.cbm AS REAL)), 0),
                     MAX(i.creating_date), (SELECT GROUP_CONCAT(c.container_description, ', ') FROM {CONTAINER_TABLE_NAME} c WHERE c.inv_ref = i.inv_ref)
                 FROM {TABLE_NAME} i WHERE i.inv_ref = ? GROUP BY i.inv_ref """
-            cursor.execute(summary_update_query, (inv_ref,))
+            cursor.execute(summary_update_query, (new_inv_ref,))
             cursor.execute("COMMIT;")
+            # Clear all relevant caches
             get_overall_grand_totals.clear()
+            find_active_invoices.clear()
         except Exception as e:
             cursor.execute("ROLLBACK;")
             raise e
@@ -95,11 +121,12 @@ def void_invoice_action(inv_ref_to_void):
         cursor = conn.cursor()
         cursor.execute("BEGIN TRANSACTION;")
         try:
-            # ... (rest of function is unchanged)
             cursor.execute(f"UPDATE {TABLE_NAME} SET status = 'voided' WHERE inv_ref = ?", (inv_ref_to_void,))
             cursor.execute(f"UPDATE {SUMMARY_TABLE_NAME} SET status = 'voided' WHERE inv_ref = ?", (inv_ref_to_void,))
             conn.commit()
+            # Clear all relevant caches
             get_overall_grand_totals.clear()
+            find_active_invoices.clear()
         except Exception as e:
             cursor.execute("ROLLBACK;")
             raise e
@@ -109,11 +136,12 @@ def reactivate_invoice_action(inv_ref_to_reactivate):
         cursor = conn.cursor()
         cursor.execute("BEGIN TRANSACTION;")
         try:
-            # ... (rest of function is unchanged)
             cursor.execute(f"UPDATE {TABLE_NAME} SET status = 'active' WHERE inv_ref = ?", (inv_ref_to_reactivate,))
             cursor.execute(f"UPDATE {SUMMARY_TABLE_NAME} SET status = 'active' WHERE inv_ref = ?", (inv_ref_to_reactivate,))
             conn.commit()
+            # Clear all relevant caches
             get_overall_grand_totals.clear()
+            find_active_invoices.clear()
         except Exception as e:
             cursor.execute("ROLLBACK;")
             raise e
@@ -123,12 +151,13 @@ def permanently_delete_invoice_action(inv_ref_to_delete):
         cursor = conn.cursor()
         cursor.execute("BEGIN TRANSACTION;")
         try:
-            # ... (rest of function is unchanged)
             cursor.execute(f"DELETE FROM {TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_delete,))
             cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_delete,))
             cursor.execute(f"DELETE FROM {SUMMARY_TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_delete,))
             conn.commit()
+            # Clear all relevant caches
             get_overall_grand_totals.clear()
+            find_active_invoices.clear()
         except Exception as e:
             cursor.execute("ROLLBACK;")
             raise e
@@ -167,7 +196,17 @@ with tab1:
         cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
         today_date_summary = datetime.now(cambodia_tz).date()
         st.date_input("Filter by Creation Date Range:", value=st.session_state.get('summary_date_range'), key='summary_date_range')
-        st.button("Reset Summary Filters", on_click=reset_summary_filters_and_page, use_container_width=True, key="reset_summary")
+        
+        filter_button_col1, filter_button_col2 = st.columns(2)
+        filter_button_col1.button("Reset Summary Filters", on_click=reset_summary_filters_and_page, use_container_width=True, key="reset_summary")
+        
+        # Add manual cache refresh button
+        def clear_all_caches():
+            get_overall_grand_totals.clear()
+            find_active_invoices.clear()
+            st.success("Cache refreshed! Totals updated.")
+        
+        filter_button_col2.button("🔄 Refresh Totals", on_click=clear_all_caches, use_container_width=True, key="refresh_cache", help="Click if totals seem outdated")
 
     # Initialize filtered_totals to None
     filtered_totals = None
@@ -209,16 +248,25 @@ with tab1:
             count_query = f"SELECT COUNT(*) {base_query} {where_clause}"
             total_items = conn.execute(count_query, params).fetchone()[0]
 
-            # --- NEW: FAST SUMMATION FOR FILTERED RESULTS ---
+            # --- NEW: FAST SUMMATION FOR FILTERED RESULTS (ACTIVE ONLY) ---
             if where_clause:
+                # Add status = 'active' condition to filtered totals
+                active_condition = "status = 'active'"
+                if conditions:
+                    where_clause_with_active = f"WHERE {' AND '.join(conditions)} AND {active_condition}"
+                    params_with_active = params
+                else:
+                    where_clause_with_active = f"WHERE {active_condition}"
+                    params_with_active = []
+                
                 sum_query = f"""
                     SELECT
                         COALESCE(SUM(total_sqft), 0), COALESCE(SUM(total_amount), 0),
                         COALESCE(SUM(total_pcs), 0), COALESCE(SUM(total_net), 0),
                         COALESCE(SUM(total_gross), 0), COALESCE(SUM(total_cbm), 0)
-                    {base_query} {where_clause}
+                    {base_query} {where_clause_with_active}
                 """
-                filtered_totals = conn.execute(sum_query, params).fetchone()
+                filtered_totals = conn.execute(sum_query, params_with_active).fetchone()
 
             ITEMS_PER_PAGE = 15
             total_pages = math.ceil(total_items / ITEMS_PER_PAGE) if total_items > 0 else 1
@@ -264,7 +312,7 @@ with tab1:
                             st.warning("Are you sure? This is reversible.")
                             confirm_c1, confirm_c2 = st.columns(2)
                             if confirm_c1.button("✅ Yes, Confirm Void", key=f"void_confirm_btn_{row.inv_ref}", use_container_width=True, type="primary"):
-                                void_invoice_action(row.inv_ref); st.success(f"Invoice '{row.inv_ref}' has been voided."); del st.session_state.void_confirm_ref; find_active_invoices.clear(); st.rerun()
+                                void_invoice_action(row.inv_ref); st.success(f"Invoice '{row.inv_ref}' has been voided."); del st.session_state.void_confirm_ref; get_overall_grand_totals.clear(); find_active_invoices.clear(); st.rerun()
                             if confirm_c2.button("❌ No, Cancel", key=f"void_cancel_btn_{row.inv_ref}", use_container_width=True):
                                 del st.session_state.void_confirm_ref; st.rerun()
                         else:
@@ -300,7 +348,7 @@ with tab1:
                             num_rows="dynamic",
                             key=f"editor_{row.inv_ref}",
                             use_container_width=True,
-                            disabled=['id', 'inv_ref']
+                            disabled=['id']  # Only disable 'id', allow inv_ref editing
                         )
                         st.subheader("Containers / Trucks (One per line)")
                         edited_containers_text = st.text_area(
@@ -312,21 +360,31 @@ with tab1:
                         
                         # The Save button now reads the current state of the widgets and saves to DB.
                         if st.button("💾 Save Changes", type="primary", use_container_width=True, key=f"save_{row.inv_ref}"):
-                            if not (edited_df['inv_ref'] == row.inv_ref).all():
-                                st.error(f"Error: The 'inv_ref' column cannot be changed. It must remain '{row.inv_ref}'.")
-                            else:
-                                try:
+                            try:
+                                # Validate that all rows have the same inv_ref
+                                unique_refs = edited_df['inv_ref'].unique()
+                                if len(unique_refs) != 1:
+                                    st.error("Error: All rows must have the same invoice reference.")
+                                else:
+                                    new_inv_ref = unique_refs[0]
                                     containers_to_save = [line.strip() for line in edited_containers_text.split('\n') if line.strip()]
+                                    
+                                    # Use the updated function with original and new inv_ref
                                     update_invoice_data(row.inv_ref, edited_df, containers_to_save)
-                                    st.success(f"Invoice '{row.inv_ref}' has been updated successfully!")
+                                    
+                                    if new_inv_ref != row.inv_ref:
+                                        st.success(f"Invoice reference changed from '{row.inv_ref}' to '{new_inv_ref}' and data updated successfully!")
+                                    else:
+                                        st.success(f"Invoice '{row.inv_ref}' has been updated successfully!")
 
                                     # Clear caches and session state to reflect changes
+                                    get_overall_grand_totals.clear()
                                     find_active_invoices.clear()
                                     cancel_edit_action(row.inv_ref) # Clear edit state
                                     st.rerun() # Rerun to show the updated, non-edit view
 
-                                except Exception as e:
-                                    st.error(f"Failed to save changes. Error: {e}")
+                            except Exception as e:
+                                st.error(f"Failed to save changes. Error: {e}")
 
                 # Management area for voided invoices
                 if is_voided:
@@ -335,17 +393,17 @@ with tab1:
                     with manage_col1:
                         st.info("This invoice can be restored to an active state.")
                         if st.button("✅ Restore Invoice", key=f"restore_btn_{row.inv_ref}", use_container_width=True, type="primary"):
-                            reactivate_invoice_action(row.inv_ref); st.success(f"Invoice '{row.inv_ref}' has been restored to active status."); find_active_invoices.clear(); st.rerun()
+                            reactivate_invoice_action(row.inv_ref); st.success(f"Invoice '{row.inv_ref}' has been restored to active status."); get_overall_grand_totals.clear(); find_active_invoices.clear(); st.rerun()
                     with manage_col2:
                         st.error("**DANGER ZONE: Permanent Deletion**")
                         if st.checkbox("I understand this cannot be undone.", key=f"del_check_{row.inv_ref}"):
                             if st.button("❌ DELETE FOREVER", key=f"del_btn_{row.inv_ref}", use_container_width=True):
-                                permanently_delete_invoice_action(row.inv_ref); st.success(f"Invoice '{row.inv_ref}' was permanently deleted."); find_active_invoices.clear(); st.rerun()
+                                permanently_delete_invoice_action(row.inv_ref); st.success(f"Invoice '{row.inv_ref}' was permanently deleted."); get_overall_grand_totals.clear(); find_active_invoices.clear(); st.rerun()
 
         # --- NEW: DISPLAY FILTERED TOTALS ---
         if filtered_totals:
             st.markdown("---")
-            st.subheader("Totals for Filtered Results")
+            st.subheader("Totals for Filtered Results (Active Invoices Only)")
             ft_sqft, ft_amount, ft_pcs, ft_net, ft_gross, ft_cbm = filtered_totals
             ft_col1, ft_col2, ft_col3 = st.columns(3)
             ft_col1.metric("Total Sqft", f"{ft_sqft:,.2f}")
@@ -355,6 +413,10 @@ with tab1:
             ft_col4.metric("Total Net Weight (KG)", f"{ft_net:,.2f}")
             ft_col5.metric("Total Gross Weight (KG)", f"{ft_gross:,.2f}")
             ft_col6.metric("Total CBM", f"{ft_cbm:,.3f}")
+            
+            # Show last updated time
+            current_time = datetime.now(cambodia_tz).strftime("%Y-%m-%d %H:%M:%S")
+            st.caption(f"📊 Filtered totals calculated at: {current_time}")
 
         # Pagination controls
         st.markdown("---")
@@ -372,6 +434,10 @@ with tab1:
         total_sqft_sum, total_amount_sum, total_pcs_sum, total_net_sum, total_gross_sum, total_cbm_sum = get_overall_grand_totals()
         gt_col1, gt_col2, gt_col3 = st.columns(3); gt_col1.metric("Total Sqft", f"{total_sqft_sum:,.2f}"); gt_col2.metric("Total Amount", f"$ {total_amount_sum:,.2f}"); gt_col3.metric("Total Pcs", f"{total_pcs_sum:,.0f}")
         gt_col4, gt_col5, gt_col6 = st.columns(3); gt_col4.metric("Total Net Weight (KG)", f"{total_net_sum:,.2f}"); gt_col5.metric("Total Gross Weight (KG)", f"{total_gross_sum:,.2f}"); gt_col6.metric("Total CBM", f"{total_cbm_sum:,.3f}")
+        
+        # Show cache status
+        current_time = datetime.now(cambodia_tz).strftime("%Y-%m-%d %H:%M:%S")
+        st.caption(f"📊 Grand totals last updated: {current_time} | Use 'Refresh Totals' button if data seems outdated")
     except Exception as e:
         st.error(f"Could not calculate grand totals: {e}")
 
