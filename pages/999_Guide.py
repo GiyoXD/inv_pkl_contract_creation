@@ -1,6 +1,12 @@
 import streamlit as st
 import json
 import os
+from login import check_authentication, show_logout_button, show_user_info
+
+# --- Authentication Check ---
+user_info = check_authentication()
+if not user_info:
+    st.stop()
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -8,6 +14,10 @@ st.set_page_config(
     page_icon="📖",
     layout="wide"
 )
+
+# Show user info and logout button in sidebar
+show_user_info()
+show_logout_button()
 
 # --- Load Translation Function ---
 def load_translations(language_code):

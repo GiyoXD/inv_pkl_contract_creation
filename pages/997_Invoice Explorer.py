@@ -7,11 +7,21 @@ import math
 import io
 import csv
 from zoneinfo import ZoneInfo
+from login import check_authentication, show_logout_button, show_user_info
+
+# --- Authentication Check ---
+user_info = check_authentication()
+if not user_info:
+    st.stop()
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Invoice Management Suite", layout="wide")
 st.title("Invoice Management Suite 🧭")
 st.info("Use the tabs to view the invoice summary, generate reports, or manage invoice status.")
+
+# Show user info and logout button in sidebar
+show_user_info()
+show_logout_button()
 
 # --- Shared Configuration ---
 DATA_ROOT = "data"

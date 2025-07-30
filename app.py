@@ -3,6 +3,12 @@ import pandas as pd
 import sqlite3
 import os
 from datetime import datetime, timedelta
+from login import check_authentication, show_logout_button, show_user_info
+
+# --- Authentication Check ---
+user_info = check_authentication()
+if not user_info:
+    st.stop()
 
 # --- Page Configuration ---
 # This should be the first Streamlit command in your app
@@ -12,8 +18,13 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- User Interface ---
 st.title("📊 Invoice Dashboard")
 st.info("This is the main dashboard. Select other actions from the sidebar.")
+
+# Show user info and logout button in sidebar
+show_user_info()
+show_logout_button()
 
 # --- Configuration ---
 # All data-related folders are now located inside the main 'data' directory.

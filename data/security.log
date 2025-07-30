@@ -1,0 +1,161 @@
+2025-07-30 15:32:28,711 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:28,734 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:28,739 - ERROR - Failed to reset failed attempts: no such column: failed_attempts
+2025-07-30 15:32:28,743 - ERROR - Login failed: table sessions has no column named ip_address
+2025-07-30 15:32:28,764 - WARNING - Security Event: LOGIN_ERROR by menchayheng (unknown) - Success: False - Error: table sessions has no column named ip_address
+2025-07-30 15:32:28,766 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:40,815 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:40,839 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:40,842 - ERROR - Failed to reset failed attempts: no such column: failed_attempts
+2025-07-30 15:32:40,847 - ERROR - Login failed: table sessions has no column named ip_address
+2025-07-30 15:32:40,872 - WARNING - Security Event: LOGIN_ERROR by menchayheng (unknown) - Success: False - Error: table sessions has no column named ip_address
+2025-07-30 15:32:40,879 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:48,470 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:48,480 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:32:48,485 - ERROR - Failed to reset failed attempts: no such column: failed_attempts
+2025-07-30 15:32:48,489 - ERROR - Login failed: table sessions has no column named ip_address
+2025-07-30 15:32:48,500 - WARNING - Security Event: LOGIN_ERROR by menchayheng (unknown) - Success: False - Error: table sessions has no column named ip_address
+2025-07-30 15:32:48,502 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:33:15,242 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:33:15,279 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 15:33:15,285 - ERROR - Failed to reset failed attempts: no such column: failed_attempts
+2025-07-30 15:33:15,297 - ERROR - Login failed: table sessions has no column named ip_address
+2025-07-30 15:33:15,322 - WARNING - Security Event: LOGIN_ERROR by menchayheng (unknown) - Success: False - Error: table sessions has no column named ip_address
+2025-07-30 15:33:15,324 - ERROR - Account lock check failed: no such column: failed_attempts
+2025-07-30 16:15:46,204 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-30 16:17:45,638 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-30 16:18:25,363 - INFO - Security Event: LOGIN_SUCCESS by promprach (unknown) - Success: True - IP: unknown
+2025-07-30 16:19:11,556 - INFO - Security Event: LOGOUT by promprach (unknown) - Success: True - IP: unknown
+2025-07-30 16:19:21,361 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-30 16:19:59,897 - WARNING - Security Event: LOGIN_FAILED by promprach (unknown) - Success: False - IP: unknown
+2025-07-30 16:20:05,571 - INFO - Security Event: LOGIN_SUCCESS by promprach (unknown) - Success: True - IP: unknown
+2025-07-30 16:20:21,611 - INFO - --- Starting Invoice Automation ---
+2025-07-30 16:20:21,611 - INFO - Using input Excel path from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\TR.xlsx
+2025-07-30 16:20:21,611 - INFO - Processing workbook: TR.xlsx
+2025-07-30 16:20:21,612 - INFO - Using output directory from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process
+2025-07-30 16:20:21,613 - INFO - Checking workbook filename 'TR.xlsx' to determine PRIMARY aggregation mode for FOB compounding.
+2025-07-30 16:20:21,613 - WARNING - cfg.CUSTOM_AGGREGATION_WORKBOOK_PREFIXES is not a list. Using empty list.
+2025-07-30 16:20:21,613 - INFO - Workbook filename does not match custom prefixes. Will use STANDARD aggregation results for FOB compounding.
+2025-07-30 16:20:21,613 - INFO - Loading workbook from: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\TR.xlsx
+2025-07-30 16:20:21,613 - INFO - Initialized ExcelHandler for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\TR.xlsx
+2025-07-30 16:20:21,613 - INFO - Attempting to load workbook 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\TR.xlsx' with data_only=True
+2025-07-30 16:20:21,650 - INFO - No sheet name specified. Successfully loaded active sheet: 'Sheet1'
+2025-07-30 16:20:21,651 - INFO - Sheet dimensions: Max Row=53, Max Col=15
+2025-07-30 16:20:21,651 - INFO - Successfully loaded worksheet: 'Sheet1' from 'TR.xlsx'
+2025-07-30 16:20:21,651 - INFO - Searching for the primary header row using smart detection...
+2025-07-30 16:20:21,651 - INFO - [find_and_map_smart_headers_v12] Starting best-fit header search...
+2025-07-30 16:20:21,652 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 1 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,652 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 2 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,652 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 3 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,653 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 4 | Score: 35 | Mapping: {'description': 'A', 'item': 'B', 'po': 'C', 'pallet_count': 'D', 'net': 'E', 'gross': 'F', 'pcs': 'G', 'cbm': 'H'}
+2025-07-30 16:20:21,653 - INFO - [find_and_map_smart_headers_v12] Found new best candidate row at 4 with score 35.
+2025-07-30 16:20:21,653 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 5 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,654 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 6 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,654 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 7 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,654 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 8 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,655 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 9 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,655 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 10 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,655 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 11 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,656 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 12 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,657 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 13 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,658 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 14 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,659 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 15 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,660 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 16 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,660 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 17 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,660 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 18 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,661 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 19 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,661 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 20 | Score: 0 | Mapping: {}
+2025-07-30 16:20:21,661 - INFO - [find_and_map_smart_headers_v12] SUCCESS: Confirmed header row at 4 with final score 35.
+2025-07-30 16:20:21,661 - INFO - Smart detection successful. Found and validated primary header on row 4.
+2025-07-30 16:20:21,661 - INFO - [find_all_header_rows] Searching for additional headers using pattern '^(批次号|订单号|物料代码|总张数|净重|毛重|po|item|pcs|net|gross|TTX编号)$' in rows 5-53
+2025-07-30 16:20:21,664 - INFO - Found a total of 1 table(s) to process at rows: [4]
+2025-07-30 16:20:21,664 - ERROR - Processing halted due to critical error: Essential 'amount' column mapping failed, even with smart detection.
+2025-07-30 16:20:21,664 - INFO - \U0001f552 Processing failed after 0.05 seconds
+2025-07-30 16:20:21,664 - INFO - Closed workbook object reference for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\TR.xlsx
+2025-07-30 16:20:21,665 - INFO - --- Automation Run Complete ---
+2025-07-30 16:20:33,990 - INFO - Security Event: LOGIN_SUCCESS by promprach (unknown) - Success: True - IP: unknown
+2025-07-30 16:20:56,872 - INFO - Security Event: LOGOUT by promprach (unknown) - Success: True - IP: unknown
+2025-07-30 16:21:05,080 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-30 16:22:06,504 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:06,842 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:07,009 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:07,166 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:07,342 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:07,490 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:07,802 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:08,013 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:08,178 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:08,361 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:08,525 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:08,739 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:08,935 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:09,100 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:09,271 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:09,473 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:09,982 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:10,161 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:10,349 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:10,531 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:10,709 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:10,898 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:11,068 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:11,338 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:11,468 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:11,639 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:11,799 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:11,957 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:12,103 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:12,242 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:12,421 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:12,616 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:12,792 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:12,977 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:13,229 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:14,054 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:14,337 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:14,688 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:14,954 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:15,061 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:15,227 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:15,315 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:15,479 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:15,662 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:15,849 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:16,101 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:16,234 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:16,397 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:16,691 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:16,788 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:16,950 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:17,136 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:17,297 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:17,566 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:17,761 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:17,920 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:18,049 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:18,228 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:18,631 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:18,715 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:18,799 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:20,572 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:20,826 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:22,297 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:22,486 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:22,665 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:25,451 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:25,625 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:25,772 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:25,940 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:26,130 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:26,332 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:26,505 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:22:26,656 - WARNING - Security Event: LOGIN_FAILED by 1\u17e1\u17e2\u17e3\u17e1\u17e2 (unknown) - Success: False - IP: unknown
+2025-07-30 16:23:29,240 - WARNING - Security Event: LOGIN_FAILED by promprach (unknown) - Success: False - IP: unknown
+2025-07-30 16:23:29,411 - WARNING - Security Event: LOGIN_FAILED by promprach (unknown) - Success: False - IP: unknown
+2025-07-30 16:23:29,595 - WARNING - Security Event: LOGIN_FAILED by promprach (unknown) - Success: False - IP: unknown
+2025-07-30 16:23:29,761 - WARNING - Security Event: LOGIN_FAILED by promprach (unknown) - Success: False - IP: unknown
+2025-07-30 16:23:29,971 - WARNING - Security Event: LOGIN_FAILED by promprach (unknown) - Success: False - IP: unknown
+2025-07-30 16:23:59,528 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-30 16:24:52,528 - INFO - Security Event: LOGOUT by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-30 16:26:31,234 - WARNING - Security Event: LOGIN_FAILED by menchayheng (unknown) - Success: False - IP: unknown
+2025-07-30 16:26:34,909 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown

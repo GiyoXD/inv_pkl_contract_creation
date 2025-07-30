@@ -5,3 +5,4 @@ streamlit
 pandas
 streamlit_autorefresh
 streamlit_js_eval
+plotly

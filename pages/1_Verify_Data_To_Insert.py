@@ -8,10 +8,20 @@ import shutil
 import json
 import time
 from zoneinfo import ZoneInfo
+from login import check_authentication, show_logout_button, show_user_info
+
+# --- Authentication Check ---
+user_info = check_authentication()
+if not user_info:
+    st.stop()
 
 # --- Page Configuration ---
 st.set_page_config(page_title="Add Invoice", layout="wide")
 st.title("Add / Amend Invoice ➕")
+
+# Show user info and logout button in sidebar
+show_user_info()
+show_logout_button()
 
 # --- Configuration ---
 DATA_ROOT = Path("data")
