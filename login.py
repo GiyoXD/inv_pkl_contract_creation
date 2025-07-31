@@ -5,6 +5,7 @@ import secrets
 import os
 import json
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from session_helper import get_persistent_session, set_persistent_session, clear_persistent_session, get_session_from_cache
 
 # Database paths
@@ -127,10 +128,14 @@ def log_security_event(user_id, event_type, description, ip_address=None, user_a
         conn = sqlite3.connect(USER_DB_PATH)
         cursor = conn.cursor()
         
+        # Use Cambodia timezone for timestamp
+        cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+        cambodia_timestamp = datetime.now(cambodia_tz).strftime('%Y-%m-%d %H:%M:%S')
+        
         cursor.execute('''
-            INSERT INTO security_events (user_id, event_type, description, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, event_type, description, ip_address, user_agent))
+            INSERT INTO security_events (user_id, event_type, description, ip_address, user_agent, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (user_id, event_type, description, ip_address, user_agent, cambodia_timestamp))
         
         conn.commit()
         conn.close()
@@ -161,19 +166,23 @@ def log_business_activity(user_id, activity_type, description, details=None, **k
         if isinstance(new_values, (list, dict)):
             new_values = json.dumps(new_values)
         
+        # Use Cambodia timezone for timestamp
+        cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+        cambodia_timestamp = datetime.now(cambodia_tz).strftime('%Y-%m-%d %H:%M:%S')
+        
         cursor.execute('''
             INSERT INTO business_activities (
                 user_id, activity_type, description, details, 
                 username, target_invoice_ref, target_invoice_no, 
                 action_description, old_values, new_values, 
-                success, error_message, ip_address, user_agent
+                success, error_message, ip_address, user_agent, timestamp
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_id, activity_type, description, details,
             username, target_invoice_ref, target_invoice_no,
             action_description, old_values, new_values,
-            success, error_message, ip_address, user_agent
+            success, error_message, ip_address, user_agent, cambodia_timestamp
         ))
         
         conn.commit()
@@ -184,7 +193,9 @@ def log_business_activity(user_id, activity_type, description, details=None, **k
 def create_session(user_id, ip_address=None, user_agent=None):
     """Create a new session for a user"""
     session_token = secrets.token_urlsafe(32)
-    expires_at = datetime.now() + timedelta(hours=SESSION_TIMEOUT_HOURS)
+    # Use Cambodia timezone for session expiry
+    cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+    expires_at = datetime.now(cambodia_tz) + timedelta(hours=SESSION_TIMEOUT_HOURS)
     
     conn = sqlite3.connect(USER_DB_PATH)
     cursor = conn.cursor()
@@ -255,8 +266,11 @@ def check_authentication():
         user_info = validate_session(session_token)
         if user_info:
             # Check for session timeout warning (1 hour before expiry)
+            cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
             expires_at = datetime.fromisoformat(user_info['expires_at'])
-            time_until_expiry = expires_at - datetime.now()
+            # Make expires_at timezone-aware by assuming it's in Cambodia time
+            expires_at = expires_at.replace(tzinfo=cambodia_tz)
+            time_until_expiry = expires_at - datetime.now(cambodia_tz)
             
             if time_until_expiry.total_seconds() < 3600:  # Less than 1 hour
                 minutes_left = int(time_until_expiry.total_seconds() / 60)
@@ -289,7 +303,8 @@ def authenticate_user(username, password):
     result = cursor.fetchone()
     
     if not result:
-        log_security_event(None, 'LOGIN_FAILED', f'Login attempt with non-existent username: {username}')
+        log_security_event(None, 'LOGIN_FAILED', f'Login attempt with non-existent username: {username}', 
+                          ip_address=get_client_ip(), user_agent=get_user_agent())
         conn.close()
         return False, "Invalid username or password"
     
@@ -297,17 +312,20 @@ def authenticate_user(username, password):
     
     # Check if user is active
     if not is_active:
-        log_security_event(user_id, 'LOGIN_FAILED', 'Login attempt on inactive account')
+        log_security_event(user_id, 'LOGIN_FAILED', 'Login attempt on inactive account',
+                          ip_address=get_client_ip(), user_agent=get_user_agent())
         conn.close()
         return False, "Account is inactive"
     
-    # Check if user is locked
-    if locked_until:
-        locked_until_dt = datetime.fromisoformat(locked_until)
-        if datetime.now() < locked_until_dt:
-            log_security_event(user_id, 'LOGIN_FAILED', 'Login attempt on locked account')
-            conn.close()
-            return False, f"Account is locked until {locked_until_dt.strftime('%Y-%m-%d %H:%M:%S')}"
+            # Check if user is locked
+        if locked_until:
+            cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+            locked_until_dt = datetime.fromisoformat(locked_until)
+            if datetime.now(cambodia_tz) < locked_until_dt:
+                log_security_event(user_id, 'LOGIN_FAILED', 'Login attempt on locked account',
+                                  ip_address=get_client_ip(), user_agent=get_user_agent())
+                conn.close()
+                return False, f"Account is locked until {locked_until_dt.strftime('%Y-%m-%d %H:%M:%S')}"
     
     # Verify password
     if verify_password(password, password_hash):
@@ -322,7 +340,8 @@ def authenticate_user(username, password):
         conn.close()
         
         # Log successful login
-        log_security_event(user_id, 'LOGIN_SUCCESS', 'Successful login')
+        log_security_event(user_id, 'LOGIN_SUCCESS', 'Successful login',
+                          ip_address=get_client_ip(), user_agent=get_user_agent())
         
         return True, {
             'user_id': user_id,
@@ -336,7 +355,8 @@ def authenticate_user(username, password):
         # Lock user if too many failed attempts
         locked_until = None
         if failed_attempts >= 5:
-            locked_until = datetime.now() + timedelta(minutes=30)
+            cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+            locked_until = datetime.now(cambodia_tz) + timedelta(minutes=30)
         
         cursor.execute('''
             UPDATE users 
@@ -348,7 +368,8 @@ def authenticate_user(username, password):
         conn.close()
         
         # Log failed login
-        log_security_event(user_id, 'LOGIN_FAILED', f'Failed login attempt ({failed_attempts}/5)')
+        log_security_event(user_id, 'LOGIN_FAILED', f'Failed login attempt ({failed_attempts}/5)',
+                          ip_address=get_client_ip(), user_agent=get_user_agent())
         
         if locked_until:
             return False, "Too many failed attempts. Account locked for 30 minutes."
@@ -386,7 +407,9 @@ def show_login_page():
                     user_info = result
                     
                     # Create session
-                    session_token = create_session(user_info['user_id'])
+                    session_token = create_session(user_info['user_id'], 
+                                                 ip_address=get_client_ip(), 
+                                                 user_agent=get_user_agent())
                     
                     # Store session
                     set_persistent_session(session_token, user_info)
@@ -420,8 +443,11 @@ def show_user_info():
         if session_token:
             session_info = validate_session(session_token)
             if session_info:
+                cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
                 expires_at = datetime.fromisoformat(session_info['expires_at'])
-                time_until_expiry = expires_at - datetime.now()
+                # Make expires_at timezone-aware by assuming it's in Cambodia time
+                expires_at = expires_at.replace(tzinfo=cambodia_tz)
+                time_until_expiry = expires_at - datetime.now(cambodia_tz)
                 hours_left = int(time_until_expiry.total_seconds() / 3600)
                 minutes_left = int((time_until_expiry.total_seconds() % 3600) / 60)
                 
@@ -436,7 +462,8 @@ def show_logout_button():
     if st.sidebar.button("🚪 Logout", use_container_width=True):
         user_info = st.session_state.get('user_info')
         if user_info:
-            log_security_event(user_info['user_id'], 'LOGOUT', 'User logged out')
+            log_security_event(user_info['user_id'], 'LOGOUT', 'User logged out',
+                              ip_address=get_client_ip(), user_agent=get_user_agent())
         
         clear_persistent_session()
         st.success("✅ You have been logged out successfully!")
@@ -446,7 +473,8 @@ def show_logout_button():
 def generate_registration_token(created_by_user_id, max_uses=1, expires_hours=24):
     """Generate a registration token"""
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.now() + timedelta(hours=expires_hours)
+    cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+    expires_at = datetime.now(cambodia_tz) + timedelta(hours=expires_hours)
     
     conn = sqlite3.connect(USER_DB_PATH)
     cursor = conn.cursor()
@@ -491,8 +519,11 @@ def validate_registration_token(token):
     token_data = dict(zip(column_names, result))
     
     # Check if token is expired
+    cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
     expires_at = datetime.fromisoformat(token_data['expires_at'])
-    if datetime.now() > expires_at:
+    # Make expires_at timezone-aware by assuming it's in Cambodia time
+    expires_at = expires_at.replace(tzinfo=cambodia_tz)
+    if datetime.now(cambodia_tz) > expires_at:
         return False, "Token has expired"
     
     # Check if token has reached max uses
@@ -538,10 +569,13 @@ def register_user_with_token(token, username, password):
     conn.close()
     
     # Log the registration
-    log_security_event(user_id, 'USER_REGISTERED', f'New user registered with token')
+    log_security_event(user_id, 'USER_REGISTERED', f'New user registered with token',
+                      ip_address=get_client_ip(), user_agent=get_user_agent())
     
     # Create session for the newly registered user
-    session_token = create_session(user_id)
+    session_token = create_session(user_id, 
+                                 ip_address=get_client_ip(), 
+                                 user_agent=get_user_agent())
     
     # Return success with session info for automatic login
     return True, {
@@ -1110,12 +1144,42 @@ def get_security_stats():
         }
 
 def get_client_ip():
-    """Get client IP address (placeholder)"""
-    return "127.0.0.1"  # Placeholder - would need to implement actual IP detection
+    """Get client IP address from Streamlit session state or request"""
+    try:
+        # Try to get IP from Streamlit session state
+        if hasattr(st, 'session_state') and 'client_ip' in st.session_state:
+            return st.session_state.client_ip
+        
+        # Try to get from request headers (if available)
+        if hasattr(st, 'request') and hasattr(st.request, 'headers'):
+            # Check common IP headers
+            for header in ['X-Forwarded-For', 'X-Real-IP', 'CF-Connecting-IP']:
+                if header in st.request.headers:
+                    ip = st.request.headers[header].split(',')[0].strip()
+                    if ip and ip != 'unknown':
+                        return ip
+            
+            # Fallback to remote address
+            if hasattr(st.request, 'remote_ip'):
+                return st.request.remote_ip
+        
+        # Default fallback
+        return "127.0.0.1"
+    except:
+        return "127.0.0.1"
 
 def get_user_agent():
-    """Get user agent (placeholder)"""
-    return "Streamlit/1.0"  # Placeholder - would need to implement actual UA detection
+    """Get user agent from Streamlit request"""
+    try:
+        # Try to get from request headers
+        if hasattr(st, 'request') and hasattr(st.request, 'headers'):
+            if 'User-Agent' in st.request.headers:
+                return st.request.headers['User-Agent']
+        
+        # Default fallback
+        return "Streamlit/1.0"
+    except:
+        return "Streamlit/1.0"
 
 # Initialize database on import
 init_user_database()

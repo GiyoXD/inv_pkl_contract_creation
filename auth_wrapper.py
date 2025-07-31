@@ -82,8 +82,12 @@ def show_session_status():
         
         session_info = validate_session(session_token)
         if session_info:
+            from zoneinfo import ZoneInfo
+            cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
             expires_at = datetime.fromisoformat(session_info['expires_at'])
-            time_until_expiry = expires_at - datetime.now()
+            # Make expires_at timezone-aware by assuming it's in Cambodia time
+            expires_at = expires_at.replace(tzinfo=cambodia_tz)
+            time_until_expiry = expires_at - datetime.now(cambodia_tz)
             
             # Show different warnings based on time left
             total_minutes = int(time_until_expiry.total_seconds() / 60)
