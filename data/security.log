@@ -729,3 +729,357 @@ B13100349A/B13100440A
 2025-07-31 08:08:42,841 - INFO - Business Activity: DATA_VERIFICATION by menchayheng - Invoice: INV2025-3 - Verified and inserted new invoice - 21 records added - Success: True
 2025-07-31 08:19:49,485 - INFO - Business Activity: INVOICE_EDIT by menchayheng - Invoice No: TR25025 - Edited invoice data - 1 records updated - Success: True
 2025-07-31 08:27:44,036 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:24:57,312 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:26:52,787 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:27:16,307 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:27:25,307 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:27:25,369 - INFO - Storage cleanup completed: {'business_activities_cleaned': 0, 'security_audit_cleaned': 0, 'sessions_cleaned': 0, 'archived_files': []}
+2025-07-31 09:27:25,509 - INFO - Security Event: LOGIN_SUCCESS by demo_admin (session_c7dbead834d9c1fd) - Success: True - Demo security event 1
+2025-07-31 09:27:25,538 - INFO - Security Event: LOGIN_SUCCESS by demo_admin (session_c7dbead834d9c1fd) - Success: True - Demo security event 2
+2025-07-31 09:27:25,562 - INFO - Security Event: LOGIN_SUCCESS by demo_admin (session_c7dbead834d9c1fd) - Success: True - Demo security event 3
+2025-07-31 09:27:25,604 - INFO - Business Activity: INVOICE_EDIT by demo_admin - Invoice No: INV000 - Demo business activity 1 - Success: True
+2025-07-31 09:27:25,630 - INFO - Business Activity: INVOICE_EDIT by demo_admin - Invoice No: INV001 - Demo business activity 2 - Success: True
+2025-07-31 09:27:25,669 - INFO - Business Activity: INVOICE_EDIT by demo_admin - Invoice No: INV002 - Demo business activity 3 - Success: True
+2025-07-31 09:28:22,056 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:28:22,220 - INFO - Security Event: TEST_EVENT by test_user (session_cf83d238be45b3c8) - Success: True - Test security event
+2025-07-31 09:28:22,355 - INFO - Business Activity: TEST_ACTIVITY by test_user - Invoice No: INV001 - Test business activity - Success: True
+2025-07-31 09:33:16,929 - INFO - Storage cleanup completed: {'business_activities_cleaned': 0, 'security_audit_cleaned': 0, 'sessions_cleaned': 0, 'archived_files': []}
+2025-07-31 09:34:09,432 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:34:39,072 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:36:31,610 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:58:49,568 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 09:58:54,139 - INFO - Security Event: TEST_EVENT by test_user (session_63c6635e99909bfe) - Success: True - Test security event
+2025-07-31 09:58:58,425 - INFO - Business Activity: TEST_ACTIVITY by test_user - Invoice No: INV001 - Test business activity - Success: True
+2025-07-31 09:59:29,707 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:00:37,780 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:01:22,897 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:04:46,872 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:15:30,904 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:16:05,840 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:16:06,079 - INFO - Security Event: USER_UNBLOCKED by ADMIN (session_13e8b76b6ef92cea) - Success: True - User 'test_unblock_user' unblocked by admin
+2025-07-31 10:16:45,347 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:20:12,248 - INFO - Security Event: LOGOUT by menchayheng (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:20:15,124 - INFO - Security Event: LOGOUT by menchayheng (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:20:36,779 - INFO - Security Event: LOGOUT by promprach (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:20:38,723 - INFO - Security Event: LOGOUT by menchayheng (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:20:49,994 - WARNING - Security Event: LOGIN_FAILED by promprach (session_2268df77db35fe8f) - Success: False - IP: session_2268df77db35fe8f
+2025-07-31 10:20:50,915 - WARNING - Security Event: LOGIN_FAILED by promprach (session_2268df77db35fe8f) - Success: False - IP: session_2268df77db35fe8f
+2025-07-31 10:21:24,821 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:22:55,867 - INFO - Security Event: LOGOUT by menchayheng (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:28:30,256 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:28:30,378 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_4abd96bce023deae) - Success: True - Created token with 1 uses, expires 2025-08-07 10:28:30
+2025-07-31 10:28:36,140 - ERROR - Failed to use registration token: database is locked
+2025-07-31 10:29:19,681 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:29:19,746 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_ba6d19082d5ae4fd) - Success: True - Created token with 1 uses, expires 2025-08-07 10:29:19
+2025-07-31 10:29:19,815 - INFO - Security Event: USER_REGISTERED by testuser_token (session_ba6d19082d5ae4fd) - Success: True - Registered using token created by menchayheng
+2025-07-31 10:29:19,864 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_ba6d19082d5ae4fd) - Success: True - Created token with 1 uses, expires 2025-08-07 10:29:19
+2025-07-31 10:29:19,906 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_ba6d19082d5ae4fd) - Success: True - Created token with 1 uses, expires 2025-08-07 10:29:19
+2025-07-31 10:29:19,949 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_ba6d19082d5ae4fd) - Success: True - Created token with 1 uses, expires 2025-08-07 10:29:19
+2025-07-31 10:29:19,977 - INFO - Security Event: REGISTRATION_TOKEN_REVOKED by ADMIN (session_ba6d19082d5ae4fd) - Success: True - Revoked token created by menchayheng
+2025-07-31 10:30:10,419 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:30:10,551 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (session_2268df77db35fe8f) - Success: True - IP: session_2268df77db35fe8f
+2025-07-31 10:32:07,929 - INFO - Security Event: REGISTRATION_TOKEN_REVOKED by ADMIN (session_2268df77db35fe8f) - Success: True - Revoked token created by menchayheng
+2025-07-31 10:32:12,656 - INFO - Security Event: REGISTRATION_TOKEN_REVOKED by ADMIN (session_2268df77db35fe8f) - Success: True - Revoked token created by menchayheng
+2025-07-31 10:32:16,453 - INFO - Security Event: REGISTRATION_TOKEN_REVOKED by ADMIN (session_2268df77db35fe8f) - Success: True - Revoked token created by menchayheng
+2025-07-31 10:32:17,735 - INFO - Security Event: REGISTRATION_TOKEN_REVOKED by ADMIN (session_2268df77db35fe8f) - Success: True - Revoked token created by menchayheng
+2025-07-31 10:36:13,521 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:36:19,761 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:38:47,096 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:38:47,311 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by test_admin (session_c5ee74182dd5b021) - Success: True - Created token with 1 uses, expires 2025-08-01 10:38:47
+2025-07-31 10:38:47,391 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by test_admin (session_c5ee74182dd5b021) - Success: True - Created token with 1 uses, expires 2025-08-01 10:38:47
+2025-07-31 10:38:47,459 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by test_admin (session_c5ee74182dd5b021) - Success: True - Created token with 1 uses, expires 2025-08-01 10:38:47
+2025-07-31 10:39:37,291 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:43:12,045 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:43:16,182 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_0da8cd9e1846f368) - Success: True - Created token with 1 uses, expires 2025-08-07 10:43:16
+2025-07-31 10:43:31,581 - INFO - Security Event: LOGOUT by menchayheng (session_0da8cd9e1846f368) - Success: True - IP: session_0da8cd9e1846f368
+2025-07-31 10:46:31,160 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:46:31,303 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_a102ad0b474c6c35) - Success: True - Created token with 1 uses, expires 2025-08-07 10:46:31
+2025-07-31 10:46:31,441 - INFO - Security Event: USER_REGISTERED by testuser_504066052 (session_a102ad0b474c6c35) - Success: True - Registered using token created by menchayheng
+2025-07-31 10:46:42,377 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:46:51,501 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:47:52,823 - INFO - Security Event: USER_REGISTERED by heng (session_0da8cd9e1846f368) - Success: True - Registered using token created by menchayheng
+2025-07-31 10:48:38,461 - INFO - Security Event: LOGIN_SUCCESS by heng (session_0da8cd9e1846f368) - Success: True - IP: session_0da8cd9e1846f368
+2025-07-31 10:49:36,602 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:49:46,010 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:51:35,111 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:51:50,334 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 10:53:14,444 - INFO - Security Event: LOGOUT by heng (session_6c2b6e0bac38fec1) - Success: True - IP: session_6c2b6e0bac38fec1
+2025-07-31 10:56:15,121 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 11:03:53,845 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 11:12:57,141 - INFO - Automatic cleanup check - consider running cleanup_old_data()
+2025-07-31 11:13:37,993 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (session_9469291c828c074d) - Success: True - IP: session_9469291c828c074d
+2025-07-31 11:14:28,590 - INFO - Security Event: LOGOUT by menchayheng (session_1f76963d5048267a) - Success: True - IP: session_1f76963d5048267a
+2025-07-31 11:14:41,194 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (session_1f76963d5048267a) - Success: True - IP: session_1f76963d5048267a
+2025-07-31 11:14:55,287 - INFO - Security Event: REGISTRATION_TOKEN_CREATED by menchayheng (session_1f76963d5048267a) - Success: True - Created token with 1 uses, expires 2025-08-07 11:14:55
+2025-07-31 11:22:38,479 - INFO - Security Event: LOGOUT by menchayheng (session_dde5bc814f912841) - Success: True - IP: session_dde5bc814f912841
+2025-07-31 12:40:05,294 - INFO - --- Starting Invoice Automation ---
+2025-07-31 12:40:05,294 - INFO - Using input Excel path from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 12:40:05,294 - INFO - Processing workbook: CLW250025.xlsx
+2025-07-31 12:40:05,295 - INFO - Using output directory from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process
+2025-07-31 12:40:05,296 - INFO - Checking workbook filename 'CLW250025.xlsx' to determine PRIMARY aggregation mode for FOB compounding.
+2025-07-31 12:40:05,296 - WARNING - cfg.CUSTOM_AGGREGATION_WORKBOOK_PREFIXES is not a list. Using empty list.
+2025-07-31 12:40:05,296 - INFO - Workbook filename does not match custom prefixes. Will use STANDARD aggregation results for FOB compounding.
+2025-07-31 12:40:05,296 - INFO - Loading workbook from: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 12:40:05,297 - INFO - Initialized ExcelHandler for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 12:40:05,297 - INFO - Attempting to load workbook 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx' with data_only=True
+2025-07-31 12:40:05,357 - INFO - No sheet name specified. Successfully loaded active sheet: 'Sheet1'
+2025-07-31 12:40:05,357 - INFO - Sheet dimensions: Max Row=30, Max Col=19
+2025-07-31 12:40:05,357 - INFO - Successfully loaded worksheet: 'Sheet1' from 'CLW250025.xlsx'
+2025-07-31 12:40:05,357 - INFO - Searching for the primary header row using smart detection...
+2025-07-31 12:40:05,357 - INFO - [find_and_map_smart_headers_v12] Starting best-fit header search...
+2025-07-31 12:40:05,358 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 1 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,359 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 2 | Score: 81 | Mapping: {'production_order_no': 'B', 'po': 'C', 'reference_code': 'D', 'item': 'E', 'description': 'F', 'pcs': 'H', 'sqft': 'I', 'pallet_count': 'J', 'unit': 'L', 'amount': 'M', 'net': 'N', 'gross': 'O', 'cbm': 'P', 'remarks': 'S'}
+2025-07-31 12:40:05,359 - INFO - [find_and_map_smart_headers_v12] Found new best candidate row at 2 with score 81.
+2025-07-31 12:40:05,359 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 3 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,360 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 4 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,361 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 5 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,361 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 6 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,362 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 7 | Score: 4 | Mapping: {'cbm': 'P'}
+2025-07-31 12:40:05,363 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 8 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,363 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 9 | Score: 4 | Mapping: {'cbm': 'P'}
+2025-07-31 12:40:05,364 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 10 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,365 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 11 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,366 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 12 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,368 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 13 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,369 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 14 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,370 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 15 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,370 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 16 | Score: 4 | Mapping: {'cbm': 'P'}
+2025-07-31 12:40:05,371 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 17 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,372 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 18 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,373 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 19 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,373 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 20 | Score: 0 | Mapping: {}
+2025-07-31 12:40:05,373 - INFO - [find_and_map_smart_headers_v12] SUCCESS: Confirmed header row at 2 with final score 81.
+2025-07-31 12:40:05,374 - INFO - Smart detection successful. Found and validated primary header on row 2.
+2025-07-31 12:40:05,374 - INFO - [find_all_header_rows] Searching for additional headers using pattern '^(批次号|订单号|物料代码|总张数|净重|毛重|po|item|pcs|net|gross|TTX编号)$' in rows 3-30
+2025-07-31 12:40:05,377 - INFO - Found a total of 1 table(s) to process at rows: [2]
+2025-07-31 12:40:05,377 - INFO - Extracting data for all tables...
+2025-07-31 12:40:05,377 - INFO - [extract_multiple_tables] Starting extraction for 1 tables: [2]
+2025-07-31 12:40:05,377 - INFO - [extract_multiple_tables] Table 1: Extracting Data Rows 3 to 30
+2025-07-31 12:40:05,378 - INFO - [extract_multiple_tables] Stopping extraction for Table 1 at row 30: Empty cell in stop column 'item'.
+2025-07-31 12:40:05,378 - INFO - [extract_multiple_tables] Successfully stored 27 rows for Table Index 1.
+2025-07-31 12:40:05,378 - INFO - --- Starting Data Processing Loop for 1 Extracted Table(s) ---
+2025-07-31 12:40:05,378 - INFO - --- Processing Table Index 1 ---
+2025-07-31 12:40:05,378 - INFO - Table 1: Calculating CBM values...
+2025-07-31 12:40:05,378 - INFO - [process_cbm_column] Processing 'cbm' column for volume calculations (List length: 27)...
+2025-07-31 12:40:05,381 - INFO - [process_cbm_column] Finished processing 'cbm' column. List now contains calculated values (Decimals or Nones).
+2025-07-31 12:40:05,381 - INFO - Table 1: Distributing values...
+2025-07-31 12:40:05,381 - INFO - [distribute_values] Starting value distribution for columns: ['net', 'gross', 'cbm'] based on 'pcs' (27 rows).
+2025-07-31 12:40:05,381 - INFO - [distribute_values] Processing column for distribution: 'net'
+2025-07-31 12:40:05,382 - INFO - [distribute_values] Completed distribution processing for column: 'net'.
+2025-07-31 12:40:05,382 - INFO - [distribute_values] Processing column for distribution: 'gross'
+2025-07-31 12:40:05,383 - INFO - [distribute_values] Completed distribution processing for column: 'gross'.
+2025-07-31 12:40:05,383 - INFO - [distribute_values] Processing column for distribution: 'cbm'
+2025-07-31 12:40:05,383 - INFO - [distribute_values] Completed distribution processing for column: 'cbm'.
+2025-07-31 12:40:05,383 - INFO - [distribute_values] Value distribution processing COMPLETED for all requested columns.
+2025-07-31 12:40:05,383 - INFO - Table 1: Updating global STANDARD aggregation...
+2025-07-31 12:40:05,383 - INFO - [aggregate_standard] Processing 27 rows for STANDARD aggregation (SQFT & Amount by PO/Item/Price/Desc).
+2025-07-31 12:40:05,384 - INFO - [aggregate_standard] Finished processing 27 rows.
+2025-07-31 12:40:05,384 - INFO - [aggregate_standard] SQFT values successfully converted/defaulted for 27 rows.
+2025-07-31 12:40:05,384 - INFO - [aggregate_standard] Amount values successfully converted/defaulted for 27 rows.
+2025-07-31 12:40:05,384 - INFO - [aggregate_standard] Global standard aggregation map size: 10
+2025-07-31 12:40:05,384 - INFO - Table 1: Updating global CUSTOM aggregation...
+2025-07-31 12:40:05,384 - INFO - [aggregate_custom] Processing 27 rows from this table to update global CUSTOM aggregation (by PO/Item/Desc).
+2025-07-31 12:40:05,384 - INFO - [aggregate_custom] Finished processing 27 rows for this table.
+2025-07-31 12:40:05,384 - INFO - [aggregate_custom] SQFT values successfully converted/defaulted for 27 rows.
+2025-07-31 12:40:05,384 - INFO - [aggregate_custom] Amount values successfully converted/defaulted for 27 rows.
+2025-07-31 12:40:05,384 - INFO - [aggregate_custom] Global custom aggregation map now contains 10 unique (PO, Item, None, Description) keys.
+2025-07-31 12:40:05,384 - INFO - --- Finished Processing All Steps for Table Index 1 ---
+2025-07-31 12:40:05,384 - INFO - --- All Table Processing Loops Completed ---
+2025-07-31 12:40:05,384 - INFO - --- Performing Final FOB Compounding (Using 'STANDARD' aggregation results as input) ---
+2025-07-31 12:40:05,385 - INFO - [perform_fob_compounding] Starting FOB Compounding. Checking for descriptions to determine split type.
+2025-07-31 12:40:05,385 - INFO - [perform_fob_compounding] Performing BUFFALO split aggregation (Chunk Size: 2).
+2025-07-31 12:40:05,385 - INFO - [perform_fob_compounding] BUFFALO split FOB Compounding complete.
+2025-07-31 12:40:05,385 - INFO - --- FOB Compounding Finished ---
+2025-07-31 12:40:05,385 - INFO - Final processed data structure contains 1 table(s).
+2025-07-31 12:40:05,385 - INFO - Primary aggregation mode used for FOB Compounding: STANDARD
+2025-07-31 12:40:05,385 - INFO - --- Final FOB Compounded Result (Workbook: 'CLW250025.xlsx', Based on 'STANDARD' Input) ---
+2025-07-31 12:40:05,385 - INFO - FOB result is split into BUFFALO (1) and NON-BUFFALO (2) groups.
+2025-07-31 12:40:05,385 - INFO - --- FOB Group 1 --- 
+2025-07-31 12:40:05,385 - INFO -   Combined POs:
+PT20T10/PT26032
+PT26041/PT26042
+PT26044/PT26047
+PT26802/PT27B66
+2025-07-31 12:40:05,385 - INFO -   Combined Items:
+140478/140484
+140491
+2025-07-31 12:40:05,385 - INFO -   Combined Descriptions:
+L BELZIANI BUFFALO STORM 54706
+L LEESWORTH BUFFALO DARK BROWN
+L LEESWORTH BUFFALO OCEAN U43809
+2025-07-31 12:40:05,385 - INFO -   Total SQFT: 177168.4 (Type: <class 'decimal.Decimal'>)
+2025-07-31 12:40:05,385 - INFO -   Total Amount: 160557.502 (Type: <class 'decimal.Decimal'>)
+2025-07-31 12:40:05,385 - INFO - --- FOB Group 2 --- 
+2025-07-31 12:40:05,385 - INFO -   Combined POs:
+PT23D52/PT24S66
+2025-07-31 12:40:05,385 - INFO -   Combined Items:
+140467
+2025-07-31 12:40:05,386 - INFO -   Combined Descriptions:
+L GENOA  COCONUT 47704
+2025-07-31 12:40:05,386 - INFO -   Total SQFT: 25255.6 (Type: <class 'decimal.Decimal'>)
+2025-07-31 12:40:05,386 - INFO -   Total Amount: 25760.712 (Type: <class 'decimal.Decimal'>)
+2025-07-31 12:40:05,386 - INFO - ------------------------------
+2025-07-31 12:40:05,386 - INFO - --- Preparing Data for JSON Output ---
+2025-07-31 12:40:05,386 - INFO - --- Generated JSON Output ---
+2025-07-31 12:40:05,386 - INFO - JSON output is large (15186 chars). Logging preview:
+2025-07-31 12:40:05,386 - INFO - {
+    "metadata": {
+        "workbook_filename": "CLW250025.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-07-31T12:40:05.386318"
+    },
+    "processed_tables_data": {
+        "1": {
+            "production_order_no": [
+                "2412003-01",
+                "2412003-01",
+                "2503046-01",
+                "2503046-01",
+                "2503046-01",
+                "2506001-01",
+                "2506001-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2507032-01"
+            ],
+            "po": [
+                "PT20T10",
+                "PT20T10",
+                "PT23D52",
+                "PT23D52",
+                "PT23D52",
+                "PT24S66",
+                "PT24S66",
+                "PT26032",
+                "PT26041",
+                "PT26041",
+                "PT26042",
+                "PT26042",
+                "PT26042",
+                "PT26042",
+                "PT26044",
+                "PT26047",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT27B66"
+            ],
+            "reference_code": [
+                "XPSY-FB-\u7070\u7eff39",
+                "XPSY-FB-\u7070\u7eff39",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751"
+            ],
+            "item": [
+                140484,
+                140484,
+                140467,
+                140467,
+                140467,
+                140467,
+                140467,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478
+            ],
+            "description": [
+                "L BELZIANI BUFFALO STORM 54706",
+                "L BELZIANI BUFFALO STORM 54706",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWO
+... (JSON output truncated in log)
+2025-07-31 12:40:05,387 - INFO - Determined output JSON path: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process\CLW250025.json
+2025-07-31 12:40:05,388 - INFO - Successfully saved JSON output to 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process\CLW250025.json'
+2025-07-31 12:40:05,388 - INFO - --- Invoice Automation Finished Successfully ---
+2025-07-31 12:40:05,388 - INFO - \U0001f552 TOTAL PROCESSING TIME: 0.09 seconds (0.0 minutes)
+2025-07-31 12:40:05,388 - INFO - \U0001f4c1 Processed file: CLW250025.xlsx
+2025-07-31 12:40:05,388 - INFO - Closed workbook object reference for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 12:40:05,388 - INFO - --- Automation Run Complete ---

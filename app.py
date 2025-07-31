@@ -3,28 +3,260 @@ import pandas as pd
 import sqlite3
 import os
 from datetime import datetime, timedelta
-from login import check_authentication, show_logout_button, show_user_info
-
-# --- Authentication Check ---
-user_info = check_authentication()
-if not user_info:
-    st.stop()
+from login import (
+    check_authentication, show_logout_button, show_user_info,
+    show_login_page, register_user_with_token, validate_registration_token
+)
 
 # --- Page Configuration ---
-# This should be the first Streamlit command in your app
 st.set_page_config(
     page_title="Invoice Dashboard",
     page_icon="📊",
     layout="wide"
 )
 
-# --- User Interface ---
+# --- Authentication Check ---
+user_info = check_authentication()
+
+# If not authenticated, show login/register page with enhanced UX
+if not user_info:
+    # Show a friendly message about accessing the dashboard
+    st.info("🔒 Please log in to access the Invoice Dashboard. If you don't have an account, you can register with an invitation token.")
+    # Create tabs for login and registration
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
+    
+    with tab1:
+        show_login_page()
+    
+    with tab2:
+        st.header("📝 Create New Account")
+        st.info("Register a new account using an invitation token.")
+        
+        # Token validation section (outside form)
+        st.subheader("🔍 Token Validation")
+        token_input = st.text_input(
+            "🔑 Invitation Token",
+            placeholder="Enter your invitation token",
+            help="You need a valid invitation token to register. Contact your administrator to get one.",
+            key="token_input"
+        )
+        
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🔍 Validate Token", use_container_width=True):
+                if not token_input:
+                    st.warning("Please enter a token first")
+                else:
+                    with st.spinner("Validating token..."):
+                        is_valid, token_info = validate_registration_token(token_input)
+                    
+                    if is_valid:
+                        st.success("✅ Token is valid!")
+                        st.session_state.validated_token = token_input
+                        st.session_state.token_info = token_info
+                        
+                        # Display token information
+                        with st.expander("📋 Token Information", expanded=True):
+                            col_a, col_b = st.columns(2)
+                            
+                            with col_a:
+                                st.write("**Token Details:**")
+                                st.write(f"• Created by: {token_info.get('created_by_username', 'Unknown')}")
+                                st.write(f"• Created at: {token_info['created_at']}")
+                                st.write(f"• Expires at: {token_info['expires_at']}")
+                            
+                            with col_b:
+                                st.write("**Usage Information:**")
+                                st.write(f"• Used: {token_info['used_count']} times")
+                                st.write(f"• Max uses: {token_info['max_uses']}")
+                                st.write(f"• Status: Available")
+                                
+                                # Calculate time remaining
+                                expiry_time = datetime.fromisoformat(token_info['expires_at'])
+                                time_remaining = expiry_time - datetime.now()
+                                
+                                if time_remaining.total_seconds() > 0:
+                                    days = time_remaining.days
+                                    hours = time_remaining.seconds // 3600
+                                    st.write(f"• Time remaining: {days} days, {hours} hours")
+                                else:
+                                    st.write("• Time remaining: Expired")
+                    else:
+                        st.error(f"❌ Token is invalid: {token_info}")
+                        if 'validated_token' in st.session_state:
+                            del st.session_state.validated_token
+                        if 'token_info' in st.session_state:
+                            del st.session_state.token_info
+        
+        with col2:
+            if st.button("🗑️ Clear Token", use_container_width=True):
+                if 'token_input' in st.session_state:
+                    del st.session_state.token_input
+                if 'validated_token' in st.session_state:
+                    del st.session_state.validated_token
+                if 'token_info' in st.session_state:
+                    del st.session_state.token_info
+                st.rerun()
+        
+        # Show validation status
+        if 'validated_token' in st.session_state:
+            st.success(f"✅ Token validated: {st.session_state.validated_token[:16]}...")
+        
+        st.divider()
+        
+        # Registration form
+        with st.form("registration_form"):
+            st.subheader("Enter Registration Details")
+            
+            # Show token status in form
+            if 'validated_token' in st.session_state:
+                st.info(f"🎫 Using validated token: {st.session_state.validated_token[:16]}...")
+                token = st.session_state.validated_token
+            else:
+                st.warning("⚠️ Please validate your token above before registering")
+                token = token_input
+            
+            # Username and password
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                username = st.text_input(
+                    "👤 Username",
+                    placeholder="Choose a username",
+                    help="Username must be unique and at least 3 characters long"
+                )
+            
+            with col2:
+                password = st.text_input(
+                    "🔒 Password",
+                    type="password",
+                    placeholder="Choose a password",
+                    help="Password must be at least 6 characters long"
+                )
+            
+            # Confirm password
+            confirm_password = st.text_input(
+                "🔒 Confirm Password",
+                type="password",
+                placeholder="Confirm your password",
+                help="Must match the password above"
+            )
+            
+            # Terms and conditions
+            agree_terms = st.checkbox(
+                "I agree to the terms and conditions",
+                help="You must agree to the terms and conditions to register"
+            )
+            
+            # Submit button
+            if st.form_submit_button("🚀 Create Account"):
+                # Validation
+                errors = []
+                
+                if not token:
+                    errors.append("❌ Invitation token is required")
+                
+                if not username or len(username) < 3:
+                    errors.append("❌ Username must be at least 3 characters long")
+                
+                if not password or len(password) < 6:
+                    errors.append("❌ Password must be at least 6 characters long")
+                
+                if password != confirm_password:
+                    errors.append("❌ Passwords do not match")
+                
+                if not agree_terms:
+                    errors.append("❌ You must agree to the terms and conditions")
+                
+                # Show errors if any
+                if errors:
+                    st.error("Please fix the following errors:")
+                    for error in errors:
+                        st.write(error)
+                else:
+                    # Validate token first
+                    is_valid, token_info = validate_registration_token(token)
+                    
+                    if not is_valid:
+                        st.error(f"❌ Invalid token: {token_info}")
+                    else:
+                        # Token is valid, proceed with registration
+                        with st.spinner("Creating your account..."):
+                            success, message = register_user_with_token(token, username, password)
+                        
+                        if success:
+                            st.success("✅ Account created successfully!")
+                            
+                            # Check if we have session info for automatic login
+                            if isinstance(message, dict) and 'session_token' in message:
+                                # Automatically log in the user
+                                from login import set_persistent_session
+                                
+                                user_info = {
+                                    'user_id': message['user_id'],
+                                    'username': message['username'],
+                                    'role': message['role']
+                                }
+                                
+                                set_persistent_session(message['session_token'], user_info)
+                                
+                                st.success(f"🎉 Welcome, {message['username']}! You have been automatically logged in.")
+                                st.info("Redirecting you to the dashboard...")
+                                
+                                # Clear any registration-related session state
+                                if 'registration_success' in st.session_state:
+                                    del st.session_state.registration_success
+                                if 'validated_token' in st.session_state:
+                                    del st.session_state.validated_token
+                                if 'token_info' in st.session_state:
+                                    del st.session_state.token_info
+                                if 'token_input' in st.session_state:
+                                    del st.session_state.token_input
+                                
+                                # Rerun to show the authenticated dashboard
+                                st.rerun()
+                            else:
+                                # Fallback for old registration format
+                                st.info("You can now login with your new account.")
+                                
+                                # Show token info
+                                with st.expander("📋 Token Information"):
+                                    st.write(f"**Token created by:** {token_info['created_by']}")
+                                    st.write(f"**Token expires:** {token_info['expires_at']}")
+                                    st.write(f"**Token uses:** {token_info['used_count'] + 1}/{token_info['max_uses']}")
+                                
+                                # Show login link
+                                st.info("Click the button below to go to login:")
+                                # Store success state to show button outside form
+                                st.session_state.registration_success = True
+                        else:
+                            st.error(f"❌ Registration failed: {message}")
+
+        # Show login button outside the form if registration was successful
+        if st.session_state.get('registration_success', False):
+            if st.button("🔐 Go to Login", key="reg_success_login"):
+                # Clear the success state and rerun
+                st.session_state.registration_success = False
+                st.rerun()
+    
+    # Stop here if not authenticated
+    st.stop()
+
+# --- User Interface (Only shown when authenticated) ---
 st.title("📊 Invoice Dashboard")
 st.info("This is the main dashboard. Select other actions from the sidebar.")
 
 # Show user info and logout button in sidebar
 show_user_info()
 show_logout_button()
+
+# Add registration link for admins
+if user_info and user_info['role'] == 'admin':
+    st.sidebar.markdown("---")
+    st.sidebar.info("**Admin Tools:**")
+    if st.sidebar.button("🔑 Generate Registration Token"):
+        st.info("Please use the Admin Dashboard to generate registration tokens.")
+        st.info("You can access it from the sidebar navigation.")
 
 # --- Configuration ---
 # All data-related folders are now located inside the main 'data' directory.
@@ -67,8 +299,21 @@ if df.empty:
     st.warning("No active invoice data found in the database to build a dashboard.")
     st.stop()
 
-start_date_default = df['creating_date'].min().date()
-end_date_default = df['creating_date'].max().date()
+# Handle NaT values in date columns
+min_date = df['creating_date'].min()
+max_date = df['creating_date'].max()
+
+# Check if we have valid dates and provide defaults if not
+if pd.isna(min_date) or pd.isna(max_date):
+    # Use current date as default if no valid dates found
+    from datetime import date
+    today = date.today()
+    start_date_default = today
+    end_date_default = today
+    st.warning("No valid dates found in the database. Using current date as default.")
+else:
+    start_date_default = min_date.date()
+    end_date_default = max_date.date()
 
 col1, col2 = st.columns(2)
 start_date = col1.date_input("Start Date", start_date_default)
@@ -105,7 +350,7 @@ st.divider()
 st.header("Visualizations")
 
 # Invoiced Amount Over Time (by month)
-monthly_data = filtered_df.set_index('creating_date').resample('M')['amount'].sum().reset_index()
+monthly_data = filtered_df.set_index('creating_date').resample('ME')['amount'].sum().reset_index()
 monthly_data['creating_date'] = monthly_data['creating_date'].dt.strftime('%b %Y')
 st.subheader("Total Amount by Month Added")
 st.bar_chart(monthly_data.set_index('creating_date')['amount'])
@@ -115,97 +360,79 @@ st.subheader("Top 10 Products by Invoiced Amount (by Item Code)")
 top_items = filtered_df.groupby('item')['amount'].sum().nlargest(10)
 st.bar_chart(top_items)
 
-# --- Recent Business Activities (Admin Only) ---
-if user_info['role'] == 'admin':
-    st.divider()
-    st.header("🔄 Recent Business Activities")
-    st.info("Recent user actions on data verification and invoice management")
-    
-    try:
-        from login import get_business_activities, ACTIVITY_TYPES
+# --- Admin Dashboard (Admin Only) ---
+if user_info and user_info['role'] == 'admin':
+        st.divider()
+        st.header("🛡️ Admin Dashboard")
+        st.info("Comprehensive system monitoring, security, and storage management")
         
-        # Get recent business activities
-        business_df = get_business_activities(days_back=7)
-        
-        if not business_df.empty:
-            # Show summary metrics
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Activities (7 days)", len(business_df))
-            with col2:
-                successful = len(business_df[business_df['success'] == True])
-                st.metric("Successful", successful)
-            with col3:
-                failed = len(business_df[business_df['success'] == False])
-                st.metric("Failed", failed)
+        # Quick system overview
+        try:
+            from login import get_security_events, get_business_activities, get_storage_stats
             
-            # Show recent activities
-            st.subheader("Latest Activities")
-            for _, activity in business_df.head(5).iterrows():
-                status_icon = "✅" if activity['success'] else "❌"
-                activity_name = ACTIVITY_TYPES.get(activity['activity_type'], activity['activity_type'])
-                
-                with st.expander(f"{activity['timestamp']} - {status_icon} {activity_name} by {activity['username']}"):
-                    st.write(f"**Invoice No:** {activity['target_invoice_no'] or 'N/A'}")
-                    st.write(f"**Invoice Ref:** {activity['target_invoice_ref'] or 'N/A'}")
-                    st.write(f"**Description:** {activity['action_description']}")
-                    if activity['error_message']:
-                        st.error(f"Error: {activity['error_message']}")
+            # Get quick stats
+            security_events = get_security_events(limit=50)
+            business_activities = get_business_activities(limit=50)
+            storage_stats = get_storage_stats()
             
-            # Link to full activity monitor
-            if st.button("📊 View Full Activity Monitor"):
-                st.switch_page("pages/Activity_Monitor.py")
-        else:
-            st.info("No business activities found in the last 7 days.")
-            
-    except Exception as e:
-        st.error(f"Could not load business activities: {e}")
-
-    # --- Storage Monitoring (Admin Only) ---
-    st.divider()
-    st.header("💾 Storage Overview")
-    st.info("Database storage statistics and health monitoring")
-    
-    try:
-        from login import get_storage_stats, get_storage_recommendations
-        
-        # Get storage statistics
-        storage_stats = get_storage_stats()
-        
-        if storage_stats:
-            # Storage metrics
+            # System health overview
             col1, col2, col3, col4 = st.columns(4)
+            
             with col1:
-                total_size = storage_stats.get('total_size_kb', 0)
-                st.metric("Database Size", f"{total_size:.1f} KB")
-            with col2:
-                total_size_mb = total_size / 1024
-                st.metric("Database Size", f"{total_size_mb:.2f} MB")
-            with col3:
-                tables = storage_stats.get('tables', {})
-                total_records = sum(table.get('count', 0) for table in tables.values())
-                st.metric("Total Records", f"{total_records:,}")
-            with col4:
-                # Health indicator
-                if total_size < 1000:
-                    st.success("Health: Good")
-                elif total_size < 5000:
-                    st.warning("Health: Moderate")
+                if security_events:
+                    failed_logins = len([e for e in security_events if e.get('action') == 'LOGIN_FAILED'])
+                    st.metric("Failed Logins", failed_logins)
                 else:
-                    st.error("Health: Large")
+                    st.metric("Failed Logins", 0)
             
-            # Quick storage recommendations
-            recommendations = get_storage_recommendations()
-            if recommendations:
-                st.warning("💡 Storage Recommendations:")
-                for rec in recommendations[:3]:  # Show first 3 recommendations
-                    st.write(f"• {rec['message']}")
+            with col2:
+                if business_activities:
+                    recent_activities = len([a for a in business_activities 
+                                           if datetime.fromisoformat(a['timestamp']) > datetime.now() - timedelta(days=1)])
+                    st.metric("Today's Activities", recent_activities)
+                else:
+                    st.metric("Today's Activities", 0)
             
-            # Link to storage manager
-            if st.button("💾 Open Storage Manager"):
-                st.switch_page("pages/Storage_Manager.py")
-        else:
-            st.info("Could not retrieve storage statistics.")
+            with col3:
+                if storage_stats:
+                    total_size = storage_stats.get('total_size_kb', 0)
+                    st.metric("DB Size (MB)", f"{total_size/1024:.1f}")
+                else:
+                    st.metric("DB Size (MB)", "N/A")
             
-    except Exception as e:
-        st.error(f"Could not load storage information: {e}")
+            with col4:
+                if security_events and business_activities:
+                    # Simple health indicator
+                    health_score = 100
+                    if failed_logins > 5:
+                        health_score -= 20
+                    if total_size > 5000:
+                        health_score -= 20
+                    
+                    if health_score >= 80:
+                        st.success(f"Health: {health_score}/100")
+                    elif health_score >= 60:
+                        st.warning(f"Health: {health_score}/100")
+                    else:
+                        st.error(f"Health: {health_score}/100")
+                else:
+                    st.info("Health: N/A")
+            
+            # Quick actions
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("🛡️ Open Admin Dashboard"):
+                    st.info("Please use the sidebar navigation to access the Admin Dashboard.")
+            
+            with col2:
+                st.info("**Features:**")
+                st.write("• 📊 System Overview & Health")
+                st.write("• 🔒 Security Monitoring")
+                st.write("• 📋 Activity Tracking")
+                st.write("• 💾 Storage Management")
+                
+        except Exception as e:
+            st.error(f"Could not load admin overview: {e}")
+            if st.button("🛡️ Open Admin Dashboard"):
+                st.info("Please use the sidebar navigation to access the Admin Dashboard.")

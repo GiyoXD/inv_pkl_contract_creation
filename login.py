@@ -1,526 +1,190 @@
 import streamlit as st
-import hashlib
 import sqlite3
+import hashlib
+import secrets
 import os
-import time
 import json
-import pandas as pd
 from datetime import datetime, timedelta
-import threading
-import logging
+from session_helper import get_persistent_session, set_persistent_session, clear_persistent_session, get_session_from_cache
 
-# --- Security Configuration ---
-MAX_LOGIN_ATTEMPTS = 5  # Maximum failed login attempts
-LOCKOUT_DURATION = 15  # Minutes to lock account after max attempts
-RATE_LIMIT_WINDOW = 60  # Seconds for rate limiting
-MAX_REQUESTS_PER_WINDOW = 10  # Maximum requests per window
-SESSION_TIMEOUT = 24  # Hours for session timeout
-MAX_CONCURRENT_SESSIONS = 3  # Maximum concurrent sessions per user
-
-# --- Activity Tracking Configuration ---
-ACTIVITY_TYPES = {
-    'DATA_VERIFICATION': 'Data verification and insertion',
-    'INVOICE_EDIT': 'Invoice data editing',
-    'INVOICE_VOID': 'Invoice voiding',
-    'INVOICE_REACTIVATE': 'Invoice reactivation',
-    'INVOICE_DELETE': 'Invoice deletion',
-    'DATA_AMENDMENT': 'Data amendment',
-    'CONTAINER_UPDATE': 'Container information update',
-    'STATUS_CHANGE': 'Status change',
-    'BULK_OPERATION': 'Bulk operation'
-}
-
-# --- Storage Management Configuration ---
-STORAGE_CLEANUP_CONFIG = {
-    'business_activities_retention_days': 90,  # Keep detailed data for 90 days
-    'security_audit_retention_days': 180,      # Keep security logs for 180 days
-    'sessions_cleanup_hours': 24,              # Clean expired sessions every 24 hours
-    'max_json_size_kb': 50,                    # Maximum JSON data size per record (KB)
-    'auto_cleanup_enabled': True,              # Enable automatic cleanup
-    'archive_old_data': True,                  # Archive old data instead of deleting
-    'archive_path': 'data/archives/'           # Path for archived data
-}
-
-# --- Login System Configuration ---
-ADMIN_USERNAME = "menchayheng"
-ADMIN_PASSWORD_HASH = hashlib.sha256("hengh428".encode()).hexdigest()
-
-# Database for user management
+# Database paths
 USER_DB_PATH = "data/user_database.db"
+ACTIVITY_LOG_PATH = "data/activity_log.db"
 
-# Setup logging for security events
-logging.basicConfig(
-    filename='data/security.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+# Session timeout (in hours)
+SESSION_TIMEOUT_HOURS = 8
 
 def init_user_database():
-    """Initialize the user database with admin user and security tables"""
-    os.makedirs(os.path.dirname(USER_DB_PATH), exist_ok=True)
+    """Initialize the user database with required tables"""
+    os.makedirs("data", exist_ok=True)
     
     conn = sqlite3.connect(USER_DB_PATH)
     cursor = conn.cursor()
     
-    # Create users table
+    # Users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'user',
+            role TEXT DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_login TIMESTAMP,
-            is_active BOOLEAN DEFAULT 1,
             failed_attempts INTEGER DEFAULT 0,
             locked_until TIMESTAMP,
-            last_failed_attempt TIMESTAMP
+            is_active BOOLEAN DEFAULT 1
         )
     ''')
     
-    # Create sessions table for tracking login sessions
+    # Sessions table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             session_token TEXT UNIQUE NOT NULL,
-            ip_address TEXT,
-            user_agent TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             expires_at TIMESTAMP NOT NULL,
-            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ip_address TEXT,
+            user_agent TEXT,
+            is_active BOOLEAN DEFAULT 1,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
-    # Create security audit log table
+    # Registration tokens table
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS security_audit (
+        CREATE TABLE IF NOT EXISTS registration_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT UNIQUE NOT NULL,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP NOT NULL,
+            max_uses INTEGER DEFAULT 1,
+            used_count INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (created_by) REFERENCES users (id)
+        )
+    ''')
+    
+    # Security events table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS security_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            event_type TEXT NOT NULL,
+            description TEXT,
+            ip_address TEXT,
+            user_agent TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Business activities table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS business_activities (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             username TEXT,
-            action TEXT NOT NULL,
+            activity_type TEXT NOT NULL,
+            target_invoice_ref TEXT,
+            target_invoice_no TEXT,
+            action_description TEXT,
+            old_values TEXT,
+            new_values TEXT,
             ip_address TEXT,
             user_agent TEXT,
-            success BOOLEAN,
+            success BOOLEAN DEFAULT 1,
+            error_message TEXT,
+            description TEXT,
             details TEXT,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
     
-    # Create rate limiting table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS rate_limits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            identifier TEXT NOT NULL,  -- IP address or username
-            request_count INTEGER DEFAULT 1,
-            window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Create business activity tracking table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS business_activities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            username TEXT NOT NULL,
-            activity_type TEXT NOT NULL,
-            target_invoice_ref TEXT,
-            target_invoice_no TEXT,
-            action_description TEXT,
-            old_values TEXT,  -- JSON string of old data
-            new_values TEXT,  -- JSON string of new data
-            ip_address TEXT,
-            user_agent TEXT,
-            success BOOLEAN DEFAULT 1,
-            error_message TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-    
-    # Create index for faster queries
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_business_activities_user 
-        ON business_activities(user_id, timestamp)
-    ''')
-    
-    cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_business_activities_invoice 
-        ON business_activities(target_invoice_ref, timestamp)
-    ''')
-    
-    # Insert admin user if not exists
-    cursor.execute('''
-        INSERT OR IGNORE INTO users (username, password_hash, role)
-        VALUES (?, ?, ?)
-    ''', (ADMIN_USERNAME, ADMIN_PASSWORD_HASH, 'admin'))
-    
     conn.commit()
     conn.close()
 
-def get_client_ip():
-    """Get client IP address using multiple methods"""
-    try:
-        # Method 1: Try to get from Streamlit session state
-        if hasattr(st, 'session_state') and 'client_ip' in st.session_state:
-            return st.session_state['client_ip']
-        
-        # Method 2: Try to get from Streamlit request object
-        if hasattr(st, 'request') and st.request:
-            # Check various headers for IP
-            headers = st.request.headers
-            for header in ['X-Forwarded-For', 'X-Real-IP', 'X-Client-IP', 'CF-Connecting-IP']:
-                if header in headers:
-                    ip = headers[header].split(',')[0].strip()
-                    if ip and ip != 'unknown':
-                        st.session_state['client_ip'] = ip
-                        return ip
-            
-            # Try remote_ip
-            if hasattr(st.request, 'remote_ip') and st.request.remote_ip:
-                ip = st.request.remote_ip
-                if ip and ip != 'unknown':
-                    st.session_state['client_ip'] = ip
-                    return ip
-        
-        # Method 3: Try to get from environment variables
-        import os
-        for env_var in ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR']:
-            if env_var in os.environ:
-                ip = os.environ[env_var].split(',')[0].strip()
-                if ip and ip != 'unknown':
-                    st.session_state['client_ip'] = ip
-                    return ip
-        
-        # Method 4: Use a simple session-based identifier
-        if 'session_id' not in st.session_state:
-            import secrets
-            st.session_state['session_id'] = secrets.token_hex(8)
-        
-        # Return a session-based identifier if no IP found
-        session_id = st.session_state['session_id']
-        st.session_state['client_ip'] = f"session_{session_id}"
-        return f"session_{session_id}"
-        
-    except Exception as e:
-        # Fallback to session-based identifier
-        if 'session_id' not in st.session_state:
-            import secrets
-            st.session_state['session_id'] = secrets.token_hex(8)
-        return f"session_{st.session_state['session_id']}"
-
-def get_user_agent():
-    """Get user agent string using multiple methods"""
-    try:
-        # Method 1: Try to get from Streamlit session state
-        if hasattr(st, 'session_state') and 'user_agent' in st.session_state:
-            return st.session_state['user_agent']
-        
-        # Method 2: Try to get from Streamlit request object
-        if hasattr(st, 'request') and st.request:
-            headers = st.request.headers
-            if 'User-Agent' in headers:
-                ua = headers['User-Agent']
-                if ua and ua != 'unknown':
-                    st.session_state['user_agent'] = ua
-                    return ua
-        
-        # Method 3: Try to get from environment variables
-        import os
-        if 'HTTP_USER_AGENT' in os.environ:
-            ua = os.environ['HTTP_USER_AGENT']
-            if ua and ua != 'unknown':
-                st.session_state['user_agent'] = ua
-                return ua
-        
-        # Method 4: Use a default user agent
-        default_ua = "Streamlit-Client/1.0"
-        st.session_state['user_agent'] = default_ua
-        return default_ua
-        
-    except Exception as e:
-        # Fallback to default user agent
-        default_ua = "Streamlit-Client/1.0"
-        if hasattr(st, 'session_state'):
-            st.session_state['user_agent'] = default_ua
-        return default_ua
-
-def log_security_event(user_id, username, action, success, details=""):
-    """Log security events for audit trail"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO security_audit (user_id, username, action, ip_address, user_agent, success, details)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, username, action, get_client_ip(), get_user_agent(), success, details))
-        
-        conn.commit()
-        conn.close()
-        
-        # Also log to file
-        log_level = logging.WARNING if not success else logging.INFO
-        logging.log(log_level, f"Security Event: {action} by {username} ({get_client_ip()}) - Success: {success} - {details}")
-        
-    except Exception as e:
-        logging.error(f"Failed to log security event: {e}")
-
-def log_business_activity(user_id, username, activity_type, target_invoice_ref=None, target_invoice_no=None, 
-                        action_description="", old_values=None, new_values=None, success=True, error_message=""):
-    """Log business activities for audit trail and accountability"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        # Convert data to JSON strings for storage
-        old_values_json = json.dumps(old_values) if old_values else None
-        new_values_json = json.dumps(new_values) if new_values else None
-        
-        cursor.execute('''
-            INSERT INTO business_activities 
-            (user_id, username, activity_type, target_invoice_ref, target_invoice_no, 
-             action_description, old_values, new_values, ip_address, user_agent, 
-             success, error_message, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (user_id, username, activity_type, target_invoice_ref, target_invoice_no,
-              action_description, old_values_json, new_values_json, get_client_ip(), 
-              get_user_agent(), success, error_message))
-        
-        conn.commit()
-        conn.close()
-        
-        # Also log to file for backup - prioritize invoice number over reference
-        invoice_identifier = target_invoice_no if target_invoice_no else target_invoice_ref
-        log_level = logging.WARNING if not success else logging.INFO
-        logging.log(log_level, f"Business Activity: {activity_type} by {username} - Invoice No: {invoice_identifier} - {action_description} - Success: {success}")
-        
-    except Exception as e:
-        logging.error(f"Failed to log business activity: {e}")
-
-def get_business_activities(user_id=None, invoice_ref=None, invoice_no=None, activity_type=None, days_back=30):
-    """Get business activities with optional filters - prioritize invoice number"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        
-        query = '''
-            SELECT ba.*, u.username as user_username
-            FROM business_activities ba
-            LEFT JOIN users u ON ba.user_id = u.id
-            WHERE ba.timestamp >= datetime('now', '-{} days')
-        '''.format(days_back)
-        
-        params = []
-        
-        if user_id:
-            query += " AND ba.user_id = ?"
-            params.append(user_id)
-        
-        # Prioritize invoice number over invoice reference
-        if invoice_no:
-            query += " AND ba.target_invoice_no = ?"
-            params.append(invoice_no)
-        elif invoice_ref:
-            query += " AND ba.target_invoice_ref = ?"
-            params.append(invoice_ref)
-        
-        if activity_type:
-            query += " AND ba.activity_type = ?"
-            params.append(activity_type)
-        
-        query += " ORDER BY ba.timestamp DESC"
-        
-        df = pd.read_sql_query(query, conn, params=params)
-        conn.close()
-        
-        return df
-        
-    except Exception as e:
-        logging.error(f"Failed to get business activities: {e}")
-        return pd.DataFrame()
-
-def check_rate_limit(identifier, max_requests=RATE_LIMIT_WINDOW, window_seconds=MAX_REQUESTS_PER_WINDOW):
-    """Check if request is within rate limits"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        now = datetime.now()
-        window_start = now - timedelta(seconds=window_seconds)
-        
-        # Clean old entries
-        cursor.execute('DELETE FROM rate_limits WHERE window_start < ?', (window_start,))
-        
-        # Check current rate
-        cursor.execute('''
-            SELECT request_count FROM rate_limits 
-            WHERE identifier = ? AND window_start > ?
-        ''', (identifier, window_start))
-        
-        result = cursor.fetchone()
-        
-        if result:
-            request_count = result[0]
-            if request_count >= max_requests:
-                conn.close()
-                return False
-            
-            # Update count
-            cursor.execute('''
-                UPDATE rate_limits 
-                SET request_count = request_count + 1, last_request = ?
-                WHERE identifier = ?
-            ''', (now, identifier))
-        else:
-            # Create new entry
-            cursor.execute('''
-                INSERT INTO rate_limits (identifier, request_count, window_start, last_request)
-                VALUES (?, 1, ?, ?)
-            ''', (identifier, now, now))
-        
-        conn.commit()
-        conn.close()
-        return True
-        
-    except Exception as e:
-        logging.error(f"Rate limit check failed: {e}")
-        return True  # Allow request if rate limiting fails
-
-def is_account_locked(username):
-    """Check if account is locked due to failed attempts"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT failed_attempts, locked_until 
-            FROM users 
-            WHERE username = ?
-        ''', (username,))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result:
-            failed_attempts, locked_until = result
-            
-            if failed_attempts >= MAX_LOGIN_ATTEMPTS and locked_until:
-                if datetime.now() < datetime.fromisoformat(locked_until):
-                    return True
-                else:
-                    # Reset lock if expired
-                    reset_failed_attempts(username)
-        
-        return False
-        
-    except Exception as e:
-        logging.error(f"Account lock check failed: {e}")
-        return False
-
-def increment_failed_attempts(username):
-    """Increment failed login attempts and lock account if needed"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE users 
-            SET failed_attempts = failed_attempts + 1,
-                last_failed_attempt = ?,
-                locked_until = CASE 
-                    WHEN failed_attempts + 1 >= ? THEN ?
-                    ELSE locked_until 
-                END
-            WHERE username = ?
-        ''', (datetime.now(), MAX_LOGIN_ATTEMPTS, 
-              datetime.now() + timedelta(minutes=LOCKOUT_DURATION), username))
-        
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logging.error(f"Failed to increment failed attempts: {e}")
-
-def reset_failed_attempts(username):
-    """Reset failed attempts after successful login"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE users 
-            SET failed_attempts = 0, locked_until = NULL
-            WHERE username = ?
-        ''', (username,))
-        
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logging.error(f"Failed to reset failed attempts: {e}")
-
-def check_concurrent_sessions(user_id):
-    """Check if user has too many concurrent sessions"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT COUNT(*) FROM sessions 
-            WHERE user_id = ? AND expires_at > ?
-        ''', (user_id, datetime.now()))
-        
-        count = cursor.fetchone()[0]
-        conn.close()
-        
-        return count >= MAX_CONCURRENT_SESSIONS
-        
-    except Exception as e:
-        logging.error(f"Concurrent session check failed: {e}")
-        return False
-
-def cleanup_old_sessions(user_id):
-    """Remove oldest sessions if user has too many"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            DELETE FROM sessions 
-            WHERE user_id = ? AND id NOT IN (
-                SELECT id FROM sessions 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT ?
-            )
-        ''', (user_id, user_id, MAX_CONCURRENT_SESSIONS - 1))
-        
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logging.error(f"Session cleanup failed: {e}")
-
 def hash_password(password):
-    """Hash a password using SHA-256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password with salt"""
+    salt = secrets.token_hex(16)
+    password_hash = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+    return f"{salt}:{password_hash.hex()}"
 
 def verify_password(password, password_hash):
     """Verify a password against its hash"""
-    return hash_password(password) == password_hash
+    try:
+        salt, hash_hex = password_hash.split(':')
+        password_hash_check = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+        return password_hash_check.hex() == hash_hex
+    except:
+        return False
 
-def create_session(user_id):
-    """Create a new session for a user with security features"""
-    import secrets
+def log_security_event(user_id, event_type, description, ip_address=None, user_agent=None):
+    """Log a security event"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            INSERT INTO security_events (user_id, event_type, description, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, event_type, description, ip_address, user_agent))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error logging security event: {e}")
+
+def log_business_activity(user_id, activity_type, description, details=None, **kwargs):
+    """Log a business activity with extended parameters"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get additional parameters from kwargs
+        username = kwargs.get('username', '')
+        target_invoice_ref = kwargs.get('target_invoice_ref', '')
+        target_invoice_no = kwargs.get('target_invoice_no', '')
+        action_description = kwargs.get('action_description', description)
+        old_values = kwargs.get('old_values', '')
+        new_values = kwargs.get('new_values', '')
+        success = kwargs.get('success', True)
+        error_message = kwargs.get('error_message', '')
+        ip_address = kwargs.get('ip_address', get_client_ip())
+        user_agent = kwargs.get('user_agent', get_user_agent())
+        
+        # Convert complex objects to JSON strings
+        if isinstance(old_values, (list, dict)):
+            old_values = json.dumps(old_values)
+        if isinstance(new_values, (list, dict)):
+            new_values = json.dumps(new_values)
+        
+        cursor.execute('''
+            INSERT INTO business_activities (
+                user_id, activity_type, description, details, 
+                username, target_invoice_ref, target_invoice_no, 
+                action_description, old_values, new_values, 
+                success, error_message, ip_address, user_agent
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            user_id, activity_type, description, details,
+            username, target_invoice_ref, target_invoice_no,
+            action_description, old_values, new_values,
+            success, error_message, ip_address, user_agent
+        ))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error logging business activity: {e}")
+
+def create_session(user_id, ip_address=None, user_agent=None):
+    """Create a new session for a user"""
     session_token = secrets.token_urlsafe(32)
-    expires_at = datetime.now() + timedelta(hours=SESSION_TIMEOUT)
-    
-    # Check concurrent sessions
-    if check_concurrent_sessions(user_id):
-        cleanup_old_sessions(user_id)
+    expires_at = datetime.now() + timedelta(hours=SESSION_TIMEOUT_HOURS)
     
     conn = sqlite3.connect(USER_DB_PATH)
     cursor = conn.cursor()
@@ -528,7 +192,7 @@ def create_session(user_id):
     cursor.execute('''
         INSERT INTO sessions (user_id, session_token, expires_at, ip_address, user_agent)
         VALUES (?, ?, ?, ?, ?)
-    ''', (user_id, session_token, expires_at, get_client_ip(), get_user_agent()))
+    ''', (user_id, session_token, expires_at, ip_address, user_agent))
     
     conn.commit()
     conn.close()
@@ -536,340 +200,896 @@ def create_session(user_id):
     return session_token
 
 def validate_session(session_token):
-    """Validate a session token and return user info if valid"""
+    """Validate a session token and return user info"""
     if not session_token:
         return None
     
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT u.id, u.username, u.role, s.expires_at, s.id as session_id
-            FROM users u
-            JOIN sessions s ON u.id = s.user_id
-            WHERE s.session_token = ? AND s.expires_at > ? AND u.is_active = 1
-        ''', (session_token, datetime.now()))
-        
-        result = cursor.fetchone()
-        
-        if result:
-            user_id, username, role, expires_at, session_id = result
-            
-            # Update last activity
-            cursor.execute('''
-                UPDATE sessions SET last_activity = ? WHERE id = ?
-            ''', (datetime.now(), session_id))
-            
-            conn.commit()
-            conn.close()
-            
-            return {
-                'user_id': user_id,
-                'username': username,
-                'role': role,
-                'expires_at': expires_at
-            }
-        
-        conn.close()
-        return None
-        
-    except Exception as e:
-        logging.error(f"Session validation failed: {e}")
-        return None
-
-def login_user(username, password):
-    """Attempt to login a user with security checks"""
-    # Check rate limiting
-    client_ip = get_client_ip()
-    if not check_rate_limit(client_ip):
-        log_security_event(None, username, "LOGIN_RATE_LIMITED", False, f"IP: {client_ip}")
-        return None
+    conn = sqlite3.connect(USER_DB_PATH)
+    cursor = conn.cursor()
     
-    # Check if account is locked
-    if is_account_locked(username):
-        log_security_event(None, username, "LOGIN_ACCOUNT_LOCKED", False, f"IP: {client_ip}")
-        return None
+    cursor.execute('''
+        SELECT u.id, u.username, u.role, s.expires_at
+        FROM users u
+        JOIN sessions s ON u.id = s.user_id
+        WHERE s.session_token = ? AND s.expires_at > datetime('now')
+    ''', (session_token,))
     
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, username, password_hash, role
-            FROM users
-            WHERE username = ? AND is_active = 1
-        ''', (username,))
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result and verify_password(password, result[2]):
-            user_id, username, _, role = result
-            
-            # Reset failed attempts on successful login
-            reset_failed_attempts(username)
-            
-            # Create session
-            session_token = create_session(user_id)
-            
-            # Update last login
-            conn = sqlite3.connect(USER_DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE users SET last_login = ? WHERE id = ?
-            ''', (datetime.now(), user_id))
-            conn.commit()
-            conn.close()
-            
-            # Log successful login
-            log_security_event(user_id, username, "LOGIN_SUCCESS", True, f"IP: {client_ip}")
-            
-            return {
-                'user_id': user_id,
-                'username': username,
-                'role': role,
-                'session_token': session_token
-            }
-        else:
-            # Increment failed attempts
-            increment_failed_attempts(username)
-            
-            # Log failed login
-            log_security_event(None, username, "LOGIN_FAILED", False, f"IP: {client_ip}")
-            
-            return None
-            
-    except Exception as e:
-        logging.error(f"Login failed: {e}")
-        log_security_event(None, username, "LOGIN_ERROR", False, f"Error: {str(e)}")
-        return None
-
-def logout_user(session_token):
-    """Logout a user by removing their session"""
-    if not session_token:
-        return
+    result = cursor.fetchone()
+    conn.close()
     
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        # Get user info before deleting session
-        cursor.execute('''
-            SELECT u.username FROM users u
-            JOIN sessions s ON u.id = s.user_id
-            WHERE s.session_token = ?
-        ''', (session_token,))
-        
-        result = cursor.fetchone()
-        username = result[0] if result else "unknown"
-        
-        cursor.execute('DELETE FROM sessions WHERE session_token = ?', (session_token,))
-        conn.commit()
-        conn.close()
-        
-        # Log logout
-        log_security_event(None, username, "LOGOUT", True, f"IP: {get_client_ip()}")
-        
-    except Exception as e:
-        logging.error(f"Logout failed: {e}")
-
-def cleanup_expired_sessions():
-    """Remove expired sessions from the database"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('DELETE FROM sessions WHERE expires_at < ?', (datetime.now(),))
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logging.error(f"Session cleanup failed: {e}")
-
-def show_login_page():
-    """Display the login page with security features"""
-    st.set_page_config(
-        page_title="Login - Invoice Dashboard",
-        page_icon="🔐",
-        layout="centered"
-    )
+    if result:
+        user_id, username, role, expires_at = result
+        return {
+            'user_id': user_id,
+            'username': username,
+            'role': role,
+            'expires_at': expires_at
+        }
     
-    # Initialize database
+    return None
+
+def check_authentication():
+    """Check if user is authenticated and return user info"""
+    # Initialize database if it doesn't exist
     init_user_database()
     
-    # Cleanup expired sessions
-    cleanup_expired_sessions()
+    # Store intended page in session state
+    if 'intended_page' not in st.session_state:
+        # Get current page from URL or default to main
+        try:
+            current_page = st.query_params.get('page', 'main')
+            st.session_state.intended_page = current_page
+        except:
+            st.session_state.intended_page = 'main'
     
-    st.title("🔐 Login")
-    st.markdown("---")
+    # Try to get session from various sources
+    session_token = get_persistent_session()
     
-    # Check if user is already logged in
-    session_token = st.session_state.get('session_token')
+    if not session_token:
+        session_token, cached_user_info = get_session_from_cache()
+        if session_token and cached_user_info:
+            st.session_state['session_token'] = session_token
+            st.session_state['user_info'] = cached_user_info
+    
     if session_token:
         user_info = validate_session(session_token)
         if user_info:
-            st.success(f"Welcome back, {user_info['username']}!")
-            st.info("You are already logged in. Redirecting to dashboard...")
-            st.rerun()
-    
-    # Login form
-    with st.form("login_form"):
-        username = st.text_input("Username", placeholder="Enter your username")
-        password = st.text_input("Password", type="password", placeholder="Enter your password")
-        
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            submit_button = st.form_submit_button("Login", use_container_width=True)
-        
-        if submit_button:
-            if not username or not password:
-                st.error("Please enter both username and password.")
-            else:
-                # Check if account is locked
-                if is_account_locked(username):
-                    st.error(f"Account is temporarily locked due to too many failed attempts. Please try again later.")
+            # Check for session timeout warning (1 hour before expiry)
+            expires_at = datetime.fromisoformat(user_info['expires_at'])
+            time_until_expiry = expires_at - datetime.now()
+            
+            if time_until_expiry.total_seconds() < 3600:  # Less than 1 hour
+                minutes_left = int(time_until_expiry.total_seconds() / 60)
+                if minutes_left > 0:
+                    st.warning(f"⚠️ Your session will expire in {minutes_left} minutes. Please save your work.")
                 else:
-                    user_info = login_user(username, password)
-                    if user_info:
-                        # Store session token using persistent helper
-                        from session_helper import set_persistent_session
-                        
-                        user_info_dict = {
-                            'user_id': user_info['user_id'],
-                            'username': user_info['username'],
-                            'role': user_info['role']
-                        }
-                        
-                        set_persistent_session(user_info['session_token'], user_info_dict)
-                        
-                        st.success(f"Welcome, {user_info['username']}!")
-                        st.info("Login successful! Redirecting to dashboard...")
-                        st.rerun()
-                    else:
-                        # Check if account is now locked
-                        if is_account_locked(username):
-                            st.error(f"Account locked due to too many failed attempts. Please try again in {LOCKOUT_DURATION} minutes.")
-                        else:
-                            st.error("Invalid username or password.")
-    
-    # Security information
-    with st.expander("🔒 Security Information"):
-        st.info("**Security Features:**")
-        st.info("• Rate limiting: Maximum 10 requests per minute")
-        st.info(f"• Account lockout: {MAX_LOGIN_ATTEMPTS} failed attempts = {LOCKOUT_DURATION} minute lockout")
-        st.info(f"• Session timeout: {SESSION_TIMEOUT} hours")
-        st.info(f"• Maximum concurrent sessions: {MAX_CONCURRENT_SESSIONS}")
-        st.info("• All login attempts are logged for security audit")
-    
-    # Admin credentials hint (you can remove this in production)
-    with st.expander("Admin Login Info"):
-        st.info("Admin Username: menchayheng")
-        st.info("Admin Password: hengh428")
-
-def check_authentication():
-    """Check if user is authenticated, redirect to login if not"""
-    try:
-        from session_helper import get_persistent_session, get_session_from_cache
-        
-        # Try to get session token from multiple sources
-        session_token = None
-        
-        # First try session state
-        if 'session_token' in st.session_state:
-            session_token = st.session_state['session_token']
-        
-        # If not in session state, try persistent storage
-        if not session_token:
-            session_token = get_persistent_session()
-        
-        # If still no token, try file cache
-        if not session_token:
-            session_token, user_info = get_session_from_cache()
-            if session_token and user_info:
-                st.session_state['session_token'] = session_token
-                st.session_state['user_info'] = user_info
-        
-        if not session_token:
-            st.switch_page("pages/login.py")
-            return None
-        
-        user_info = validate_session(session_token)
-        if not user_info:
-            # Session expired or invalid
-            from session_helper import clear_persistent_session
+                    st.error("🔒 Your session has expired. Please log in again.")
+                    clear_persistent_session()
+                    st.rerun()
+            
+            return user_info
+        else:
+            # Invalid session, clear it
             clear_persistent_session()
-            st.switch_page("pages/login.py")
-            return None
-        
-        # Store user info in session state if not already there
-        if 'user_info' not in st.session_state:
-            st.session_state['user_info'] = user_info
-        
-        return user_info
-        
-    except Exception as e:
-        print(f"Authentication error: {e}")
-        st.switch_page("pages/login.py")
-        return None
+    
+    return None
 
-def show_logout_button():
-    """Display logout button in sidebar"""
-    if st.sidebar.button("🚪 Logout"):
-        session_token = st.session_state.get('session_token')
-        if session_token:
-            logout_user(session_token)
+def authenticate_user(username, password):
+    """Authenticate a user with username and password"""
+    conn = sqlite3.connect(USER_DB_PATH)
+    cursor = conn.cursor()
+    
+    # Check if user exists and is not blocked
+    cursor.execute('''
+        SELECT id, password_hash, role, failed_attempts, locked_until, is_active
+        FROM users 
+        WHERE username = ?
+    ''', (username,))
+    
+    result = cursor.fetchone()
+    
+    if not result:
+        log_security_event(None, 'LOGIN_FAILED', f'Login attempt with non-existent username: {username}')
+        conn.close()
+        return False, "Invalid username or password"
+    
+    user_id, password_hash, role, failed_attempts, locked_until, is_active = result
+    
+    # Check if user is active
+    if not is_active:
+        log_security_event(user_id, 'LOGIN_FAILED', 'Login attempt on inactive account')
+        conn.close()
+        return False, "Account is inactive"
+    
+    # Check if user is locked
+    if locked_until:
+        locked_until_dt = datetime.fromisoformat(locked_until)
+        if datetime.now() < locked_until_dt:
+            log_security_event(user_id, 'LOGIN_FAILED', 'Login attempt on locked account')
+            conn.close()
+            return False, f"Account is locked until {locked_until_dt.strftime('%Y-%m-%d %H:%M:%S')}"
+    
+    # Verify password
+    if verify_password(password, password_hash):
+        # Reset failed attempts and update last login
+        cursor.execute('''
+            UPDATE users 
+            SET failed_attempts = 0, locked_until = NULL, last_login = datetime('now')
+            WHERE id = ?
+        ''', (user_id,))
         
-        # Clear persistent session
-        from session_helper import clear_persistent_session
-        clear_persistent_session()
+        conn.commit()
+        conn.close()
         
-        st.rerun()
+        # Log successful login
+        log_security_event(user_id, 'LOGIN_SUCCESS', 'Successful login')
+        
+        return True, {
+            'user_id': user_id,
+            'username': username,
+            'role': role
+        }
+    else:
+        # Increment failed attempts
+        failed_attempts += 1
+        
+        # Lock user if too many failed attempts
+        locked_until = None
+        if failed_attempts >= 5:
+            locked_until = datetime.now() + timedelta(minutes=30)
+        
+        cursor.execute('''
+            UPDATE users 
+            SET failed_attempts = ?, locked_until = ?
+            WHERE id = ?
+        ''', (failed_attempts, locked_until, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        # Log failed login
+        log_security_event(user_id, 'LOGIN_FAILED', f'Failed login attempt ({failed_attempts}/5)')
+        
+        if locked_until:
+            return False, "Too many failed attempts. Account locked for 30 minutes."
+        else:
+            return False, f"Invalid username or password ({failed_attempts}/5 attempts)"
+
+def show_login_page():
+    """Display the login form"""
+    st.header("🔐 Login to Invoice Dashboard")
+    
+    # Show redirect message if user was redirected from another page
+    if st.session_state.get('intended_page') and st.session_state.intended_page != 'main':
+        st.info(f"🔄 Please log in to access the requested page.")
+    
+    with st.form("login_form"):
+        username = st.text_input("👤 Username", placeholder="Enter your username")
+        password = st.text_input("🔒 Password", type="password", placeholder="Enter your password")
+        
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            login_button = st.form_submit_button("🚀 Login", use_container_width=True)
+        
+        with col2:
+            remember_me = st.checkbox("Remember me", help="Keep me logged in for longer")
+        
+        if login_button:
+            if not username or not password:
+                st.error("❌ Please enter both username and password")
+            else:
+                with st.spinner("Authenticating..."):
+                    success, result = authenticate_user(username, password)
+                
+                if success:
+                    user_info = result
+                    
+                    # Create session
+                    session_token = create_session(user_info['user_id'])
+                    
+                    # Store session
+                    set_persistent_session(session_token, user_info)
+                    
+                    st.success(f"✅ Welcome back, {user_info['username']}!")
+                    
+                    # Redirect to intended page
+                    intended_page = st.session_state.get('intended_page', 'main')
+                    if intended_page != 'main':
+                        st.info(f"🔄 Redirecting to your requested page...")
+                    
+                    # Clear intended page
+                    if 'intended_page' in st.session_state:
+                        del st.session_state.intended_page
+                    
+                    st.rerun()
+                else:
+                    st.error(f"❌ {result}")
 
 def show_user_info():
-    """Display current user information in sidebar"""
+    """Display user information in sidebar"""
     user_info = st.session_state.get('user_info')
     if user_info:
         st.sidebar.markdown("---")
-        st.sidebar.markdown(f"**👤 Logged in as:** {user_info['username']}")
-        st.sidebar.markdown(f"**🔑 Role:** {user_info['role'].title()}")
-        st.sidebar.markdown("---")
+        st.sidebar.markdown("**👤 User Information**")
+        st.sidebar.write(f"**Username:** {user_info['username']}")
+        st.sidebar.write(f"**Role:** {user_info['role'].title()}")
+        
+        # Show session expiry info
+        session_token = st.session_state.get('session_token')
+        if session_token:
+            session_info = validate_session(session_token)
+            if session_info:
+                expires_at = datetime.fromisoformat(session_info['expires_at'])
+                time_until_expiry = expires_at - datetime.now()
+                hours_left = int(time_until_expiry.total_seconds() / 3600)
+                minutes_left = int((time_until_expiry.total_seconds() % 3600) / 60)
+                
+                if hours_left > 0:
+                    st.sidebar.write(f"**Session expires in:** {hours_left}h {minutes_left}m")
+                else:
+                    st.sidebar.write(f"**Session expires in:** {minutes_left}m")
 
-def get_security_stats():
-    """Get security statistics for admin dashboard"""
+def show_logout_button():
+    """Display logout button in sidebar"""
+    st.sidebar.markdown("---")
+    if st.sidebar.button("🚪 Logout", use_container_width=True):
+        user_info = st.session_state.get('user_info')
+        if user_info:
+            log_security_event(user_info['user_id'], 'LOGOUT', 'User logged out')
+        
+        clear_persistent_session()
+        st.success("✅ You have been logged out successfully!")
+        st.rerun()
+
+# Registration and token functions (keeping existing functionality)
+def generate_registration_token(created_by_user_id, max_uses=1, expires_hours=24):
+    """Generate a registration token"""
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now() + timedelta(hours=expires_hours)
+    
+    conn = sqlite3.connect(USER_DB_PATH)
+    cursor = conn.cursor()
+    
+    # Get the username of the creator
+    cursor.execute('SELECT username FROM users WHERE id = ?', (created_by_user_id,))
+    creator = cursor.fetchone()
+    created_by_username = creator[0] if creator else 'Unknown'
+    
+    cursor.execute('''
+        INSERT INTO registration_tokens (token, created_by, created_by_username, expires_at, max_uses)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (token, created_by_user_id, created_by_username, expires_at, max_uses))
+    
+    conn.commit()
+    conn.close()
+    
+    return token
+
+def validate_registration_token(token):
+    """Validate a registration token"""
+    conn = sqlite3.connect(USER_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT rt.*, u.username as created_by_username
+        FROM registration_tokens rt
+        LEFT JOIN users u ON rt.created_by = u.id
+        WHERE rt.token = ? AND rt.is_active = 1
+    ''', (token,))
+    
+    result = cursor.fetchone()
+    
+    if not result:
+        conn.close()
+        return False, "Invalid token"
+    
+    # Get column names before closing connection
+    column_names = [col[0] for col in cursor.description]
+    conn.close()
+    
+    token_data = dict(zip(column_names, result))
+    
+    # Check if token is expired
+    expires_at = datetime.fromisoformat(token_data['expires_at'])
+    if datetime.now() > expires_at:
+        return False, "Token has expired"
+    
+    # Check if token has reached max uses
+    if token_data['used_count'] >= token_data['max_uses']:
+        return False, "Token has reached maximum uses"
+    
+    return True, token_data
+
+def register_user_with_token(token, username, password):
+    """Register a new user with a valid token"""
+    # Validate token first
+    is_valid, token_info = validate_registration_token(token)
+    if not is_valid:
+        return False, token_info
+    
+    # Check if username already exists
+    conn = sqlite3.connect(USER_DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+    if cursor.fetchone():
+        conn.close()
+        return False, "Username already exists"
+    
+    # Create user
+    password_hash = hash_password(password)
+    
+    cursor.execute('''
+        INSERT INTO users (username, password_hash, role)
+        VALUES (?, ?, 'user')
+    ''', (username, password_hash))
+    
+    user_id = cursor.lastrowid
+    
+    # Update token usage
+    cursor.execute('''
+        UPDATE registration_tokens 
+        SET used_count = used_count + 1
+        WHERE token = ?
+    ''', (token,))
+    
+    conn.commit()
+    conn.close()
+    
+    # Log the registration
+    log_security_event(user_id, 'USER_REGISTERED', f'New user registered with token')
+    
+    # Create session for the newly registered user
+    session_token = create_session(user_id)
+    
+    # Return success with session info for automatic login
+    return True, {
+        "message": "User registered successfully",
+        "session_token": session_token,
+        "user_id": user_id,
+        "username": username,
+        "role": "user"
+    }
+
+# Additional utility functions for admin dashboard
+def get_security_events(limit=100):
+    """Get recent security events"""
     try:
         conn = sqlite3.connect(USER_DB_PATH)
         cursor = conn.cursor()
         
-        # Get failed login attempts in last 24 hours
         cursor.execute('''
-            SELECT COUNT(*) FROM security_audit 
-            WHERE action = 'LOGIN_FAILED' 
+            SELECT se.*, u.username
+            FROM security_events se
+            LEFT JOIN users u ON se.user_id = u.id
+            ORDER BY se.timestamp DESC
+            LIMIT ?
+        ''', (limit,))
+        
+        events = []
+        for row in cursor.fetchall():
+            event = dict(zip([col[0] for col in cursor.description], row))
+            events.append(event)
+        
+        conn.close()
+        return events
+    except Exception as e:
+        print(f"Error getting security events: {e}")
+        return []
+
+def get_business_activities(limit=100, days_back=7):
+    """Get recent business activities"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT 
+                ba.id,
+                ba.user_id,
+                ba.activity_type,
+                ba.username,
+                ba.target_invoice_ref,
+                ba.target_invoice_no,
+                ba.action_description,
+                COALESCE(ba.old_values, '') as old_values,
+                COALESCE(ba.new_values, '') as new_values,
+                COALESCE(ba.ip_address, '127.0.0.1') as ip_address,
+                COALESCE(ba.user_agent, 'Streamlit/1.0') as user_agent,
+                COALESCE(ba.success, 1) as success,
+                COALESCE(ba.error_message, '') as error_message,
+                ba.timestamp
+            FROM business_activities ba
+            WHERE ba.timestamp > datetime('now', '-{} days')
+            ORDER BY ba.timestamp DESC
+            LIMIT ?
+        '''.format(days_back), (limit,))
+        
+        activities = []
+        for row in cursor.fetchall():
+            activity = dict(zip([col[0] for col in cursor.description], row))
+            activities.append(activity)
+        
+        conn.close()
+        return activities
+    except Exception as e:
+        print(f"Error getting business activities: {e}")
+        return []
+
+def get_storage_stats():
+    """Get storage statistics"""
+    try:
+        stats = {}
+        
+        # Get database file sizes
+        if os.path.exists(USER_DB_PATH):
+            stats['user_db_size_kb'] = os.path.getsize(USER_DB_PATH) / 1024
+        
+        invoice_db_path = "data/Invoice Record/master_invoice_data.db"
+        if os.path.exists(invoice_db_path):
+            stats['invoice_db_size_kb'] = os.path.getsize(invoice_db_path) / 1024
+        
+        stats['total_size_kb'] = stats.get('user_db_size_kb', 0) + stats.get('invoice_db_size_kb', 0)
+        
+        return stats
+    except Exception as e:
+        print(f"Error getting storage stats: {e}")
+        return {}
+
+# Additional admin functions (stubs for compatibility)
+def get_all_users():
+    """Get all users (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, role, created_at, last_login, is_active, failed_attempts, locked_until
+            FROM users
+            ORDER BY created_at DESC
+        ''')
+        
+        users = []
+        for row in cursor.fetchall():
+            user = dict(zip([col[0] for col in cursor.description], row))
+            users.append(user)
+        
+        conn.close()
+        return users
+        
+    except Exception as e:
+        print(f"Error getting all users: {e}")
+        return []
+
+def create_user(username, password, role='user'):
+    """Create a new user (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if username already exists
+        cursor.execute('SELECT id FROM users WHERE username = ?', (username,))
+        if cursor.fetchone():
+            conn.close()
+            return False, "Username already exists"
+        
+        # Hash password
+        hashed_password = hash_password(password)
+        
+        # Insert new user
+        cursor.execute('''
+            INSERT INTO users (username, password_hash, role, is_active, created_at, failed_attempts)
+            VALUES (?, ?, ?, 1, datetime('now'), 0)
+        ''', (username, hashed_password, role))
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"User '{username}' created successfully"
+        
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        return False, f"Error creating user: {e}"
+
+def update_user(user_id, new_username=None, new_role=None, new_status=None):
+    """Update user information (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute('SELECT username FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return False, "User not found"
+        
+        old_username = user[0]
+        
+        # Build update query dynamically
+        updates = []
+        params = []
+        
+        if new_username and new_username != old_username:
+            # Check if new username already exists
+            cursor.execute('SELECT id FROM users WHERE username = ? AND id != ?', (new_username, user_id))
+            if cursor.fetchone():
+                conn.close()
+                return False, "Username already exists"
+            updates.append("username = ?")
+            params.append(new_username)
+        
+        if new_role:
+            updates.append("role = ?")
+            params.append(new_role)
+        
+        if new_status is not None:
+            updates.append("is_active = ?")
+            params.append(1 if new_status == "Active" else 0)
+        
+        if not updates:
+            conn.close()
+            return False, "No changes to update"
+        
+        # Perform update
+        params.append(user_id)
+        query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+        cursor.execute(query, params)
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"User '{old_username}' updated successfully"
+        
+    except Exception as e:
+        print(f"Error updating user: {e}")
+        return False, f"Error updating user: {e}"
+
+def delete_user(user_id):
+    """Delete a user (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # First check if user exists
+        cursor.execute('SELECT username FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return False, "User not found"
+        
+        username = user[0]
+        
+        # Don't allow deleting the admin user
+        if username == 'menchayheng':
+            conn.close()
+            return False, "Cannot delete admin user"
+        
+        # Delete the user
+        cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return False, "User not found or already deleted"
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"User '{username}' deleted successfully"
+        
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        return False, f"Error deleting user: {e}"
+
+def reset_user_password(user_id, new_password):
+    """Reset user password (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute('SELECT username FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return False, "User not found"
+        
+        username = user[0]
+        
+        # Hash the new password
+        hashed_password = hash_password(new_password)
+        
+        # Update password and reset failed attempts
+        cursor.execute('''
+            UPDATE users 
+            SET password_hash = ?, failed_attempts = 0, locked_until = NULL 
+            WHERE id = ?
+        ''', (hashed_password, user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"Password reset successfully for user '{username}'"
+        
+    except Exception as e:
+        print(f"Error resetting password: {e}")
+        return False, f"Error resetting password: {e}"
+
+def get_active_sessions():
+    """Get active sessions (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT s.id, s.user_id, u.username, s.session_token, s.created_at, s.expires_at, s.ip_address, s.user_agent
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.expires_at > datetime('now')
+            ORDER BY s.created_at DESC
+        ''')
+        
+        sessions = []
+        for row in cursor.fetchall():
+            session = dict(zip([col[0] for col in cursor.description], row))
+            sessions.append(session)
+        
+        conn.close()
+        return sessions
+        
+    except Exception as e:
+        print(f"Error getting active sessions: {e}")
+        return []
+
+def clear_expired_sessions():
+    """Clear expired sessions (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Count expired sessions before deletion
+        cursor.execute('SELECT COUNT(*) FROM sessions WHERE expires_at < datetime("now")')
+        expired_count = cursor.fetchone()[0]
+        
+        # Delete expired sessions
+        cursor.execute('DELETE FROM sessions WHERE expires_at < datetime("now")')
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"Cleared {expired_count} expired sessions"
+        
+    except Exception as e:
+        print(f"Error clearing expired sessions: {e}")
+        return False, f"Error clearing expired sessions: {e}"
+
+def unblock_user(user_id):
+    """Unblock a user (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if user exists
+        cursor.execute('SELECT username FROM users WHERE id = ?', (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            conn.close()
+            return False, "User not found"
+        
+        username = user[0]
+        
+        # Reset failed attempts and unlock user
+        cursor.execute('''
+            UPDATE users 
+            SET failed_attempts = 0, locked_until = NULL 
+            WHERE id = ?
+        ''', (user_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"User '{username}' has been unblocked successfully"
+        
+    except Exception as e:
+        print(f"Error unblocking user: {e}")
+        return False, f"Error unblocking user: {e}"
+
+def get_all_registration_tokens():
+    """Get all registration tokens (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, token, created_by_username, created_at, expires_at, max_uses, used_count, is_active
+            FROM registration_tokens
+            ORDER BY created_at DESC
+        ''')
+        
+        tokens = []
+        for row in cursor.fetchall():
+            token = dict(zip([col[0] for col in cursor.description], row))
+            tokens.append(token)
+        
+        conn.close()
+        return tokens
+        
+    except Exception as e:
+        print(f"Error getting all registration tokens: {e}")
+        return []
+
+def revoke_registration_token(token_id):
+    """Revoke a registration token (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if token exists
+        cursor.execute('SELECT token FROM registration_tokens WHERE id = ?', (token_id,))
+        token_row = cursor.fetchone()
+        
+        if not token_row:
+            conn.close()
+            return False, "Token not found"
+        
+        token_display = token_row[0][:8] + "..."
+        
+        # Revoke the token by setting is_active to 0
+        cursor.execute('UPDATE registration_tokens SET is_active = 0 WHERE id = ?', (token_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return True, f"Token {token_display} has been revoked"
+        
+    except Exception as e:
+        print(f"Error revoking token: {e}")
+        return False, f"Error revoking token: {e}"
+
+def cleanup_expired_tokens():
+    """Clean up expired tokens (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Count expired tokens before cleanup
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens WHERE expires_at < datetime("now")')
+        expired_count = cursor.fetchone()[0]
+        
+        # Delete expired tokens
+        cursor.execute('DELETE FROM registration_tokens WHERE expires_at < datetime("now")')
+        
+        # Count fully used tokens
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens WHERE used_count >= max_uses')
+        used_count = cursor.fetchone()[0]
+        
+        # Delete fully used tokens
+        cursor.execute('DELETE FROM registration_tokens WHERE used_count >= max_uses')
+        
+        conn.commit()
+        conn.close()
+        
+        total_cleaned = expired_count + used_count
+        return True, f"Cleaned up {total_cleaned} tokens ({expired_count} expired, {used_count} fully used)"
+        
+    except Exception as e:
+        print(f"Error cleaning up expired tokens: {e}")
+        return False, f"Error: {e}"
+
+def get_token_cleanup_stats():
+    """Get token cleanup statistics (admin function)"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get total tokens
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens')
+        total_tokens = cursor.fetchone()[0]
+        
+        # Get expired tokens
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens WHERE expires_at < datetime("now")')
+        expired_tokens = cursor.fetchone()[0]
+        
+        # Get used tokens
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens WHERE used_count >= max_uses')
+        used_tokens = cursor.fetchone()[0]
+        
+        # Get active tokens
+        cursor.execute('''
+            SELECT COUNT(*) FROM registration_tokens 
+            WHERE expires_at > datetime("now") AND used_count < max_uses AND is_active = 1
+        ''')
+        active_tokens = cursor.fetchone()[0]
+        
+        conn.close()
+        
+        return {
+            'total_tokens': total_tokens,
+            'expired_tokens': expired_tokens,
+            'used_tokens': used_tokens,
+            'active_tokens': active_tokens,
+            'cleanup_threshold_days': 30  # Default cleanup threshold
+        }
+        
+    except Exception as e:
+        print(f"Error getting token cleanup stats: {e}")
+        return {
+            'total_tokens': 0,
+            'expired_tokens': 0,
+            'used_tokens': 0,
+            'active_tokens': 0,
+            'cleanup_threshold_days': 30  # Default cleanup threshold
+        }
+
+def cleanup_old_data():
+    """Clean up old data (admin function)"""
+    pass
+
+def optimize_database():
+    """Optimize database (admin function)"""
+    pass
+
+def get_storage_recommendations():
+    """Get storage recommendations (admin function)"""
+    pass
+
+def update_storage_config(config):
+    """Update storage configuration (admin function)"""
+    pass
+
+# Storage cleanup configuration (for compatibility)
+STORAGE_CLEANUP_CONFIG = {
+    'security_events_days': 90,
+    'business_activities_days': 365,
+    'expired_sessions_days': 7,
+    'expired_tokens_days': 30
+}
+
+# Activity types (for compatibility)
+ACTIVITY_TYPES = {
+    'INVOICE_CREATED': 'Invoice Created',
+    'INVOICE_UPDATED': 'Invoice Updated',
+    'INVOICE_DELETED': 'Invoice Deleted',
+    'DATA_EXPORT': 'Data Export',
+    'BACKUP_CREATED': 'Backup Created',
+    'BACKUP_RESTORED': 'Backup Restored'
+}
+
+def get_security_stats():
+    """Get security statistics for dashboard"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Failed logins in last 24 hours
+        cursor.execute('''
+            SELECT COUNT(*) FROM security_events 
+            WHERE event_type = 'LOGIN_FAILED' 
             AND timestamp > datetime('now', '-1 day')
         ''')
         failed_logins_24h = cursor.fetchone()[0]
         
-        # Get locked accounts
+        # Locked accounts
         cursor.execute('''
             SELECT COUNT(*) FROM users 
             WHERE locked_until > datetime('now')
         ''')
         locked_accounts = cursor.fetchone()[0]
         
-        # Get active sessions
+        # Active sessions
         cursor.execute('''
             SELECT COUNT(*) FROM sessions 
             WHERE expires_at > datetime('now')
         ''')
         active_sessions = cursor.fetchone()[0]
         
-        # Get rate limited requests in last hour
-        cursor.execute('''
-            SELECT COUNT(*) FROM security_audit 
-            WHERE action = 'LOGIN_RATE_LIMITED' 
-            AND timestamp > datetime('now', '-1 hour')
-        ''')
-        rate_limited_1h = cursor.fetchone()[0]
+        # Rate limited in last hour (placeholder - would need rate_limits table)
+        rate_limited_1h = 0
         
         conn.close()
         
@@ -881,266 +1101,21 @@ def get_security_stats():
         }
         
     except Exception as e:
-        logging.error(f"Failed to get security stats: {e}")
-        return {}
+        print(f"Error getting security stats: {e}")
+        return {
+            'failed_logins_24h': 0,
+            'locked_accounts': 0,
+            'active_sessions': 0,
+            'rate_limited_1h': 0
+        }
 
-# Initialize the database when this module is imported
+def get_client_ip():
+    """Get client IP address (placeholder)"""
+    return "127.0.0.1"  # Placeholder - would need to implement actual IP detection
+
+def get_user_agent():
+    """Get user agent (placeholder)"""
+    return "Streamlit/1.0"  # Placeholder - would need to implement actual UA detection
+
+# Initialize database on import
 init_user_database()
-
-# --- Storage Management Functions ---
-
-def get_storage_stats():
-    """Get storage statistics for the database"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        # Get table sizes
-        tables = ['users', 'sessions', 'security_audit', 'business_activities']
-        table_stats = {}
-        
-        for table in tables:
-            try:
-                cursor.execute(f'SELECT COUNT(*) FROM {table}')
-                count = cursor.fetchone()[0]
-                
-                # Estimate size (rough calculation)
-                cursor.execute(f'PRAGMA table_info({table})')
-                columns = cursor.fetchall()
-                avg_row_size = sum(1 for col in columns) * 50  # Rough estimate
-                estimated_size_kb = (count * avg_row_size) / 1024
-                
-                table_stats[table] = {
-                    'count': count,
-                    'estimated_size_kb': round(estimated_size_kb, 2)
-                }
-            except sqlite3.OperationalError:
-                table_stats[table] = {'count': 0, 'estimated_size_kb': 0}
-        
-        # Get total database size
-        cursor.execute("PRAGMA page_count")
-        page_count = cursor.fetchone()[0]
-        cursor.execute("PRAGMA page_size")
-        page_size = cursor.fetchone()[0]
-        total_size_kb = (page_count * page_size) / 1024
-        
-        conn.close()
-        
-        return {
-            'total_size_kb': round(total_size_kb, 2),
-            'tables': table_stats
-        }
-        
-    except Exception as e:
-        logging.error(f"Failed to get storage stats: {e}")
-        return {}
-
-def cleanup_old_data(days_back=None, force=False):
-    """Clean up old data based on retention policies"""
-    try:
-        config = STORAGE_CLEANUP_CONFIG
-        if not config['auto_cleanup_enabled'] and not force:
-            return {"success": False, "message": "Auto cleanup is disabled"}
-        
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        # Create archive directory if needed
-        if config['archive_old_data']:
-            os.makedirs(config['archive_path'], exist_ok=True)
-        
-        cleanup_stats = {
-            'business_activities_cleaned': 0,
-            'security_audit_cleaned': 0,
-            'sessions_cleaned': 0,
-            'archived_files': []
-        }
-        
-        # Clean business activities
-        retention_days = days_back or config['business_activities_retention_days']
-        cutoff_date = datetime.now() - timedelta(days=retention_days)
-        
-        if config['archive_old_data']:
-            # Archive old business activities
-            cursor.execute('''
-                SELECT * FROM business_activities 
-                WHERE timestamp < ?
-            ''', (cutoff_date,))
-            old_activities = cursor.fetchall()
-            
-            if old_activities:
-                archive_file = f"{config['archive_path']}business_activities_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                with open(archive_file, 'w') as f:
-                    json.dump(old_activities, f, indent=2)
-                cleanup_stats['archived_files'].append(archive_file)
-        
-        cursor.execute('''
-            DELETE FROM business_activities 
-            WHERE timestamp < ?
-        ''', (cutoff_date,))
-        cleanup_stats['business_activities_cleaned'] = cursor.rowcount
-        
-        # Clean security audit logs
-        retention_days = days_back or config['security_audit_retention_days']
-        cutoff_date = datetime.now() - timedelta(days=retention_days)
-        
-        if config['archive_old_data']:
-            # Archive old security audit logs
-            cursor.execute('''
-                SELECT * FROM security_audit 
-                WHERE timestamp < ?
-            ''', (cutoff_date,))
-            old_audit = cursor.fetchall()
-            
-            if old_audit:
-                archive_file = f"{config['archive_path']}security_audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                with open(archive_file, 'w') as f:
-                    json.dump(old_audit, f, indent=2)
-                cleanup_stats['archived_files'].append(archive_file)
-        
-        cursor.execute('''
-            DELETE FROM security_audit 
-            WHERE timestamp < ?
-        ''', (cutoff_date,))
-        cleanup_stats['security_audit_cleaned'] = cursor.rowcount
-        
-        # Clean expired sessions
-        cursor.execute('DELETE FROM sessions WHERE expires_at < datetime("now")')
-        cleanup_stats['sessions_cleaned'] = cursor.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        # Log cleanup activity
-        logging.info(f"Storage cleanup completed: {cleanup_stats}")
-        
-        return {
-            "success": True,
-            "message": f"Cleanup completed. {cleanup_stats['business_activities_cleaned']} business activities, {cleanup_stats['security_audit_cleaned']} security logs, {cleanup_stats['sessions_cleaned']} sessions cleaned.",
-            "stats": cleanup_stats
-        }
-        
-    except Exception as e:
-        logging.error(f"Failed to cleanup old data: {e}")
-        return {"success": False, "message": f"Cleanup failed: {str(e)}"}
-
-def optimize_database():
-    """Optimize database performance and reduce size"""
-    try:
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        # Vacuum database to reclaim space
-        cursor.execute("VACUUM")
-        
-        # Analyze tables for better query performance
-        cursor.execute("ANALYZE")
-        
-        # Rebuild indexes
-        cursor.execute("REINDEX")
-        
-        conn.close()
-        
-        return {"success": True, "message": "Database optimized successfully"}
-        
-    except Exception as e:
-        logging.error(f"Failed to optimize database: {e}")
-        return {"success": False, "message": f"Optimization failed: {str(e)}"}
-
-def get_storage_recommendations():
-    """Get storage optimization recommendations"""
-    try:
-        stats = get_storage_stats()
-        recommendations = []
-        
-        if not stats:
-            return recommendations
-        
-        total_size = stats.get('total_size_kb', 0)
-        tables = stats.get('tables', {})
-        
-        # Check if database is getting large
-        if total_size > 10000:  # 10MB
-            recommendations.append({
-                'type': 'warning',
-                'message': f'Database size is {total_size:.1f} KB. Consider enabling auto-cleanup.',
-                'action': 'Enable automatic cleanup in storage settings'
-            })
-        
-        # Check business activities table
-        ba_stats = tables.get('business_activities', {})
-        if ba_stats.get('count', 0) > 10000:
-            recommendations.append({
-                'type': 'info',
-                'message': f'Business activities table has {ba_stats["count"]} records. Consider reducing retention period.',
-                'action': 'Reduce business activities retention period'
-            })
-        
-        # Check security audit table
-        sa_stats = tables.get('security_audit', {})
-        if sa_stats.get('count', 0) > 50000:
-            recommendations.append({
-                'type': 'info',
-                'message': f'Security audit table has {sa_stats["count"]} records. Consider reducing retention period.',
-                'action': 'Reduce security audit retention period'
-            })
-        
-        return recommendations
-        
-    except Exception as e:
-        logging.error(f"Failed to get storage recommendations: {e}")
-        return []
-
-def update_storage_config(new_config):
-    """Update storage cleanup configuration"""
-    try:
-        global STORAGE_CLEANUP_CONFIG
-        STORAGE_CLEANUP_CONFIG.update(new_config)
-        
-        # Save to file for persistence
-        config_file = 'data/storage_config.json'
-        os.makedirs(os.path.dirname(config_file), exist_ok=True)
-        
-        with open(config_file, 'w') as f:
-            json.dump(STORAGE_CLEANUP_CONFIG, f, indent=2)
-        
-        return {"success": True, "message": "Storage configuration updated successfully"}
-        
-    except Exception as e:
-        logging.error(f"Failed to update storage config: {e}")
-        return {"success": False, "message": f"Failed to update config: {str(e)}"}
-
-def load_storage_config():
-    """Load storage configuration from file"""
-    try:
-        config_file = 'data/storage_config.json'
-        if os.path.exists(config_file):
-            with open(config_file, 'r') as f:
-                loaded_config = json.load(f)
-                global STORAGE_CLEANUP_CONFIG
-                STORAGE_CLEANUP_CONFIG.update(loaded_config)
-    except Exception as e:
-        logging.error(f"Failed to load storage config: {e}")
-
-# Load storage configuration on module import
-load_storage_config()
-
-# --- Automatic Cleanup Scheduling ---
-def schedule_automatic_cleanup():
-    """Schedule automatic cleanup if enabled"""
-    try:
-        config = STORAGE_CLEANUP_CONFIG
-        if not config['auto_cleanup_enabled']:
-            return
-        
-        # Check if cleanup is needed (simple time-based check)
-        # In a production environment, you might want to use a proper scheduler
-        # For now, we'll just log that cleanup should be considered
-        logging.info("Automatic cleanup check - consider running cleanup_old_data()")
-        
-    except Exception as e:
-        logging.error(f"Failed to schedule automatic cleanup: {e}")
-
-# Schedule cleanup on module import (for demonstration)
-# In production, you'd want to use a proper scheduler like APScheduler
-schedule_automatic_cleanup() 

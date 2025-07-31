@@ -13,20 +13,19 @@ import sqlite3
 import time
 import tempfile
 from zoneinfo import ZoneInfo
-from login import check_authentication, show_logout_button, show_user_info
+from auth_wrapper import setup_page_auth, show_session_status
 
-# --- Authentication Check ---
-user_info = check_authentication()
-if not user_info:
-    st.stop()
+# --- Enhanced Authentication Setup ---
+user_info = setup_page_auth(
+    page_title="Invoice Generation", 
+    page_name="Invoice Generation Suite",
+    layout="wide"
+)
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Invoice Generation", layout="wide")
 st.title("Unified Invoice Generation Suite ⚙️📄")
 
-# Show user info and logout button in sidebar
-show_user_info()
-show_logout_button()
+# Show session status in sidebar
+show_session_status()
 
 # --- Project Path & Directory Configuration (Unified) ---
 # Assuming this script is located in a subfolder of the project root

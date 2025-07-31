@@ -7,21 +7,21 @@ import math
 import io
 import csv
 from zoneinfo import ZoneInfo
-from login import check_authentication, show_logout_button, show_user_info, log_business_activity
+from auth_wrapper import setup_page_auth, show_session_status
+from login import log_business_activity
 
-# --- Authentication Check ---
-user_info = check_authentication()
-if not user_info:
-    st.stop()
+# --- Enhanced Authentication Setup ---
+user_info = setup_page_auth(
+    page_title="Invoice Management Suite", 
+    page_name="Invoice Explorer",
+    layout="wide"
+)
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Invoice Management Suite", layout="wide")
 st.title("Invoice Management Suite 🧭")
 st.info("Use the tabs to view the invoice summary, generate reports, or manage invoice status.")
 
-# Show user info and logout button in sidebar
-show_user_info()
-show_logout_button()
+# Show session status in sidebar
+show_session_status()
 
 # --- Shared Configuration ---
 DATA_ROOT = "data"
@@ -132,8 +132,9 @@ def update_invoice_data(original_inv_ref, edited_df, container_list):
             try:
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    username=user_info['username'],
+                    description=f"Edited invoice data - {len(edited_df)} records updated",
                     activity_type='INVOICE_EDIT',
+                    username=user_info['username'],
                     target_invoice_ref=new_inv_ref,
                     target_invoice_no=edited_df['inv_no'].iloc[0] if 'inv_no' in edited_df.columns else None,
                     action_description=f"Edited invoice data - {len(edited_df)} records updated",
@@ -169,8 +170,9 @@ def void_invoice_action(inv_ref_to_void):
                 
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    username=user_info['username'],
+                    description="Voided invoice",
                     activity_type='INVOICE_VOID',
+                    username=user_info['username'],
                     target_invoice_ref=inv_ref_to_void,
                     target_invoice_no=inv_no,
                     action_description="Voided invoice",
@@ -204,8 +206,9 @@ def reactivate_invoice_action(inv_ref_to_reactivate):
                 
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    username=user_info['username'],
+                    description="Reactivated invoice",
                     activity_type='INVOICE_REACTIVATE',
+                    username=user_info['username'],
                     target_invoice_ref=inv_ref_to_reactivate,
                     target_invoice_no=inv_no,
                     action_description="Reactivated invoice",
@@ -240,8 +243,9 @@ def permanently_delete_invoice_action(inv_ref_to_delete):
                 
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    username=user_info['username'],
+                    description="Permanently deleted invoice",
                     activity_type='INVOICE_DELETE',
+                    username=user_info['username'],
                     target_invoice_ref=inv_ref_to_delete,
                     target_invoice_no=inv_no,
                     action_description="Permanently deleted invoice",

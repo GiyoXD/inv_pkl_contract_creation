@@ -78,29 +78,33 @@ col1, col2 = st.columns(2)
 with col1:
     days_back = st.selectbox("Show events from last:", [1, 7, 30, 90], index=1)
 with col2:
-    action_filter = st.selectbox("Filter by action:", ["All", "LOGIN_FAILED", "LOGIN_SUCCESS", "LOGIN_RATE_LIMITED", "LOGOUT", "ACCOUNT_LOCKED"])
+    action_filter = st.selectbox("Filter by action:", ["All", "LOGIN_FAILED", "LOGIN_SUCCESS", "USER_REGISTERED", "LOGOUT", "ACCOUNT_LOCKED"])
 
 try:
     conn = sqlite3.connect(USER_DB_PATH)
     
-    # Build query based on filters
+    # Build query based on filters - using correct table and column names
     query = '''
         SELECT 
-            timestamp,
-            username,
-            action,
-            ip_address,
-            user_agent,
-            success,
-            details
-        FROM security_audit
-        WHERE timestamp > datetime('now', '-{} days')
+            se.timestamp,
+            u.username,
+            se.event_type as action,
+            se.ip_address,
+            se.user_agent,
+            CASE 
+                WHEN se.event_type IN ('LOGIN_SUCCESS', 'USER_REGISTERED') THEN 1
+                ELSE 0
+            END as success,
+            se.description as details
+        FROM security_events se
+        LEFT JOIN users u ON se.user_id = u.id
+        WHERE se.timestamp > datetime('now', '-{} days')
     '''.format(days_back)
     
     if action_filter != "All":
-        query += f" AND action = '{action_filter}'"
+        query += f" AND se.event_type = '{action_filter}'"
     
-    query += " ORDER BY timestamp DESC LIMIT 1000"
+    query += " ORDER BY se.timestamp DESC LIMIT 1000"
     
     df = pd.read_sql_query(query, conn)
     
@@ -149,8 +153,8 @@ try:
             login_attempts = df[df['action'].isin(['LOGIN_SUCCESS', 'LOGIN_FAILED'])]
             if not login_attempts.empty:
                 st.subheader("Login Success vs Failed")
-                success_count = len(login_attempts[login_attempts['success'] == True])
-                failed_count = len(login_attempts[login_attempts['success'] == False])
+                success_count = len(login_attempts[login_attempts['success'] == 1])
+                failed_count = len(login_attempts[login_attempts['success'] == 0])
                 total_count = len(login_attempts)
                 
                 st.write(f"Total login attempts: {total_count}")
@@ -165,7 +169,7 @@ try:
         st.subheader("🌐 Suspicious IP Addresses")
         ip_analysis = df.groupby('ip_address').agg({
             'action': 'count',
-            'success': lambda x: (x == False).sum()
+            'success': lambda x: (x == 0).sum()
         }).reset_index()
         ip_analysis.columns = ['IP Address', 'Total Requests', 'Failed Requests']
         ip_analysis['Success Rate'] = ((ip_analysis['Total Requests'] - ip_analysis['Failed Requests']) / ip_analysis['Total Requests'] * 100).round(2)
@@ -330,7 +334,7 @@ try:
             cursor.execute('DELETE FROM rate_limits WHERE window_start < datetime("now", "-1 hour")')
             
             # Clean old audit logs (keep last 90 days)
-            cursor.execute('DELETE FROM security_audit WHERE timestamp < datetime("now", "-90 days")')
+            cursor.execute('DELETE FROM security_events WHERE timestamp < datetime("now", "-90 days")')
             
             conn.commit()
             conn.close()
@@ -418,7 +422,8 @@ st.header("📋 Business Activity Monitor")
 st.write("Track user actions on data verification and invoice management")
 
 # Get business activities
-business_df = get_business_activities(days_back=days_back)
+business_activities = get_business_activities(days_back=days_back)
+business_df = pd.DataFrame(business_activities)
 
 if not business_df.empty:
     # Business Activity Summary

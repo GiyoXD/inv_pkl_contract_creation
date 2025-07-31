@@ -9,29 +9,10 @@ USER_DB_PATH = "data/user_database.db"
 def get_persistent_session():
     """Get session token from persistent storage"""
     try:
-        # First try session state
+        # Only try session state - don't automatically restore from database
+        # This prevents logout issues where any valid session gets restored
         if 'session_token' in st.session_state:
             return st.session_state['session_token']
-        
-        # Try to get from database (most recent valid session)
-        conn = sqlite3.connect(USER_DB_PATH)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT session_token, user_id FROM sessions 
-            WHERE expires_at > datetime('now')
-            ORDER BY created_at DESC 
-            LIMIT 1
-        ''')
-        
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result:
-            session_token, user_id = result
-            # Store in session state for future use
-            st.session_state['session_token'] = session_token
-            return session_token
         
         return None
         

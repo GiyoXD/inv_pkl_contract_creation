@@ -1,23 +1,17 @@
 import streamlit as st
 import json
 import os
-from login import check_authentication, show_logout_button, show_user_info
+from auth_wrapper import setup_page_auth, show_session_status
 
-# --- Authentication Check ---
-user_info = check_authentication()
-if not user_info:
-    st.stop()
-
-# --- Page Configuration ---
-st.set_page_config(
-    page_title="User Guide",
-    page_icon="📖",
+# --- Enhanced Authentication Setup ---
+user_info = setup_page_auth(
+    page_title="User Guide", 
+    page_name="User Guide",
     layout="wide"
 )
 
-# Show user info and logout button in sidebar
-show_user_info()
-show_logout_button()
+# Show session status in sidebar
+show_session_status()
 
 # --- Load Translation Function ---
 def load_translations(language_code):

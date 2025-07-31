@@ -8,20 +8,20 @@ import shutil
 import json
 import time
 from zoneinfo import ZoneInfo
-from login import check_authentication, show_logout_button, show_user_info, log_business_activity
+from auth_wrapper import setup_page_auth, show_session_status
+from login import log_business_activity
 
-# --- Authentication Check ---
-user_info = check_authentication()
-if not user_info:
-    st.stop()
+# --- Enhanced Authentication Setup ---
+user_info = setup_page_auth(
+    page_title="Add Invoice", 
+    page_name="Add Invoice",
+    layout="wide"
+)
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Add Invoice", layout="wide")
 st.title("Add / Amend Invoice ➕")
 
-# Show user info and logout button in sidebar
-show_user_info()
-show_logout_button()
+# Show session status in sidebar
+show_session_status()
 
 # --- Configuration ---
 DATA_ROOT = Path("data")
@@ -149,8 +149,9 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                username=user_info['username'],
+                description=f"Amended invoice data - Replaced {len(existing_df)} records with {len(new_df)} new records",
                 activity_type='DATA_AMENDMENT',
+                username=user_info['username'],
                 target_invoice_ref=new_inv_ref,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
                 action_description=f"Amended invoice data - Replaced {len(existing_df)} records with {len(new_df)} new records",
@@ -185,8 +186,9 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                username=user_info['username'],
+                description="Rejected amendment proposal",
                 activity_type='DATA_AMENDMENT',
+                username=user_info['username'],
                 target_invoice_ref=new_df['inv_ref'].iloc[0] if 'inv_ref' in new_df.columns else None,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
                 action_description="Rejected amendment proposal",
@@ -216,8 +218,9 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                username=user_info['username'],
+                description=f"Verified and inserted new invoice - {len(new_df)} records added",
                 activity_type='DATA_VERIFICATION',
+                username=user_info['username'],
                 target_invoice_ref=new_inv_ref,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
                 action_description=f"Verified and inserted new invoice - {len(new_df)} records added",
@@ -246,8 +249,9 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                username=user_info['username'],
+                description="Rejected new invoice proposal",
                 activity_type='DATA_VERIFICATION',
+                username=user_info['username'],
                 target_invoice_ref=new_inv_ref,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
                 action_description="Rejected new invoice proposal",

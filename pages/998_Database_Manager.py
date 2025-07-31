@@ -4,26 +4,21 @@ import shutil
 from datetime import datetime
 import sqlite3
 from zoneinfo import ZoneInfo
-from login import check_authentication, show_logout_button, show_user_info
+from auth_wrapper import setup_page_auth, show_session_status
 
-# --- Authentication Check ---
-user_info = check_authentication()
-if not user_info:
-    st.stop()
+# --- Enhanced Authentication Setup ---
+user_info = setup_page_auth(
+    page_title="Database Manager", 
+    page_name="Database Manager",
+    admin_required=True,
+    layout="wide"
+)
 
-# Check if user is admin
-if user_info['role'] != 'admin':
-    st.error("Access denied. Admin privileges required.")
-    st.stop()
-
-# --- Page Configuration ---
-st.set_page_config(page_title="Database Admin", layout="wide")
 st.title("Database Admin Tools 🛡️")
 st.info("Use the tabs below to switch between Backup/Restore and a full Database Reset.")
 
-# Show user info and logout button in sidebar
-show_user_info()
-show_logout_button()
+# Show session status in sidebar
+show_session_status()
 
 # --- General Configuration ---
 DATA_ROOT = "data"
