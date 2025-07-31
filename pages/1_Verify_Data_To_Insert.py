@@ -8,7 +8,7 @@ import shutil
 import json
 import time
 from zoneinfo import ZoneInfo
-from login import check_authentication, show_logout_button, show_user_info
+from login import check_authentication, show_logout_button, show_user_info, log_business_activity
 
 # --- Authentication Check ---
 user_info = check_authentication()
@@ -144,6 +144,23 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
     if c1.button("✅ Accept Changes", use_container_width=True):
         inv_refs_to_delete = existing_df['inv_ref'].unique().tolist()
         new_inv_ref = new_df['inv_ref'].iloc[0]
+        
+        # Log the amendment activity
+        try:
+            log_business_activity(
+                user_id=user_info['user_id'],
+                username=user_info['username'],
+                activity_type='DATA_AMENDMENT',
+                target_invoice_ref=new_inv_ref,
+                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                action_description=f"Amended invoice data - Replaced {len(existing_df)} records with {len(new_df)} new records",
+                old_values=existing_df.to_dict('records')[:5],  # Store first 5 records as sample
+                new_values=new_df.to_dict('records')[:5],  # Store first 5 records as sample
+                success=True
+            )
+        except Exception as e:
+            st.warning(f"Activity logging failed: {e}")
+        
         with sqlite3.connect(DATABASE_FILE) as conn:
             cursor = conn.cursor()
             st.write(f"Deleting all records for matched Invoice Refs: `{', '.join(inv_refs_to_delete)}`...")
@@ -164,6 +181,22 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
         st.rerun()
 
     if c2.button("❌ Reject Changes", use_container_width=True):
+        # Log the rejection
+        try:
+            log_business_activity(
+                user_id=user_info['user_id'],
+                username=user_info['username'],
+                activity_type='DATA_AMENDMENT',
+                target_invoice_ref=new_df['inv_ref'].iloc[0] if 'inv_ref' in new_df.columns else None,
+                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                action_description="Rejected amendment proposal",
+                old_values=existing_df.to_dict('records')[:5],
+                new_values=new_df.to_dict('records')[:5],
+                success=True
+            )
+        except Exception as e:
+            st.warning(f"Activity logging failed: {e}")
+        
         os.remove(source_file_path)
         st.warning("Amendment rejected. The source JSON file has been permanently deleted.")
         st.rerun()
@@ -179,6 +212,21 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
 
     c1, c2, _ = st.columns([1, 1, 4])
     if c1.button("✅ Accept", use_container_width=True):
+        # Log the new invoice verification
+        try:
+            log_business_activity(
+                user_id=user_info['user_id'],
+                username=user_info['username'],
+                activity_type='DATA_VERIFICATION',
+                target_invoice_ref=new_inv_ref,
+                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                action_description=f"Verified and inserted new invoice - {len(new_df)} records added",
+                new_values=new_df.to_dict('records')[:5],  # Store first 5 records as sample
+                success=True
+            )
+        except Exception as e:
+            st.warning(f"Activity logging failed: {e}")
+        
         with sqlite3.connect(DATABASE_FILE) as conn:
             new_df.to_sql(TABLE_NAME, conn, if_exists='append', index=False)
             if manual_containers:
@@ -194,6 +242,21 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         st.rerun()
 
     if c2.button("❌ Reject", use_container_width=True):
+        # Log the rejection
+        try:
+            log_business_activity(
+                user_id=user_info['user_id'],
+                username=user_info['username'],
+                activity_type='DATA_VERIFICATION',
+                target_invoice_ref=new_inv_ref,
+                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                action_description="Rejected new invoice proposal",
+                new_values=new_df.to_dict('records')[:5],
+                success=True
+            )
+        except Exception as e:
+            st.warning(f"Activity logging failed: {e}")
+        
         os.remove(source_file_path)
         st.warning(f"Invoice '{new_inv_ref}' rejected and source file deleted.")
         st.rerun()

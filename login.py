@@ -4,6 +4,7 @@ import sqlite3
 import os
 import time
 import json
+import pandas as pd
 from datetime import datetime, timedelta
 import threading
 import logging
@@ -15,6 +16,30 @@ RATE_LIMIT_WINDOW = 60  # Seconds for rate limiting
 MAX_REQUESTS_PER_WINDOW = 10  # Maximum requests per window
 SESSION_TIMEOUT = 24  # Hours for session timeout
 MAX_CONCURRENT_SESSIONS = 3  # Maximum concurrent sessions per user
+
+# --- Activity Tracking Configuration ---
+ACTIVITY_TYPES = {
+    'DATA_VERIFICATION': 'Data verification and insertion',
+    'INVOICE_EDIT': 'Invoice data editing',
+    'INVOICE_VOID': 'Invoice voiding',
+    'INVOICE_REACTIVATE': 'Invoice reactivation',
+    'INVOICE_DELETE': 'Invoice deletion',
+    'DATA_AMENDMENT': 'Data amendment',
+    'CONTAINER_UPDATE': 'Container information update',
+    'STATUS_CHANGE': 'Status change',
+    'BULK_OPERATION': 'Bulk operation'
+}
+
+# --- Storage Management Configuration ---
+STORAGE_CLEANUP_CONFIG = {
+    'business_activities_retention_days': 90,  # Keep detailed data for 90 days
+    'security_audit_retention_days': 180,      # Keep security logs for 180 days
+    'sessions_cleanup_hours': 24,              # Clean expired sessions every 24 hours
+    'max_json_size_kb': 50,                    # Maximum JSON data size per record (KB)
+    'auto_cleanup_enabled': True,              # Enable automatic cleanup
+    'archive_old_data': True,                  # Archive old data instead of deleting
+    'archive_path': 'data/archives/'           # Path for archived data
+}
 
 # --- Login System Configuration ---
 ADMIN_USERNAME = "menchayheng"
@@ -93,6 +118,38 @@ def init_user_database():
             window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_request TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
+    ''')
+    
+    # Create business activity tracking table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS business_activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            username TEXT NOT NULL,
+            activity_type TEXT NOT NULL,
+            target_invoice_ref TEXT,
+            target_invoice_no TEXT,
+            action_description TEXT,
+            old_values TEXT,  -- JSON string of old data
+            new_values TEXT,  -- JSON string of new data
+            ip_address TEXT,
+            user_agent TEXT,
+            success BOOLEAN DEFAULT 1,
+            error_message TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
+    # Create index for faster queries
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_business_activities_user 
+        ON business_activities(user_id, timestamp)
+    ''')
+    
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_business_activities_invoice 
+        ON business_activities(target_invoice_ref, timestamp)
     ''')
     
     # Insert admin user if not exists
@@ -211,6 +268,79 @@ def log_security_event(user_id, username, action, success, details=""):
         
     except Exception as e:
         logging.error(f"Failed to log security event: {e}")
+
+def log_business_activity(user_id, username, activity_type, target_invoice_ref=None, target_invoice_no=None, 
+                        action_description="", old_values=None, new_values=None, success=True, error_message=""):
+    """Log business activities for audit trail and accountability"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Convert data to JSON strings for storage
+        old_values_json = json.dumps(old_values) if old_values else None
+        new_values_json = json.dumps(new_values) if new_values else None
+        
+        cursor.execute('''
+            INSERT INTO business_activities 
+            (user_id, username, activity_type, target_invoice_ref, target_invoice_no, 
+             action_description, old_values, new_values, ip_address, user_agent, 
+             success, error_message, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (user_id, username, activity_type, target_invoice_ref, target_invoice_no,
+              action_description, old_values_json, new_values_json, get_client_ip(), 
+              get_user_agent(), success, error_message))
+        
+        conn.commit()
+        conn.close()
+        
+        # Also log to file for backup - prioritize invoice number over reference
+        invoice_identifier = target_invoice_no if target_invoice_no else target_invoice_ref
+        log_level = logging.WARNING if not success else logging.INFO
+        logging.log(log_level, f"Business Activity: {activity_type} by {username} - Invoice No: {invoice_identifier} - {action_description} - Success: {success}")
+        
+    except Exception as e:
+        logging.error(f"Failed to log business activity: {e}")
+
+def get_business_activities(user_id=None, invoice_ref=None, invoice_no=None, activity_type=None, days_back=30):
+    """Get business activities with optional filters - prioritize invoice number"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        
+        query = '''
+            SELECT ba.*, u.username as user_username
+            FROM business_activities ba
+            LEFT JOIN users u ON ba.user_id = u.id
+            WHERE ba.timestamp >= datetime('now', '-{} days')
+        '''.format(days_back)
+        
+        params = []
+        
+        if user_id:
+            query += " AND ba.user_id = ?"
+            params.append(user_id)
+        
+        # Prioritize invoice number over invoice reference
+        if invoice_no:
+            query += " AND ba.target_invoice_no = ?"
+            params.append(invoice_no)
+        elif invoice_ref:
+            query += " AND ba.target_invoice_ref = ?"
+            params.append(invoice_ref)
+        
+        if activity_type:
+            query += " AND ba.activity_type = ?"
+            params.append(activity_type)
+        
+        query += " ORDER BY ba.timestamp DESC"
+        
+        df = pd.read_sql_query(query, conn, params=params)
+        conn.close()
+        
+        return df
+        
+    except Exception as e:
+        logging.error(f"Failed to get business activities: {e}")
+        return pd.DataFrame()
 
 def check_rate_limit(identifier, max_requests=RATE_LIMIT_WINDOW, window_seconds=MAX_REQUESTS_PER_WINDOW):
     """Check if request is within rate limits"""
@@ -755,4 +885,262 @@ def get_security_stats():
         return {}
 
 # Initialize the database when this module is imported
-init_user_database() 
+init_user_database()
+
+# --- Storage Management Functions ---
+
+def get_storage_stats():
+    """Get storage statistics for the database"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get table sizes
+        tables = ['users', 'sessions', 'security_audit', 'business_activities']
+        table_stats = {}
+        
+        for table in tables:
+            try:
+                cursor.execute(f'SELECT COUNT(*) FROM {table}')
+                count = cursor.fetchone()[0]
+                
+                # Estimate size (rough calculation)
+                cursor.execute(f'PRAGMA table_info({table})')
+                columns = cursor.fetchall()
+                avg_row_size = sum(1 for col in columns) * 50  # Rough estimate
+                estimated_size_kb = (count * avg_row_size) / 1024
+                
+                table_stats[table] = {
+                    'count': count,
+                    'estimated_size_kb': round(estimated_size_kb, 2)
+                }
+            except sqlite3.OperationalError:
+                table_stats[table] = {'count': 0, 'estimated_size_kb': 0}
+        
+        # Get total database size
+        cursor.execute("PRAGMA page_count")
+        page_count = cursor.fetchone()[0]
+        cursor.execute("PRAGMA page_size")
+        page_size = cursor.fetchone()[0]
+        total_size_kb = (page_count * page_size) / 1024
+        
+        conn.close()
+        
+        return {
+            'total_size_kb': round(total_size_kb, 2),
+            'tables': table_stats
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to get storage stats: {e}")
+        return {}
+
+def cleanup_old_data(days_back=None, force=False):
+    """Clean up old data based on retention policies"""
+    try:
+        config = STORAGE_CLEANUP_CONFIG
+        if not config['auto_cleanup_enabled'] and not force:
+            return {"success": False, "message": "Auto cleanup is disabled"}
+        
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Create archive directory if needed
+        if config['archive_old_data']:
+            os.makedirs(config['archive_path'], exist_ok=True)
+        
+        cleanup_stats = {
+            'business_activities_cleaned': 0,
+            'security_audit_cleaned': 0,
+            'sessions_cleaned': 0,
+            'archived_files': []
+        }
+        
+        # Clean business activities
+        retention_days = days_back or config['business_activities_retention_days']
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
+        
+        if config['archive_old_data']:
+            # Archive old business activities
+            cursor.execute('''
+                SELECT * FROM business_activities 
+                WHERE timestamp < ?
+            ''', (cutoff_date,))
+            old_activities = cursor.fetchall()
+            
+            if old_activities:
+                archive_file = f"{config['archive_path']}business_activities_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with open(archive_file, 'w') as f:
+                    json.dump(old_activities, f, indent=2)
+                cleanup_stats['archived_files'].append(archive_file)
+        
+        cursor.execute('''
+            DELETE FROM business_activities 
+            WHERE timestamp < ?
+        ''', (cutoff_date,))
+        cleanup_stats['business_activities_cleaned'] = cursor.rowcount
+        
+        # Clean security audit logs
+        retention_days = days_back or config['security_audit_retention_days']
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
+        
+        if config['archive_old_data']:
+            # Archive old security audit logs
+            cursor.execute('''
+                SELECT * FROM security_audit 
+                WHERE timestamp < ?
+            ''', (cutoff_date,))
+            old_audit = cursor.fetchall()
+            
+            if old_audit:
+                archive_file = f"{config['archive_path']}security_audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                with open(archive_file, 'w') as f:
+                    json.dump(old_audit, f, indent=2)
+                cleanup_stats['archived_files'].append(archive_file)
+        
+        cursor.execute('''
+            DELETE FROM security_audit 
+            WHERE timestamp < ?
+        ''', (cutoff_date,))
+        cleanup_stats['security_audit_cleaned'] = cursor.rowcount
+        
+        # Clean expired sessions
+        cursor.execute('DELETE FROM sessions WHERE expires_at < datetime("now")')
+        cleanup_stats['sessions_cleaned'] = cursor.rowcount
+        
+        conn.commit()
+        conn.close()
+        
+        # Log cleanup activity
+        logging.info(f"Storage cleanup completed: {cleanup_stats}")
+        
+        return {
+            "success": True,
+            "message": f"Cleanup completed. {cleanup_stats['business_activities_cleaned']} business activities, {cleanup_stats['security_audit_cleaned']} security logs, {cleanup_stats['sessions_cleaned']} sessions cleaned.",
+            "stats": cleanup_stats
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to cleanup old data: {e}")
+        return {"success": False, "message": f"Cleanup failed: {str(e)}"}
+
+def optimize_database():
+    """Optimize database performance and reduce size"""
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Vacuum database to reclaim space
+        cursor.execute("VACUUM")
+        
+        # Analyze tables for better query performance
+        cursor.execute("ANALYZE")
+        
+        # Rebuild indexes
+        cursor.execute("REINDEX")
+        
+        conn.close()
+        
+        return {"success": True, "message": "Database optimized successfully"}
+        
+    except Exception as e:
+        logging.error(f"Failed to optimize database: {e}")
+        return {"success": False, "message": f"Optimization failed: {str(e)}"}
+
+def get_storage_recommendations():
+    """Get storage optimization recommendations"""
+    try:
+        stats = get_storage_stats()
+        recommendations = []
+        
+        if not stats:
+            return recommendations
+        
+        total_size = stats.get('total_size_kb', 0)
+        tables = stats.get('tables', {})
+        
+        # Check if database is getting large
+        if total_size > 10000:  # 10MB
+            recommendations.append({
+                'type': 'warning',
+                'message': f'Database size is {total_size:.1f} KB. Consider enabling auto-cleanup.',
+                'action': 'Enable automatic cleanup in storage settings'
+            })
+        
+        # Check business activities table
+        ba_stats = tables.get('business_activities', {})
+        if ba_stats.get('count', 0) > 10000:
+            recommendations.append({
+                'type': 'info',
+                'message': f'Business activities table has {ba_stats["count"]} records. Consider reducing retention period.',
+                'action': 'Reduce business activities retention period'
+            })
+        
+        # Check security audit table
+        sa_stats = tables.get('security_audit', {})
+        if sa_stats.get('count', 0) > 50000:
+            recommendations.append({
+                'type': 'info',
+                'message': f'Security audit table has {sa_stats["count"]} records. Consider reducing retention period.',
+                'action': 'Reduce security audit retention period'
+            })
+        
+        return recommendations
+        
+    except Exception as e:
+        logging.error(f"Failed to get storage recommendations: {e}")
+        return []
+
+def update_storage_config(new_config):
+    """Update storage cleanup configuration"""
+    try:
+        global STORAGE_CLEANUP_CONFIG
+        STORAGE_CLEANUP_CONFIG.update(new_config)
+        
+        # Save to file for persistence
+        config_file = 'data/storage_config.json'
+        os.makedirs(os.path.dirname(config_file), exist_ok=True)
+        
+        with open(config_file, 'w') as f:
+            json.dump(STORAGE_CLEANUP_CONFIG, f, indent=2)
+        
+        return {"success": True, "message": "Storage configuration updated successfully"}
+        
+    except Exception as e:
+        logging.error(f"Failed to update storage config: {e}")
+        return {"success": False, "message": f"Failed to update config: {str(e)}"}
+
+def load_storage_config():
+    """Load storage configuration from file"""
+    try:
+        config_file = 'data/storage_config.json'
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                loaded_config = json.load(f)
+                global STORAGE_CLEANUP_CONFIG
+                STORAGE_CLEANUP_CONFIG.update(loaded_config)
+    except Exception as e:
+        logging.error(f"Failed to load storage config: {e}")
+
+# Load storage configuration on module import
+load_storage_config()
+
+# --- Automatic Cleanup Scheduling ---
+def schedule_automatic_cleanup():
+    """Schedule automatic cleanup if enabled"""
+    try:
+        config = STORAGE_CLEANUP_CONFIG
+        if not config['auto_cleanup_enabled']:
+            return
+        
+        # Check if cleanup is needed (simple time-based check)
+        # In a production environment, you might want to use a proper scheduler
+        # For now, we'll just log that cleanup should be considered
+        logging.info("Automatic cleanup check - consider running cleanup_old_data()")
+        
+    except Exception as e:
+        logging.error(f"Failed to schedule automatic cleanup: {e}")
+
+# Schedule cleanup on module import (for demonstration)
+# In production, you'd want to use a proper scheduler like APScheduler
+schedule_automatic_cleanup() 

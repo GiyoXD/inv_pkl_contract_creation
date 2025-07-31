@@ -114,3 +114,98 @@ st.bar_chart(monthly_data.set_index('creating_date')['amount'])
 st.subheader("Top 10 Products by Invoiced Amount (by Item Code)")
 top_items = filtered_df.groupby('item')['amount'].sum().nlargest(10)
 st.bar_chart(top_items)
+
+# --- Recent Business Activities (Admin Only) ---
+if user_info['role'] == 'admin':
+    st.divider()
+    st.header("🔄 Recent Business Activities")
+    st.info("Recent user actions on data verification and invoice management")
+    
+    try:
+        from login import get_business_activities, ACTIVITY_TYPES
+        
+        # Get recent business activities
+        business_df = get_business_activities(days_back=7)
+        
+        if not business_df.empty:
+            # Show summary metrics
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Activities (7 days)", len(business_df))
+            with col2:
+                successful = len(business_df[business_df['success'] == True])
+                st.metric("Successful", successful)
+            with col3:
+                failed = len(business_df[business_df['success'] == False])
+                st.metric("Failed", failed)
+            
+            # Show recent activities
+            st.subheader("Latest Activities")
+            for _, activity in business_df.head(5).iterrows():
+                status_icon = "✅" if activity['success'] else "❌"
+                activity_name = ACTIVITY_TYPES.get(activity['activity_type'], activity['activity_type'])
+                
+                with st.expander(f"{activity['timestamp']} - {status_icon} {activity_name} by {activity['username']}"):
+                    st.write(f"**Invoice No:** {activity['target_invoice_no'] or 'N/A'}")
+                    st.write(f"**Invoice Ref:** {activity['target_invoice_ref'] or 'N/A'}")
+                    st.write(f"**Description:** {activity['action_description']}")
+                    if activity['error_message']:
+                        st.error(f"Error: {activity['error_message']}")
+            
+            # Link to full activity monitor
+            if st.button("📊 View Full Activity Monitor"):
+                st.switch_page("pages/Activity_Monitor.py")
+        else:
+            st.info("No business activities found in the last 7 days.")
+            
+    except Exception as e:
+        st.error(f"Could not load business activities: {e}")
+
+    # --- Storage Monitoring (Admin Only) ---
+    st.divider()
+    st.header("💾 Storage Overview")
+    st.info("Database storage statistics and health monitoring")
+    
+    try:
+        from login import get_storage_stats, get_storage_recommendations
+        
+        # Get storage statistics
+        storage_stats = get_storage_stats()
+        
+        if storage_stats:
+            # Storage metrics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                total_size = storage_stats.get('total_size_kb', 0)
+                st.metric("Database Size", f"{total_size:.1f} KB")
+            with col2:
+                total_size_mb = total_size / 1024
+                st.metric("Database Size", f"{total_size_mb:.2f} MB")
+            with col3:
+                tables = storage_stats.get('tables', {})
+                total_records = sum(table.get('count', 0) for table in tables.values())
+                st.metric("Total Records", f"{total_records:,}")
+            with col4:
+                # Health indicator
+                if total_size < 1000:
+                    st.success("Health: Good")
+                elif total_size < 5000:
+                    st.warning("Health: Moderate")
+                else:
+                    st.error("Health: Large")
+            
+            # Quick storage recommendations
+            recommendations = get_storage_recommendations()
+            if recommendations:
+                st.warning("💡 Storage Recommendations:")
+                for rec in recommendations[:3]:  # Show first 3 recommendations
+                    st.write(f"• {rec['message']}")
+            
+            # Link to storage manager
+            if st.button("💾 Open Storage Manager"):
+                st.switch_page("pages/Storage_Manager.py")
+        else:
+            st.info("Could not retrieve storage statistics.")
+            
+    except Exception as e:
+        st.error(f"Could not load storage information: {e}")

@@ -7,7 +7,7 @@ import math
 import io
 import csv
 from zoneinfo import ZoneInfo
-from login import check_authentication, show_logout_button, show_user_info
+from login import check_authentication, show_logout_button, show_user_info, log_business_activity
 
 # --- Authentication Check ---
 user_info = check_authentication()
@@ -76,6 +76,14 @@ def update_invoice_data(original_inv_ref, edited_df, container_list):
     original_inv_ref: The original invoice reference (used to find existing records)
     edited_df: The edited dataframe (may contain new inv_ref values)
     """
+    # Get original data for logging
+    original_data = None
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            original_data = pd.read_sql_query(f"SELECT * FROM {TABLE_NAME} WHERE inv_ref = ?", conn, params=(original_inv_ref,))
+    except Exception as e:
+        st.warning(f"Could not retrieve original data for logging: {e}")
+    
     with sqlite3.connect(DATABASE_FILE) as conn:
         cursor = conn.cursor()
         cursor.execute("BEGIN TRANSACTION;")
@@ -119,6 +127,23 @@ def update_invoice_data(original_inv_ref, edited_df, container_list):
                 FROM {TABLE_NAME} i WHERE i.inv_ref = ? GROUP BY i.inv_ref """
             cursor.execute(summary_update_query, (new_inv_ref,))
             cursor.execute("COMMIT;")
+            
+            # Log the edit activity
+            try:
+                log_business_activity(
+                    user_id=user_info['user_id'],
+                    username=user_info['username'],
+                    activity_type='INVOICE_EDIT',
+                    target_invoice_ref=new_inv_ref,
+                    target_invoice_no=edited_df['inv_no'].iloc[0] if 'inv_no' in edited_df.columns else None,
+                    action_description=f"Edited invoice data - {len(edited_df)} records updated",
+                    old_values=original_data.to_dict('records')[:5] if original_data is not None else None,
+                    new_values=edited_df.to_dict('records')[:5],
+                    success=True
+                )
+            except Exception as e:
+                st.warning(f"Activity logging failed: {e}")
+            
             # Clear all relevant caches
             get_overall_grand_totals.clear()
             find_active_invoices.clear()
@@ -134,6 +159,26 @@ def void_invoice_action(inv_ref_to_void):
             cursor.execute(f"UPDATE {TABLE_NAME} SET status = 'voided' WHERE inv_ref = ?", (inv_ref_to_void,))
             cursor.execute(f"UPDATE {SUMMARY_TABLE_NAME} SET status = 'voided' WHERE inv_ref = ?", (inv_ref_to_void,))
             conn.commit()
+            
+            # Log the void activity
+            try:
+                # Get invoice number for logging
+                cursor.execute(f"SELECT inv_no FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_void,))
+                inv_no_result = cursor.fetchone()
+                inv_no = inv_no_result[0] if inv_no_result else None
+                
+                log_business_activity(
+                    user_id=user_info['user_id'],
+                    username=user_info['username'],
+                    activity_type='INVOICE_VOID',
+                    target_invoice_ref=inv_ref_to_void,
+                    target_invoice_no=inv_no,
+                    action_description="Voided invoice",
+                    success=True
+                )
+            except Exception as e:
+                st.warning(f"Activity logging failed: {e}")
+            
             # Clear all relevant caches
             get_overall_grand_totals.clear()
             find_active_invoices.clear()
@@ -149,6 +194,26 @@ def reactivate_invoice_action(inv_ref_to_reactivate):
             cursor.execute(f"UPDATE {TABLE_NAME} SET status = 'active' WHERE inv_ref = ?", (inv_ref_to_reactivate,))
             cursor.execute(f"UPDATE {SUMMARY_TABLE_NAME} SET status = 'active' WHERE inv_ref = ?", (inv_ref_to_reactivate,))
             conn.commit()
+            
+            # Log the reactivation activity
+            try:
+                # Get invoice number for logging
+                cursor.execute(f"SELECT inv_no FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_reactivate,))
+                inv_no_result = cursor.fetchone()
+                inv_no = inv_no_result[0] if inv_no_result else None
+                
+                log_business_activity(
+                    user_id=user_info['user_id'],
+                    username=user_info['username'],
+                    activity_type='INVOICE_REACTIVATE',
+                    target_invoice_ref=inv_ref_to_reactivate,
+                    target_invoice_no=inv_no,
+                    action_description="Reactivated invoice",
+                    success=True
+                )
+            except Exception as e:
+                st.warning(f"Activity logging failed: {e}")
+            
             # Clear all relevant caches
             get_overall_grand_totals.clear()
             find_active_invoices.clear()
@@ -165,6 +230,26 @@ def permanently_delete_invoice_action(inv_ref_to_delete):
             cursor.execute(f"DELETE FROM {CONTAINER_TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_delete,))
             cursor.execute(f"DELETE FROM {SUMMARY_TABLE_NAME} WHERE inv_ref = ?", (inv_ref_to_delete,))
             conn.commit()
+            
+            # Log the deletion activity
+            try:
+                # Get invoice number for logging (before deletion)
+                cursor.execute(f"SELECT inv_no FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_delete,))
+                inv_no_result = cursor.fetchone()
+                inv_no = inv_no_result[0] if inv_no_result else None
+                
+                log_business_activity(
+                    user_id=user_info['user_id'],
+                    username=user_info['username'],
+                    activity_type='INVOICE_DELETE',
+                    target_invoice_ref=inv_ref_to_delete,
+                    target_invoice_no=inv_no,
+                    action_description="Permanently deleted invoice",
+                    success=True
+                )
+            except Exception as e:
+                st.warning(f"Activity logging failed: {e}")
+            
             # Clear all relevant caches
             get_overall_grand_totals.clear()
             find_active_invoices.clear()

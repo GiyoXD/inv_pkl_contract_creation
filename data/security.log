@@ -159,3 +159,573 @@
 2025-07-30 16:24:52,528 - INFO - Security Event: LOGOUT by menchayheng (unknown) - Success: True - IP: unknown
 2025-07-30 16:26:31,234 - WARNING - Security Event: LOGIN_FAILED by menchayheng (unknown) - Success: False - IP: unknown
 2025-07-30 16:26:34,909 - INFO - Security Event: LOGIN_SUCCESS by menchayheng (unknown) - Success: True - IP: unknown
+2025-07-31 08:07:00,412 - INFO - --- Starting Invoice Automation ---
+2025-07-31 08:07:00,412 - INFO - Using input Excel path from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 08:07:00,413 - INFO - Processing workbook: CLW250025.xlsx
+2025-07-31 08:07:00,413 - INFO - Using output directory from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process
+2025-07-31 08:07:00,414 - INFO - Checking workbook filename 'CLW250025.xlsx' to determine PRIMARY aggregation mode for FOB compounding.
+2025-07-31 08:07:00,414 - WARNING - cfg.CUSTOM_AGGREGATION_WORKBOOK_PREFIXES is not a list. Using empty list.
+2025-07-31 08:07:00,414 - INFO - Workbook filename does not match custom prefixes. Will use STANDARD aggregation results for FOB compounding.
+2025-07-31 08:07:00,414 - INFO - Loading workbook from: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 08:07:00,415 - INFO - Initialized ExcelHandler for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 08:07:00,415 - INFO - Attempting to load workbook 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx' with data_only=True
+2025-07-31 08:07:00,500 - INFO - No sheet name specified. Successfully loaded active sheet: 'Sheet1'
+2025-07-31 08:07:00,500 - INFO - Sheet dimensions: Max Row=30, Max Col=19
+2025-07-31 08:07:00,500 - INFO - Successfully loaded worksheet: 'Sheet1' from 'CLW250025.xlsx'
+2025-07-31 08:07:00,500 - INFO - Searching for the primary header row using smart detection...
+2025-07-31 08:07:00,500 - INFO - [find_and_map_smart_headers_v12] Starting best-fit header search...
+2025-07-31 08:07:00,501 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 1 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,502 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 2 | Score: 81 | Mapping: {'production_order_no': 'B', 'po': 'C', 'reference_code': 'D', 'item': 'E', 'description': 'F', 'pcs': 'H', 'sqft': 'I', 'pallet_count': 'J', 'unit': 'L', 'amount': 'M', 'net': 'N', 'gross': 'O', 'cbm': 'P', 'remarks': 'S'}
+2025-07-31 08:07:00,502 - INFO - [find_and_map_smart_headers_v12] Found new best candidate row at 2 with score 81.
+2025-07-31 08:07:00,503 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 3 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,504 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 4 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,505 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 5 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,508 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 6 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,509 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 7 | Score: 4 | Mapping: {'cbm': 'P'}
+2025-07-31 08:07:00,509 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 8 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,510 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 9 | Score: 4 | Mapping: {'cbm': 'P'}
+2025-07-31 08:07:00,511 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 10 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,511 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 11 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,512 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 12 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,513 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 13 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,513 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 14 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,514 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 15 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,515 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 16 | Score: 4 | Mapping: {'cbm': 'P'}
+2025-07-31 08:07:00,517 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 17 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,520 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 18 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,521 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 19 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,522 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 20 | Score: 0 | Mapping: {}
+2025-07-31 08:07:00,522 - INFO - [find_and_map_smart_headers_v12] SUCCESS: Confirmed header row at 2 with final score 81.
+2025-07-31 08:07:00,522 - INFO - Smart detection successful. Found and validated primary header on row 2.
+2025-07-31 08:07:00,523 - INFO - [find_all_header_rows] Searching for additional headers using pattern '^(批次号|订单号|物料代码|总张数|净重|毛重|po|item|pcs|net|gross|TTX编号)$' in rows 3-30
+2025-07-31 08:07:00,526 - INFO - Found a total of 1 table(s) to process at rows: [2]
+2025-07-31 08:07:00,526 - INFO - Extracting data for all tables...
+2025-07-31 08:07:00,526 - INFO - [extract_multiple_tables] Starting extraction for 1 tables: [2]
+2025-07-31 08:07:00,526 - INFO - [extract_multiple_tables] Table 1: Extracting Data Rows 3 to 30
+2025-07-31 08:07:00,528 - INFO - [extract_multiple_tables] Stopping extraction for Table 1 at row 30: Empty cell in stop column 'item'.
+2025-07-31 08:07:00,528 - INFO - [extract_multiple_tables] Successfully stored 27 rows for Table Index 1.
+2025-07-31 08:07:00,528 - INFO - --- Starting Data Processing Loop for 1 Extracted Table(s) ---
+2025-07-31 08:07:00,528 - INFO - --- Processing Table Index 1 ---
+2025-07-31 08:07:00,528 - INFO - Table 1: Calculating CBM values...
+2025-07-31 08:07:00,528 - INFO - [process_cbm_column] Processing 'cbm' column for volume calculations (List length: 27)...
+2025-07-31 08:07:00,529 - INFO - [process_cbm_column] Finished processing 'cbm' column. List now contains calculated values (Decimals or Nones).
+2025-07-31 08:07:00,529 - INFO - Table 1: Distributing values...
+2025-07-31 08:07:00,529 - INFO - [distribute_values] Starting value distribution for columns: ['net', 'gross', 'cbm'] based on 'pcs' (27 rows).
+2025-07-31 08:07:00,529 - INFO - [distribute_values] Processing column for distribution: 'net'
+2025-07-31 08:07:00,530 - INFO - [distribute_values] Completed distribution processing for column: 'net'.
+2025-07-31 08:07:00,530 - INFO - [distribute_values] Processing column for distribution: 'gross'
+2025-07-31 08:07:00,531 - INFO - [distribute_values] Completed distribution processing for column: 'gross'.
+2025-07-31 08:07:00,531 - INFO - [distribute_values] Processing column for distribution: 'cbm'
+2025-07-31 08:07:00,531 - INFO - [distribute_values] Completed distribution processing for column: 'cbm'.
+2025-07-31 08:07:00,531 - INFO - [distribute_values] Value distribution processing COMPLETED for all requested columns.
+2025-07-31 08:07:00,531 - INFO - Table 1: Updating global STANDARD aggregation...
+2025-07-31 08:07:00,531 - INFO - [aggregate_standard] Processing 27 rows for STANDARD aggregation (SQFT & Amount by PO/Item/Price/Desc).
+2025-07-31 08:07:00,532 - INFO - [aggregate_standard] Finished processing 27 rows.
+2025-07-31 08:07:00,532 - INFO - [aggregate_standard] SQFT values successfully converted/defaulted for 27 rows.
+2025-07-31 08:07:00,532 - INFO - [aggregate_standard] Amount values successfully converted/defaulted for 27 rows.
+2025-07-31 08:07:00,532 - INFO - [aggregate_standard] Global standard aggregation map size: 10
+2025-07-31 08:07:00,532 - INFO - Table 1: Updating global CUSTOM aggregation...
+2025-07-31 08:07:00,532 - INFO - [aggregate_custom] Processing 27 rows from this table to update global CUSTOM aggregation (by PO/Item/Desc).
+2025-07-31 08:07:00,532 - INFO - [aggregate_custom] Finished processing 27 rows for this table.
+2025-07-31 08:07:00,532 - INFO - [aggregate_custom] SQFT values successfully converted/defaulted for 27 rows.
+2025-07-31 08:07:00,532 - INFO - [aggregate_custom] Amount values successfully converted/defaulted for 27 rows.
+2025-07-31 08:07:00,532 - INFO - [aggregate_custom] Global custom aggregation map now contains 10 unique (PO, Item, None, Description) keys.
+2025-07-31 08:07:00,532 - INFO - --- Finished Processing All Steps for Table Index 1 ---
+2025-07-31 08:07:00,532 - INFO - --- All Table Processing Loops Completed ---
+2025-07-31 08:07:00,532 - INFO - --- Performing Final FOB Compounding (Using 'STANDARD' aggregation results as input) ---
+2025-07-31 08:07:00,532 - INFO - [perform_fob_compounding] Starting FOB Compounding. Checking for descriptions to determine split type.
+2025-07-31 08:07:00,533 - INFO - [perform_fob_compounding] Performing BUFFALO split aggregation (Chunk Size: 2).
+2025-07-31 08:07:00,534 - INFO - [perform_fob_compounding] BUFFALO split FOB Compounding complete.
+2025-07-31 08:07:00,534 - INFO - --- FOB Compounding Finished ---
+2025-07-31 08:07:00,534 - INFO - Final processed data structure contains 1 table(s).
+2025-07-31 08:07:00,534 - INFO - Primary aggregation mode used for FOB Compounding: STANDARD
+2025-07-31 08:07:00,534 - INFO - --- Final FOB Compounded Result (Workbook: 'CLW250025.xlsx', Based on 'STANDARD' Input) ---
+2025-07-31 08:07:00,534 - INFO - FOB result is split into BUFFALO (1) and NON-BUFFALO (2) groups.
+2025-07-31 08:07:00,534 - INFO - --- FOB Group 1 --- 
+2025-07-31 08:07:00,534 - INFO -   Combined POs:
+PT20T10/PT26032
+PT26041/PT26042
+PT26044/PT26047
+PT26802/PT27B66
+2025-07-31 08:07:00,534 - INFO -   Combined Items:
+140478/140484
+140491
+2025-07-31 08:07:00,534 - INFO -   Combined Descriptions:
+L BELZIANI BUFFALO STORM 54706
+L LEESWORTH BUFFALO DARK BROWN
+L LEESWORTH BUFFALO OCEAN U43809
+2025-07-31 08:07:00,534 - INFO -   Total SQFT: 177168.4 (Type: <class 'decimal.Decimal'>)
+2025-07-31 08:07:00,534 - INFO -   Total Amount: 160557.502 (Type: <class 'decimal.Decimal'>)
+2025-07-31 08:07:00,534 - INFO - --- FOB Group 2 --- 
+2025-07-31 08:07:00,535 - INFO -   Combined POs:
+PT23D52/PT24S66
+2025-07-31 08:07:00,535 - INFO -   Combined Items:
+140467
+2025-07-31 08:07:00,535 - INFO -   Combined Descriptions:
+L GENOA  COCONUT 47704
+2025-07-31 08:07:00,535 - INFO -   Total SQFT: 25255.6 (Type: <class 'decimal.Decimal'>)
+2025-07-31 08:07:00,535 - INFO -   Total Amount: 25760.712 (Type: <class 'decimal.Decimal'>)
+2025-07-31 08:07:00,535 - INFO - ------------------------------
+2025-07-31 08:07:00,536 - INFO - --- Preparing Data for JSON Output ---
+2025-07-31 08:07:00,536 - INFO - --- Generated JSON Output ---
+2025-07-31 08:07:00,536 - INFO - JSON output is large (15186 chars). Logging preview:
+2025-07-31 08:07:00,536 - INFO - {
+    "metadata": {
+        "workbook_filename": "CLW250025.xlsx",
+        "worksheet_name": "Sheet1",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-07-31T08:07:00.536194"
+    },
+    "processed_tables_data": {
+        "1": {
+            "production_order_no": [
+                "2412003-01",
+                "2412003-01",
+                "2503046-01",
+                "2503046-01",
+                "2503046-01",
+                "2506001-01",
+                "2506001-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506038-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2506063-01",
+                "2507032-01"
+            ],
+            "po": [
+                "PT20T10",
+                "PT20T10",
+                "PT23D52",
+                "PT23D52",
+                "PT23D52",
+                "PT24S66",
+                "PT24S66",
+                "PT26032",
+                "PT26041",
+                "PT26041",
+                "PT26042",
+                "PT26042",
+                "PT26042",
+                "PT26042",
+                "PT26044",
+                "PT26047",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT26802",
+                "PT27B66"
+            ],
+            "reference_code": [
+                "XPSY-FB-\u7070\u7eff39",
+                "XPSY-FB-\u7070\u7eff39",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XPSY-FH-\u5976\u767d183",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XZSY-FB-\u84dd299",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751",
+                "XPSY-FB-\u6df1\u68d5751"
+            ],
+            "item": [
+                140484,
+                140484,
+                140467,
+                140467,
+                140467,
+                140467,
+                140467,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140491,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478,
+                140478
+            ],
+            "description": [
+                "L BELZIANI BUFFALO STORM 54706",
+                "L BELZIANI BUFFALO STORM 54706",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L GENOA  COCONUT 47704",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO OCEAN U43809",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWORTH BUFFALO DARK BROWN",
+                "L LEESWO
+... (JSON output truncated in log)
+2025-07-31 08:07:00,537 - INFO - Determined output JSON path: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process\CLW250025.json
+2025-07-31 08:07:00,538 - INFO - Successfully saved JSON output to 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process\CLW250025.json'
+2025-07-31 08:07:00,538 - INFO - --- Invoice Automation Finished Successfully ---
+2025-07-31 08:07:00,538 - INFO - \U0001f552 TOTAL PROCESSING TIME: 0.13 seconds (0.0 minutes)
+2025-07-31 08:07:00,538 - INFO - \U0001f4c1 Processed file: CLW250025.xlsx
+2025-07-31 08:07:00,538 - INFO - Closed workbook object reference for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\CLW250025.xlsx
+2025-07-31 08:07:00,538 - INFO - --- Automation Run Complete ---
+2025-07-31 08:07:21,634 - INFO - Business Activity: DATA_VERIFICATION by menchayheng - Invoice: INV2025-2 - Verified and inserted new invoice - 27 records added - Success: True
+2025-07-31 08:08:26,918 - INFO - --- Starting Invoice Automation ---
+2025-07-31 08:08:26,918 - INFO - Using input Excel path from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\JLFHLZN25009.xlsx
+2025-07-31 08:08:26,918 - INFO - Processing workbook: JLFHLZN25009.xlsx
+2025-07-31 08:08:26,919 - INFO - Using output directory from command line: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process
+2025-07-31 08:08:26,920 - INFO - Checking workbook filename 'JLFHLZN25009.xlsx' to determine PRIMARY aggregation mode for FOB compounding.
+2025-07-31 08:08:26,920 - WARNING - cfg.CUSTOM_AGGREGATION_WORKBOOK_PREFIXES is not a list. Using empty list.
+2025-07-31 08:08:26,920 - INFO - Workbook filename does not match custom prefixes. Will use STANDARD aggregation results for FOB compounding.
+2025-07-31 08:08:26,921 - INFO - Loading workbook from: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\JLFHLZN25009.xlsx
+2025-07-31 08:08:26,923 - INFO - Initialized ExcelHandler for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\JLFHLZN25009.xlsx
+2025-07-31 08:08:26,924 - INFO - Attempting to load workbook 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\JLFHLZN25009.xlsx' with data_only=True
+2025-07-31 08:08:26,959 - INFO - No sheet name specified. Successfully loaded active sheet: '给徐燕打印'
+2025-07-31 08:08:26,959 - INFO - Sheet dimensions: Max Row=26, Max Col=18
+2025-07-31 08:08:26,959 - INFO - Successfully loaded worksheet: '给徐燕打印' from 'JLFHLZN25009.xlsx'
+2025-07-31 08:08:26,959 - INFO - Searching for the primary header row using smart detection...
+2025-07-31 08:08:26,959 - INFO - [find_and_map_smart_headers_v12] Starting best-fit header search...
+2025-07-31 08:08:26,959 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 1 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,959 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 2 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,960 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 3 | Score: 105 | Mapping: {'production_order_no': 'B', 'po': 'C', 'item': 'D', 'reference_code': 'E', 'pcs': 'I', 'sqft': 'J', 'pallet_count': 'K', 'net': 'L', 'gross': 'M', 'manual_no': 'N', 'cbm': 'O', 'unit': 'P', 'amount': 'Q'}
+2025-07-31 08:08:26,960 - INFO - [find_and_map_smart_headers_v12] Found new best candidate row at 3 with score 105.
+2025-07-31 08:08:26,962 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 4 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,963 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 5 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,964 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 6 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,964 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 7 | Score: 4 | Mapping: {'cbm': 'O'}
+2025-07-31 08:08:26,965 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 8 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,965 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 9 | Score: 4 | Mapping: {'cbm': 'O'}
+2025-07-31 08:08:26,966 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 10 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,967 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 11 | Score: 4 | Mapping: {'cbm': 'O'}
+2025-07-31 08:08:26,968 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 12 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,969 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 13 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,970 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 14 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,970 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 15 | Score: 4 | Mapping: {'cbm': 'O'}
+2025-07-31 08:08:26,971 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 16 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,972 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 17 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,972 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 18 | Score: 4 | Mapping: {'cbm': 'O'}
+2025-07-31 08:08:26,973 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 19 | Score: 0 | Mapping: {}
+2025-07-31 08:08:26,974 - INFO - [find_and_map_smart_headers_v12] Evaluated Row 20 | Score: 4 | Mapping: {'cbm': 'O'}
+2025-07-31 08:08:26,975 - INFO - [find_and_map_smart_headers_v12] SUCCESS: Confirmed header row at 3 with final score 105.
+2025-07-31 08:08:26,975 - INFO - Smart detection successful. Found and validated primary header on row 3.
+2025-07-31 08:08:26,976 - INFO - [find_all_header_rows] Searching for additional headers using pattern '^(批次号|订单号|物料代码|总张数|净重|毛重|po|item|pcs|net|gross|TTX编号)$' in rows 4-26
+2025-07-31 08:08:26,978 - INFO - Found a total of 1 table(s) to process at rows: [3]
+2025-07-31 08:08:26,978 - WARNING - Column 'description' not found during mapping. Aggregation keys will use None for description.
+2025-07-31 08:08:26,978 - INFO - Extracting data for all tables...
+2025-07-31 08:08:26,979 - INFO - [extract_multiple_tables] Starting extraction for 1 tables: [3]
+2025-07-31 08:08:26,979 - INFO - [extract_multiple_tables] Table 1: Extracting Data Rows 4 to 26
+2025-07-31 08:08:26,980 - INFO - [extract_multiple_tables] Stopping extraction for Table 1 at row 25: Empty cell in stop column 'item'.
+2025-07-31 08:08:26,980 - INFO - [extract_multiple_tables] Successfully stored 21 rows for Table Index 1.
+2025-07-31 08:08:26,980 - INFO - --- Starting Data Processing Loop for 1 Extracted Table(s) ---
+2025-07-31 08:08:26,980 - INFO - --- Processing Table Index 1 ---
+2025-07-31 08:08:26,980 - INFO - Table 1: Calculating CBM values...
+2025-07-31 08:08:26,980 - INFO - [process_cbm_column] Processing 'cbm' column for volume calculations (List length: 21)...
+2025-07-31 08:08:26,980 - INFO - [process_cbm_column] Finished processing 'cbm' column. List now contains calculated values (Decimals or Nones).
+2025-07-31 08:08:26,980 - INFO - Table 1: Distributing values...
+2025-07-31 08:08:26,980 - INFO - [distribute_values] Starting value distribution for columns: ['net', 'gross', 'cbm'] based on 'pcs' (21 rows).
+2025-07-31 08:08:26,980 - INFO - [distribute_values] Processing column for distribution: 'net'
+2025-07-31 08:08:26,981 - INFO - [distribute_values] Completed distribution processing for column: 'net'.
+2025-07-31 08:08:26,981 - INFO - [distribute_values] Processing column for distribution: 'gross'
+2025-07-31 08:08:26,981 - WARNING - [distribute_values] Col 'gross', Row index 9: Distribution Check potentially FAILED for block. Original: 643.5, Distributed Sum: 643.5001, Difference: 0.0001000000 (Tolerance: 0.00005)
+2025-07-31 08:08:26,981 - WARNING - [distribute_values] Col 'gross', Row index 12: Distribution Check potentially FAILED for block. Original: 693.5, Distributed Sum: 693.4999, Difference: 0.0001000000 (Tolerance: 0.00005)
+2025-07-31 08:08:26,981 - INFO - [distribute_values] Completed distribution processing for column: 'gross'.
+2025-07-31 08:08:26,981 - INFO - [distribute_values] Processing column for distribution: 'cbm'
+2025-07-31 08:08:26,982 - WARNING - [distribute_values] Col 'cbm', Row index 9: Distribution Check potentially FAILED for block. Original: 1.9800, Distributed Sum: 1.9799, Difference: 0.0001000000 (Tolerance: 0.00005)
+2025-07-31 08:08:26,982 - INFO - [distribute_values] Completed distribution processing for column: 'cbm'.
+2025-07-31 08:08:26,982 - INFO - [distribute_values] Value distribution processing COMPLETED for all requested columns.
+2025-07-31 08:08:26,982 - INFO - Table 1: Updating global STANDARD aggregation...
+2025-07-31 08:08:26,982 - INFO - [aggregate_standard] 'description' column not found or is invalid. Will use None for description keys.
+2025-07-31 08:08:26,982 - INFO - [aggregate_standard] Processing 21 rows for STANDARD aggregation (SQFT & Amount by PO/Item/Price/Desc).
+2025-07-31 08:08:26,982 - INFO - [aggregate_standard] Finished processing 21 rows.
+2025-07-31 08:08:26,982 - INFO - [aggregate_standard] SQFT values successfully converted/defaulted for 21 rows.
+2025-07-31 08:08:26,982 - INFO - [aggregate_standard] Amount values successfully converted/defaulted for 21 rows.
+2025-07-31 08:08:26,983 - INFO - [aggregate_standard] Global standard aggregation map size: 6
+2025-07-31 08:08:26,983 - INFO - Table 1: Updating global CUSTOM aggregation...
+2025-07-31 08:08:26,983 - INFO - [aggregate_custom] 'description' column not found or is invalid. Will use None for description keys.
+2025-07-31 08:08:26,983 - INFO - [aggregate_custom] Processing 21 rows from this table to update global CUSTOM aggregation (by PO/Item/Desc).
+2025-07-31 08:08:26,983 - INFO - [aggregate_custom] Finished processing 21 rows for this table.
+2025-07-31 08:08:26,983 - INFO - [aggregate_custom] SQFT values successfully converted/defaulted for 21 rows.
+2025-07-31 08:08:26,983 - INFO - [aggregate_custom] Amount values successfully converted/defaulted for 21 rows.
+2025-07-31 08:08:26,983 - INFO - [aggregate_custom] Global custom aggregation map now contains 4 unique (PO, Item, None, Description) keys.
+2025-07-31 08:08:26,983 - INFO - --- Finished Processing All Steps for Table Index 1 ---
+2025-07-31 08:08:26,983 - INFO - --- All Table Processing Loops Completed ---
+2025-07-31 08:08:26,983 - INFO - --- Performing Final FOB Compounding (Using 'STANDARD' aggregation results as input) ---
+2025-07-31 08:08:26,983 - INFO - [perform_fob_compounding] Starting FOB Compounding. Checking for descriptions to determine split type.
+2025-07-31 08:08:26,983 - INFO - [perform_fob_compounding] No description data found. Performing PO count split aggregation.
+2025-07-31 08:08:26,983 - INFO - [perform_fob_compounding]   - Totals calculated per group of 5 POs.
+2025-07-31 08:08:26,983 - INFO - [perform_fob_compounding]   - String formatting uses chunk size 2 and separator '/'.
+2025-07-31 08:08:26,984 - INFO - [perform_fob_compounding] PO count split FOB Compounding complete (1 chunks created).
+2025-07-31 08:08:26,984 - INFO - --- FOB Compounding Finished ---
+2025-07-31 08:08:26,984 - INFO - Final processed data structure contains 1 table(s).
+2025-07-31 08:08:26,984 - INFO - Primary aggregation mode used for FOB Compounding: STANDARD
+2025-07-31 08:08:26,984 - INFO - --- Final FOB Compounded Result (Workbook: 'JLFHLZN25009.xlsx', Based on 'STANDARD' Input) ---
+2025-07-31 08:08:26,984 - INFO - FOB result is split into BUFFALO (1) and NON-BUFFALO (2) groups.
+2025-07-31 08:08:26,984 - INFO - --- FOB Group 1 --- 
+2025-07-31 08:08:26,984 - INFO -   Combined POs:
+BPL2570385
+2025-07-31 08:08:26,984 - INFO -   Combined Items:
+B13100061A/B13100081A
+B13100349A/B13100440A
+2025-07-31 08:08:26,984 - INFO -   Combined Descriptions:
+
+2025-07-31 08:08:26,984 - INFO -   Total SQFT: 87652.5 (Type: <class 'decimal.Decimal'>)
+2025-07-31 08:08:26,984 - INFO -   Total Amount: 128902.69 (Type: <class 'decimal.Decimal'>)
+2025-07-31 08:08:26,984 - INFO - ------------------------------
+2025-07-31 08:08:26,984 - INFO - --- Preparing Data for JSON Output ---
+2025-07-31 08:08:26,985 - INFO - --- Generated JSON Output ---
+2025-07-31 08:08:26,985 - INFO - JSON output is large (10898 chars). Logging preview:
+2025-07-31 08:08:26,985 - INFO - {
+    "metadata": {
+        "workbook_filename": "JLFHLZN25009.xlsx",
+        "worksheet_name": "\u7ed9\u5f90\u71d5\u6253\u5370",
+        "fob_compounding_input_mode": "standard",
+        "fob_chunk_size": 2,
+        "fob_intra_separator": "/",
+        "fob_inter_separator": "\\n",
+        "timestamp": "2025-07-31T08:08:26.984795"
+    },
+    "processed_tables_data": {
+        "1": {
+            "production_order_no": [
+                "2506027-01",
+                "2506027-01",
+                "2506027-01",
+                "2506027-01",
+                "2507011-01",
+                "2507011-01",
+                "2507011-01",
+                "2507011-01",
+                "2507011-01",
+                "2507011-01",
+                "2507011-01",
+                "2507011-01",
+                "2506085-01",
+                "2506085-01",
+                "2506085-01",
+                "2506085-01",
+                "2506085-01",
+                "2507043-01",
+                "2507043-01",
+                "2507043-01",
+                "2507043-01"
+            ],
+            "po": [
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385",
+                "BPL2570385"
+            ],
+            "item": [
+                "B13100440A",
+                "B13100440A",
+                "B13100440A",
+                "B13100440A",
+                "B13100061A",
+                "B13100061A",
+                "B13100061A",
+                "B13100061A",
+                "B13100061A",
+                "B13100061A",
+                "B13100061A",
+                "B13100061A",
+                "B13100081A",
+                "B13100081A",
+                "B13100081A",
+                "B13100081A",
+                "B13100081A",
+                "B13100349A",
+                "B13100349A",
+                "B13100349A",
+                "B13100349A"
+            ],
+            "reference_code": [
+                "UXCY-ET-\u767d163",
+                "UXCY-ET-\u767d163",
+                "UXCY-ET-\u767d163",
+                "UXCY-ET-\u767d163",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPAY-FX-\u6df1\u84dd45",
+                "XPDY-FX-\u7070\u767d215",
+                "XPDY-FX-\u7070\u767d215",
+                "XPDY-FX-\u7070\u767d215",
+                "XPDY-FX-\u7070\u767d215",
+                "XPDY-FX-\u7070\u767d215",
+                "XPDY-FX-\u767d151",
+                "XPDY-FX-\u767d151",
+                "XPDY-FX-\u767d151",
+                "XPDY-FX-\u767d151"
+            ],
+            "pcs": [
+                175,
+                143,
+                1,
+                20,
+                134,
+                60,
+                141,
+                62,
+                220,
+                147,
+                1,
+                15,
+                144,
+                16,
+                2,
+                199,
+                4,
+                132,
+                61,
+                7,
+                1
+            ],
+            "sqft": [
+                10252.6,
+                8153.7,
+                43.8,
+                1068.4,
+                7037,
+                3008.5,
+                7041.7,
+                3009.7,
+                11566,
+                7371,
+                53.3,
+                781.9,
+                7512.6,
+                740.8,
+                76.3,
+                9545.2,
+                154.2,
+                6795.3,
+                3062.8,
+                336.3,
+                41.4
+            ],
+            "pallet_count": [
+                1,
+                1,
+                null,
+                null,
+                1,
+                null,
+                1,
+                null,
+                1,
+                1,
+                null,
+                null,
+                1,
+                null,
+                null,
+                1,
+                null,
+                1,
+                null,
+                null,
+                null
+            ],
+            "net": [
+                "1026.5",
+                "811.7866",
+                "5.6768",
+                "113.5366",
+                "509.4072",
+                "228.0928",
+                "511.2118",
+                "224.7882",
+        
+... (JSON output truncated in log)
+2025-07-31 08:08:26,985 - INFO - Determined output JSON path: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process\JLFHLZN25009.json
+2025-07-31 08:08:26,986 - INFO - Successfully saved JSON output to 'C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\invoices_to_process\JLFHLZN25009.json'
+2025-07-31 08:08:26,986 - INFO - --- Invoice Automation Finished Successfully ---
+2025-07-31 08:08:26,986 - INFO - \U0001f552 TOTAL PROCESSING TIME: 0.07 seconds (0.0 minutes)
+2025-07-31 08:08:26,986 - INFO - \U0001f4c1 Processed file: JLFHLZN25009.xlsx
+2025-07-31 08:08:26,987 - INFO - Closed workbook object reference for: C:\Users\JPZ031127\Desktop\tools\inv_pkl_contract_creation - Copy\data\temp_uploads\JLFHLZN25009.xlsx
+2025-07-31 08:08:26,987 - INFO - --- Automation Run Complete ---
+2025-07-31 08:08:42,841 - INFO - Business Activity: DATA_VERIFICATION by menchayheng - Invoice: INV2025-3 - Verified and inserted new invoice - 21 records added - Success: True
+2025-07-31 08:19:49,485 - INFO - Business Activity: INVOICE_EDIT by menchayheng - Invoice No: TR25025 - Edited invoice data - 1 records updated - Success: True
+2025-07-31 08:27:44,036 - INFO - Automatic cleanup check - consider running cleanup_old_data()

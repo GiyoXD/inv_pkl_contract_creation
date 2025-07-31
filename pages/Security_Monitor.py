@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 from datetime import datetime, timedelta
-from login import check_authentication, show_logout_button, show_user_info, get_security_stats, USER_DB_PATH
+from login import check_authentication, show_logout_button, show_user_info, get_security_stats, USER_DB_PATH, get_business_activities, ACTIVITY_TYPES
 
 # --- Authentication Check ---
 user_info = check_authentication()
@@ -410,4 +410,136 @@ if st.button("🔓 Unlock Admin Account (Emergency)"):
         conn.close()
         st.success("Admin account unlocked! You can now login.")
     except Exception as e:
-        st.error(f"Failed to unlock account: {e}") 
+        st.error(f"Failed to unlock account: {e}")
+
+# --- Business Activity Monitoring Section ---
+st.markdown("---")
+st.header("📋 Business Activity Monitor")
+st.write("Track user actions on data verification and invoice management")
+
+# Get business activities
+business_df = get_business_activities(days_back=days_back)
+
+if not business_df.empty:
+    # Business Activity Summary
+    total_activities = len(business_df)
+    successful_activities = len(business_df[business_df['success'] == True])
+    failed_activities = len(business_df[business_df['success'] == False])
+    # Count unique invoices - prioritize invoice number over reference
+    invoices_affected = business_df['target_invoice_no'].nunique() if 'target_invoice_no' in business_df.columns else business_df['target_invoice_ref'].nunique()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Activities", total_activities)
+    with col2:
+        st.metric("Successful", successful_activities)
+    with col3:
+        st.metric("Failed", failed_activities)
+    with col4:
+        st.metric("Invoices Affected", invoices_affected)
+    
+    # Activity Type Breakdown
+    st.subheader("📊 Activity Type Breakdown")
+    activity_counts = business_df['activity_type'].value_counts()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**Activity Types:**")
+        for activity_type, count in activity_counts.items():
+            st.write(f"• {ACTIVITY_TYPES.get(activity_type, activity_type)}: {count}")
+    
+    with col2:
+        # Simple bar chart using st.bar_chart
+        activity_df = pd.DataFrame({
+            'Activity Type': [ACTIVITY_TYPES.get(at, at) for at in activity_counts.index],
+            'Count': activity_counts.values
+        })
+        st.bar_chart(activity_df.set_index('Activity Type'))
+    
+    # Recent Business Activities
+    st.subheader("🔄 Recent Business Activities")
+    
+    # Filter options
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        activity_types = ['All'] + list(business_df['activity_type'].unique())
+        selected_activity = st.selectbox("Filter by Activity Type:", activity_types)
+    
+    with col2:
+        success_filter = st.selectbox("Filter by Status:", ['All', 'Success', 'Failed'])
+    
+    with col3:
+        users = ['All'] + list(business_df['username'].unique())
+        selected_user = st.selectbox("Filter by User:", users)
+    
+    with col4:
+        invoice_no_filter = st.text_input("Filter by Invoice Number:", "")
+    
+    # Apply filters
+    filtered_business_df = business_df.copy()
+    if selected_activity != 'All':
+        filtered_business_df = filtered_business_df[filtered_business_df['activity_type'] == selected_activity]
+    if success_filter == 'Success':
+        filtered_business_df = filtered_business_df[filtered_business_df['success'] == True]
+    elif success_filter == 'Failed':
+        filtered_business_df = filtered_business_df[filtered_business_df['success'] == False]
+    if selected_user != 'All':
+        filtered_business_df = filtered_business_df[filtered_business_df['username'] == selected_user]
+    if invoice_no_filter:
+        filtered_business_df = filtered_business_df[filtered_business_df['target_invoice_no'] == invoice_no_filter]
+    
+    # Display activities
+    for _, activity in filtered_business_df.head(15).iterrows():
+        status_icon = "✅" if activity['success'] else "❌"
+        activity_name = ACTIVITY_TYPES.get(activity['activity_type'], activity['activity_type'])
+        
+        with st.expander(f"{activity['timestamp']} - {status_icon} {activity_name} by {activity['username']}"):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**User:** {activity['username']}")
+                st.write(f"**Activity:** {activity_name}")
+                st.write(f"**Invoice No:** {activity['target_invoice_no'] or 'N/A'}")
+                st.write(f"**Invoice Ref:** {activity['target_invoice_ref'] or 'N/A'}")
+                st.write(f"**IP Address:** {activity['ip_address']}")
+            with col2:
+                st.write(f"**Success:** {'✅' if activity['success'] else '❌'}")
+                st.write(f"**Description:** {activity['action_description']}")
+                if activity['error_message']:
+                    st.error(f"Error: {activity['error_message']}")
+            
+            # Show data changes if available
+            if activity['old_values'] or activity['new_values']:
+                st.write("**Data Changes:**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if activity['old_values']:
+                        st.write("**Old Values:**")
+                        st.json(activity['old_values'])
+                with col2:
+                    if activity['new_values']:
+                        st.write("**New Values:**")
+                        st.json(activity['new_values'])
+    
+    # Export business activities
+    st.subheader("📊 Export Business Activities")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        csv_data = filtered_business_df.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Business Activities (CSV)",
+            data=csv_data,
+            file_name=f"business_activities_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
+    
+    with col2:
+        json_data = filtered_business_df.to_json(orient='records', indent=2)
+        st.download_button(
+            label="📥 Download Business Activities (JSON)",
+            data=json_data,
+            file_name=f"business_activities_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json"
+        )
+else:
+    st.info("No business activities found in the selected time period.") 
