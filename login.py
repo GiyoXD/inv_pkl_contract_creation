@@ -594,7 +594,17 @@ def get_security_events(limit=100):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT se.*, u.username
+            SELECT 
+                se.timestamp,
+                u.username,
+                se.event_type as action,
+                se.ip_address,
+                se.user_agent,
+                CASE 
+                    WHEN se.event_type IN ('LOGIN_SUCCESS', 'USER_REGISTERED') THEN 1
+                    ELSE 0
+                END as success,
+                se.description as details
             FROM security_events se
             LEFT JOIN users u ON se.user_id = u.id
             ORDER BY se.timestamp DESC
@@ -603,8 +613,15 @@ def get_security_events(limit=100):
         
         events = []
         for row in cursor.fetchall():
-            event = dict(zip([col[0] for col in cursor.description], row))
-            events.append(event)
+            events.append({
+                'timestamp': row[0],
+                'username': row[1],
+                'action': row[2],
+                'ip_address': row[3],
+                'user_agent': row[4],
+                'success': bool(row[5]),
+                'details': row[6]
+            })
         
         conn.close()
         return events
