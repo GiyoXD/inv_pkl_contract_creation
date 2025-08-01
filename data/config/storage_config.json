@@ -1,0 +1,8 @@
+{
+  "business_activities_retention_days": 90,
+  "security_audit_retention_days": 180,
+  "sessions_cleanup_hours": 24,
+  "auto_cleanup_enabled": true,
+  "archive_old_data": true,
+  "max_json_size_kb": 50
+}

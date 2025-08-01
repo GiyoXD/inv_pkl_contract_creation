@@ -1077,23 +1077,246 @@ def get_token_cleanup_stats():
             'cleanup_threshold_days': 30  # Default cleanup threshold
         }
 
-def cleanup_old_data():
+def cleanup_old_data(days_back=30, force=False):
     """Clean up old data (admin function)"""
-    pass
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Calculate cutoff date
+        cutoff_date = datetime.now() - timedelta(days=days_back)
+        cutoff_str = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
+        
+        stats = {
+            'sessions_cleaned': 0,
+            'security_events_cleaned': 0,
+            'business_activities_cleaned': 0,
+            'tokens_cleaned': 0
+        }
+        
+        # Clean old sessions
+        cursor.execute('SELECT COUNT(*) FROM sessions WHERE created_at < ?', (cutoff_str,))
+        stats['sessions_cleaned'] = cursor.fetchone()[0]
+        
+        if force or stats['sessions_cleaned'] > 0:
+            cursor.execute('DELETE FROM sessions WHERE created_at < ?', (cutoff_str,))
+        
+        # Clean old security events
+        cursor.execute('SELECT COUNT(*) FROM security_events WHERE timestamp < ?', (cutoff_str,))
+        stats['security_events_cleaned'] = cursor.fetchone()[0]
+        
+        if force or stats['security_events_cleaned'] > 0:
+            cursor.execute('DELETE FROM security_events WHERE timestamp < ?', (cutoff_str,))
+        
+        # Clean old business activities
+        cursor.execute('SELECT COUNT(*) FROM business_activities WHERE timestamp < ?', (cutoff_str,))
+        stats['business_activities_cleaned'] = cursor.fetchone()[0]
+        
+        if force or stats['business_activities_cleaned'] > 0:
+            cursor.execute('DELETE FROM business_activities WHERE timestamp < ?', (cutoff_str,))
+        
+        # Clean old expired tokens
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens WHERE created_at < ? AND (expires_at < datetime("now") OR used_count >= max_uses)', (cutoff_str,))
+        stats['tokens_cleaned'] = cursor.fetchone()[0]
+        
+        if force or stats['tokens_cleaned'] > 0:
+            cursor.execute('DELETE FROM registration_tokens WHERE created_at < ? AND (expires_at < datetime("now") OR used_count >= max_uses)', (cutoff_str,))
+        
+        conn.commit()
+        conn.close()
+        
+        total_cleaned = sum(stats.values())
+        
+        return {
+            'success': True,
+            'message': f"Cleaned up {total_cleaned} old records (older than {days_back} days)",
+            'stats': stats
+        }
+        
+    except Exception as e:
+        print(f"Error cleaning old data: {e}")
+        return {
+            'success': False,
+            'message': f"Error cleaning old data: {e}"
+        }
 
 def optimize_database():
     """Optimize database (admin function)"""
-    pass
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        # Get database size before optimization
+        cursor.execute('PRAGMA page_count')
+        page_count_before = cursor.fetchone()[0]
+        cursor.execute('PRAGMA page_size')
+        page_size = cursor.fetchone()[0]
+        size_before_kb = (page_count_before * page_size) / 1024
+        
+        # Run VACUUM to optimize database
+        cursor.execute('VACUUM')
+        
+        # Get database size after optimization
+        cursor.execute('PRAGMA page_count')
+        page_count_after = cursor.fetchone()[0]
+        size_after_kb = (page_count_after * page_size) / 1024
+        
+        space_saved_kb = size_before_kb - size_after_kb
+        
+        conn.close()
+        
+        return {
+            'success': True,
+            'message': f"Database optimized successfully. Saved {space_saved_kb:.2f} KB",
+            'stats': {
+                'size_before_kb': size_before_kb,
+                'size_after_kb': size_after_kb,
+                'space_saved_kb': space_saved_kb
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error optimizing database: {e}")
+        return {
+            'success': False,
+            'message': f"Error optimizing database: {e}"
+        }
 
 def get_storage_recommendations():
     """Get storage recommendations (admin function)"""
-    pass
+    try:
+        conn = sqlite3.connect(USER_DB_PATH)
+        cursor = conn.cursor()
+        
+        recommendations = []
+        
+        # Check for old sessions
+        cursor.execute('SELECT COUNT(*) FROM sessions WHERE created_at < datetime("now", "-30 days")')
+        old_sessions = cursor.fetchone()[0]
+        if old_sessions > 0:
+            recommendations.append({
+                'type': 'cleanup',
+                'priority': 'medium',
+                'title': 'Old Sessions',
+                'description': f'{old_sessions} sessions older than 30 days can be cleaned up',
+                'action': 'Run data cleanup'
+            })
+        
+        # Check for old security events
+        cursor.execute('SELECT COUNT(*) FROM security_events WHERE timestamp < datetime("now", "-90 days")')
+        old_events = cursor.fetchone()[0]
+        if old_events > 0:
+            recommendations.append({
+                'type': 'cleanup',
+                'priority': 'low',
+                'title': 'Old Security Events',
+                'description': f'{old_events} security events older than 90 days can be archived',
+                'action': 'Run data cleanup'
+            })
+        
+        # Check for expired tokens
+        cursor.execute('SELECT COUNT(*) FROM registration_tokens WHERE expires_at < datetime("now")')
+        expired_tokens = cursor.fetchone()[0]
+        if expired_tokens > 0:
+            recommendations.append({
+                'type': 'cleanup',
+                'priority': 'high',
+                'title': 'Expired Tokens',
+                'description': f'{expired_tokens} expired registration tokens can be removed',
+                'action': 'Clean up expired tokens'
+            })
+        
+        # Check database size
+        cursor.execute('PRAGMA page_count')
+        page_count = cursor.fetchone()[0]
+        cursor.execute('PRAGMA page_size')
+        page_size = cursor.fetchone()[0]
+        db_size_mb = (page_count * page_size) / (1024 * 1024)
+        
+        if db_size_mb > 10:  # If database is larger than 10MB
+            recommendations.append({
+                'type': 'optimization',
+                'priority': 'medium',
+                'title': 'Database Optimization',
+                'description': f'Database size is {db_size_mb:.2f} MB. Consider running VACUUM',
+                'action': 'Optimize database'
+            })
+        
+        conn.close()
+        
+        return {
+            'success': True,
+            'recommendations': recommendations,
+            'db_size_mb': db_size_mb
+        }
+        
+    except Exception as e:
+        print(f"Error getting storage recommendations: {e}")
+        return {
+            'success': False,
+            'message': f"Error getting storage recommendations: {e}",
+            'recommendations': []
+        }
 
 def update_storage_config(config):
     """Update storage configuration (admin function)"""
-    pass
+    try:
+        import json
+        import os
+        
+        # Create config directory if it doesn't exist
+        config_dir = "data/config"
+        os.makedirs(config_dir, exist_ok=True)
+        
+        config_file = os.path.join(config_dir, "storage_config.json")
+        
+        # Save the configuration
+        with open(config_file, 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        # Update the global config
+        global STORAGE_CLEANUP_CONFIG
+        STORAGE_CLEANUP_CONFIG.update(config)
+        
+        return {
+            'success': True,
+            'message': 'Storage configuration updated successfully'
+        }
+        
+    except Exception as e:
+        print(f"Error updating storage config: {e}")
+        return {
+            'success': False,
+            'message': f"Error updating storage config: {e}"
+        }
 
-# Storage cleanup configuration (for compatibility)
+# Storage cleanup configuration
+STORAGE_CLEANUP_CONFIG = {
+    'business_activities_retention_days': 90,
+    'security_audit_retention_days': 180,
+    'sessions_cleanup_hours': 24,
+    'auto_cleanup_enabled': True,
+    'archive_old_data': True,
+    'max_json_size_kb': 50
+}
+
+# Load config from file if it exists
+def load_storage_config():
+    """Load storage configuration from file"""
+    try:
+        import json
+        import os
+        
+        config_file = "data/config/storage_config.json"
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                saved_config = json.load(f)
+                STORAGE_CLEANUP_CONFIG.update(saved_config)
+    except Exception as e:
+        print(f"Error loading storage config: {e}")
+
+# Load config on import
+load_storage_config()
 STORAGE_CLEANUP_CONFIG = {
     'security_events_days': 90,
     'business_activities_days': 365,

@@ -490,18 +490,33 @@ with tab4:
     # Storage recommendations
     st.subheader("💡 Storage Recommendations")
     
-    recommendations = get_storage_recommendations()
+    recommendations_result = get_storage_recommendations()
     
-    if recommendations:
-        for rec in recommendations:
-            if rec['type'] == 'warning':
-                st.warning(f"⚠️ {rec['message']}")
-                st.info(f"**Action:** {rec['action']}")
-            elif rec['type'] == 'info':
-                st.info(f"ℹ️ {rec['message']}")
-                st.info(f"**Action:** {rec['action']}")
+    if recommendations_result['success']:
+        recommendations = recommendations_result.get('recommendations', [])
+        
+        if recommendations:
+            for rec in recommendations:
+                if rec['type'] == 'cleanup':
+                    if rec['priority'] == 'high':
+                        st.error(f"🔴 **{rec['title']}**: {rec['description']}")
+                    elif rec['priority'] == 'medium':
+                        st.warning(f"🟡 **{rec['title']}**: {rec['description']}")
+                    else:
+                        st.info(f"🔵 **{rec['title']}**: {rec['description']}")
+                elif rec['type'] == 'optimization':
+                    st.info(f"⚡ **{rec['title']}**: {rec['description']}")
+                
+                st.caption(f"**Recommended action:** {rec['action']}")
+                st.divider()
+        else:
+            st.success("✅ No storage optimization recommendations at this time.")
+            
+        # Show database size info
+        db_size_mb = recommendations_result.get('db_size_mb', 0)
+        st.metric("Database Size", f"{db_size_mb:.2f} MB")
     else:
-        st.success("✅ No storage optimization recommendations at this time.")
+        st.error(f"❌ Error getting recommendations: {recommendations_result.get('message', 'Unknown error')}")
     
     # Storage configuration
     st.subheader("⚙️ Storage Configuration")
@@ -585,8 +600,9 @@ with tab4:
                 if 'stats' in result:
                     stats = result['stats']
                     st.info(f"Cleaned: {stats['business_activities_cleaned']} business activities, "
-                           f"{stats['security_audit_cleaned']} security logs, "
-                           f"{stats['sessions_cleaned']} sessions")
+                           f"{stats['security_events_cleaned']} security events, "
+                           f"{stats['sessions_cleaned']} sessions, "
+                           f"{stats['tokens_cleaned']} tokens")
                 st.rerun()
             else:
                 st.error(result['message'])
